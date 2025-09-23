@@ -343,27 +343,26 @@ try {
 
 // Complete Chat System Routes
 try {
-  const completeChatRoutes = require('./routes/complete-chat-api');
-  const chatBypassRoutes = require('./routes/chat-bypass');
+  console.log('🔧 DEBUG: Starting chat route registration...');
+  
+  // Load working chat routes only (simplified)
   const workingChatRoutes = require('./routes/working-chat');
-  const userApiRoutes = require('./routes/user-api');
+  console.log('🔧 DEBUG: Working chat routes loaded');
   
-  console.log('🔧 DEBUG: Working chat routes loaded, registering at /api/chat...');
-  
-  // Register working chat routes at /api/chat (FIXED: was missing)
+  // Register working chat routes at /api/chat
   app.use('/api/chat', workingChatRoutes);
+  console.log('🔧 DEBUG: Working chat routes registered at /api/chat');
   
-  console.log('🔧 DEBUG: Working chat routes registered successfully');
-  
-  // Use simple chat routes (guaranteed to work)
-  const simpleChatRoutes = require('./routes/simple-chat');
-  app.use('/api/simple-chat', simpleChatRoutes);
+  // Load user API routes
+  const userApiRoutes = require('./routes/user-api');
   app.use('/api/user', userApiRoutes);
+  console.log('🔧 DEBUG: User API routes registered');
   
   console.log('✅ Complete chat system routes loaded');
 } catch (error) {
   console.log('⚠️ Complete chat system routes not available:', error.message);
   console.log('🔧 DEBUG: Error details:', error);
+  console.log('🔧 DEBUG: Error stack:', error.stack);
 }
 
 // Chat Monitoring Route (accessible without auth for monitoring)
