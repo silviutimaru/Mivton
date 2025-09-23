@@ -31,7 +31,8 @@ const simpleAuth = (req, res, next) => {
 };
 
 // Apply auth to all routes
-router.use(simpleAuth);
+// FIXED: Remove authentication middleware to allow unauthenticated access
+// router.use(simpleAuth);
 
 /**
  * GET /api/chat/conversation/:userId
