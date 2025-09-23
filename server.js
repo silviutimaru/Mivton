@@ -341,35 +341,7 @@ try {
   console.log('⚠️ Phase 3.3 routes not available:', error.message);
 }
 
-// Complete Chat System Routes
-try {
-  console.log('🔧 DEBUG: Starting chat route registration...');
-  
-  // Register simple test route first
-  app.get('/api/chat/test-direct', (req, res) => {
-    res.json({ success: true, message: 'Direct route test working!' });
-  });
-  console.log('🔧 DEBUG: Direct test route registered');
-  
-  // Load working chat routes only (simplified)
-  const workingChatRoutes = require('./routes/working-chat');
-  console.log('🔧 DEBUG: Working chat routes loaded');
-  
-  // Register working chat routes at /api/chat
-  app.use('/api/chat', workingChatRoutes);
-  console.log('🔧 DEBUG: Working chat routes registered at /api/chat');
-  
-  // Load user API routes
-  const userApiRoutes = require('./routes/user-api');
-  app.use('/api/user', userApiRoutes);
-  console.log('🔧 DEBUG: User API routes registered');
-  
-  console.log('✅ Complete chat system routes loaded');
-} catch (error) {
-  console.log('⚠️ Complete chat system routes not available:', error.message);
-  console.log('🔧 DEBUG: Error details:', error);
-  console.log('🔧 DEBUG: Error stack:', error.stack);
-}
+// Complete Chat System Routes - MOVED TO AFTER SERVER START
 
 // Chat Monitoring Route (accessible without auth for monitoring)
 app.get('/chat-monitor', (req, res) => {
@@ -1074,8 +1046,43 @@ process.on('unhandledRejection', (reason, promise) => {
   // Don't exit, just log the error
 });
 
+// Register chat routes after server starts
+const registerChatRoutes = () => {
+  try {
+    console.log('🔧 DEBUG: Starting chat route registration...');
+    
+    // Register simple test route first
+    app.get('/api/chat/test-direct', (req, res) => {
+      res.json({ success: true, message: 'Direct route test working!' });
+    });
+    console.log('🔧 DEBUG: Direct test route registered');
+    
+    // Load working chat routes only (simplified)
+    const workingChatRoutes = require('./routes/working-chat');
+    console.log('🔧 DEBUG: Working chat routes loaded');
+    
+    // Register working chat routes at /api/chat
+    app.use('/api/chat', workingChatRoutes);
+    console.log('🔧 DEBUG: Working chat routes registered at /api/chat');
+    
+    // Load user API routes
+    const userApiRoutes = require('./routes/user-api');
+    app.use('/api/user', userApiRoutes);
+    console.log('🔧 DEBUG: User API routes registered');
+    
+    console.log('✅ Complete chat system routes loaded');
+  } catch (error) {
+    console.log('⚠️ Complete chat system routes not available:', error.message);
+    console.log('🔧 DEBUG: Error details:', error);
+    console.log('🔧 DEBUG: Error stack:', error.stack);
+  }
+};
+
 // Start the server with error handling
-startServer().catch((error) => {
+startServer().then(() => {
+  console.log('🔧 DEBUG: Server started, registering chat routes...');
+  registerChatRoutes();
+}).catch((error) => {
   console.error('❌ Failed to start server:', error);
   // Don't exit immediately, try to restart
   setTimeout(() => {
