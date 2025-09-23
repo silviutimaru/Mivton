@@ -65,24 +65,48 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Session middleware
-app.use(session({
-  store: new pgSession({
-    pool: getDb(),
-    tableName: 'session',
-    createTableIfMissing: false
-  }),
-  secret: process.env.JWT_SECRET || 'mivton-super-secret-jwt-key-2025-production',
-  resave: false,
-  saveUninitialized: false,
-  rolling: true,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  },
-  name: 'mivton.sid'
-}));
+// Session configuration
+const isLocalDev = !process.env.DATABASE_URL || process.env.NODE_ENV === 'development';
+
+if (isLocalDev) {
+  // Use memory store for local development to avoid SQLite compatibility issues
+  console.log('🔧 Using memory session store for local development');
+  app.use(session({
+    store: new (require('express-session').MemoryStore)(),
+    secret: process.env.JWT_SECRET || 'mivton-super-secret-jwt-key-2025-production',
+    resave: false,
+    saveUninitialized: false,
+    rolling: true,
+    cookie: {
+      secure: false, // Always false for local development
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax'
+    },
+    name: 'mivton.sid'
+  }));
+} else {
+  // Use PostgreSQL session store for production
+  console.log('🔧 Using PostgreSQL session store for production');
+  app.use(session({
+    store: new pgSession({
+      pool: getDb(),
+      tableName: 'session',
+      createTableIfMissing: true
+    }),
+    secret: process.env.JWT_SECRET || 'mivton-super-secret-jwt-key-2025-production',
+    resave: false,
+    saveUninitialized: false,
+    rolling: true,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    },
+    name: 'mivton.sid'
+  }));
+}
 
 // Add user to locals middleware
 app.use(addUserToLocals);
@@ -441,6 +465,37 @@ app.get('/task-4-2-test', (req, res) => {
 
 app.get('/task-4-2-test.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'task-4-2-test.html'));
+});
+
+// Test chat interface route
+app.get('/test-chat', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'test-chat.html'));
+});
+
+// Test authentication bypass for chat testing
+app.post('/api/test/login', async (req, res) => {
+  try {
+    // Set a test session
+    req.session.userId = 'test-user-id';
+    req.session.username = 'TestUser';
+    req.session.email = 'test@example.com';
+    req.session.fullName = 'Test User';
+    req.session.isAdmin = false;
+    
+    res.json({
+      success: true,
+      message: 'Test login successful',
+      user: {
+        id: 'test-user-id',
+        username: 'TestUser',
+        email: 'test@example.com',
+        fullName: 'Test User'
+      }
+    });
+  } catch (error) {
+    console.error('Test login error:', error);
+    res.status(500).json({ error: 'Test login failed' });
+  }
 });
 
 // Serve Presence Settings page
