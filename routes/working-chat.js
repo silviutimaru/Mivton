@@ -193,41 +193,19 @@ router.post('/send', async (req, res) => {
  */
 router.get('/conversations', async (req, res) => {
     try {
+        console.log('📬 Conversations endpoint called');
+        
         // FIXED: Allow conversations without authentication
         const currentUserId = req.session?.userId || req.query.userId || 'default-user';
         
-        // Get unique conversation partners
-        const partners = new Set();
-        conversations.forEach((msgs, key) => {
-            if (key.includes(currentUserId)) {
-                msgs.forEach(msg => {
-                    if (msg.senderId === currentUserId) {
-                        partners.add(msg.recipientId);
-                    } else {
-                        partners.add(msg.senderId);
-                    }
-                });
-            }
-        });
-
-        const conversationList = Array.from(partners).map(partnerId => {
-            const conversationKey = [currentUserId, partnerId].sort().join('-');
-            const conversationMessages = conversations.get(conversationKey) || [];
-            const lastMessage = conversationMessages[conversationMessages.length - 1];
-            
-            return {
-                conversation_id: conversationKey,
-                friend_id: partnerId,
-                friend_name: 'Silviu Timaru',
-                last_message_body: lastMessage?.body || 'No messages yet',
-                last_message_at: lastMessage?.timestamp || new Date().toISOString(),
-                unread_count: 0
-            };
-        });
-
+        console.log('📬 Current user ID:', currentUserId);
+        
+        // Simple response for now to test if route works
         res.json({
             success: true,
-            conversations: conversationList
+            conversations: [],
+            message: 'Conversations endpoint working',
+            userId: currentUserId
         });
 
     } catch (error) {
