@@ -436,11 +436,12 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                 </div>
                 
                 <div class="friend-actions">
-                    <button class="btn btn-sm btn-primary" data-action="chat" data-friend-id="${friend.id}">
+                    <button class="btn btn-sm btn-primary chat-button" data-action="chat" data-friend-id="${friend.id}" title="Start Chat">
                         <i class="fas fa-comments"></i>
+                        <span>Chat</span>
                     </button>
                     
-                    <button class="btn btn-sm btn-secondary" data-action="more" data-friend-id="${friend.id}">
+                    <button class="btn btn-sm btn-secondary" data-action="more" data-friend-id="${friend.id}" title="More Options">
                         <i class="fas fa-ellipsis-v"></i>
                     </button>
                 </div>
@@ -733,7 +734,7 @@ class MivtonFriendsManager extends MivtonBaseComponent {
         }
     }
 
-    async startChat(friendId) {
+    startChat(friendId) {
         try {
             console.log(`🚀 Starting chat with friend ${friendId}`);
             
@@ -741,26 +742,14 @@ class MivtonFriendsManager extends MivtonBaseComponent {
             const friendCard = this.element.querySelector(`[data-friend-id="${friendId}"]`);
             const friendName = friendCard?.querySelector('.friend-name')?.textContent?.trim() || 'Friend';
 
-            // Initialize simple chat if not already done
-            if (!window.simpleChat) {
-                console.log('🔄 Initializing simple multilingual chat...');
-                window.simpleChat = new SimpleMultilingualChat();
-                await window.simpleChat.init();
-            }
-            
-            // Open conversation with the friend
-            await window.simpleChat.openConversation(friendId, friendName);
-            
-            // Show the chat interface
-            window.simpleChat.show();
+            // Use ultra-simple chat
+            window.openChat(friendId, friendName);
             
             console.log(`✅ Chat opened with ${friendName}`);
             
         } catch (error) {
             console.error('❌ Error starting chat:', error);
-            if (window.toast) {
-                window.toast.show('Failed to start chat. Please try again.', 'error');
-            }
+            alert('Failed to start chat. Please try again.');
         }
         
         // Close the friend actions modal if it's open

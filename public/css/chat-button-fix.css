@@ -1,0 +1,89 @@
+/* Chat Button Improvements */
+.chat-button {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    padding: 8px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3) !important;
+}
+
+.chat-button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4) !important;
+    background: linear-gradient(135deg, #7c3aed, #2563eb) !important;
+}
+
+.chat-button:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3) !important;
+}
+
+.chat-button i {
+    font-size: 14px !important;
+}
+
+.chat-button span {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+}
+
+/* Make sure the button is visible */
+.friend-actions {
+    display: flex !important;
+    gap: 8px !important;
+    align-items: center !important;
+}
+
+/* Ensure the chat button stands out */
+.friend-card .friend-actions .chat-button {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6) !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 16px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3) !important;
+}
+
+.friend-card .friend-actions .chat-button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4) !important;
+    background: linear-gradient(135deg, #7c3aed, #2563eb) !important;
+}
+
+/* Ultra Simple Chat Modal Styling */
+#ultra-simple-chat {
+    backdrop-filter: blur(5px);
+}
+
+#ultra-simple-chat .chat-box {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Ensure the chat modal is on top of everything */
+#ultra-simple-chat {
+    z-index: 99999 !important;
+}
