@@ -160,7 +160,7 @@ class WorkingChat {
 
     async loadConversation() {
         try {
-            const response = await fetch(`/api/simple-chat/conversation/${this.currentFriend.id}?userId=${this.userId}`);
+            const response = await fetch(`/api/chat/conversation/${this.currentFriend.id}?userId=${this.userId}`);
             const data = await response.json();
             
             if (data.success) {
@@ -193,7 +193,7 @@ class WorkingChat {
         if (!message) return;
         
         try {
-            const response = await fetch('/api/simple-chat/send', {
+            const response = await fetch('/api/chat/send', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
