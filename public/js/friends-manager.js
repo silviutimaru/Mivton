@@ -436,7 +436,7 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                 </div>
                 
                 <div class="friend-actions">
-                    <button class="btn btn-sm btn-primary chat-button" data-friend-id="${friend.id}" onclick="window.openChat && window.openChat(${friend.id}, '${friend.full_name.replace(/'/g, "\\'")}')" title="Start Chat">
+                    <button class="btn btn-sm btn-primary chat-button" data-friend-id="${friend.id}" onclick="window.realChatSystem ? window.realChatSystem.openConversation(${friend.id}, '${friend.full_name.replace(/'/g, "\\'")}') : alert('Chat system loading...')" title="Start Real Chat">
                         <i class="fas fa-comments"></i>
                         <span>Chat</span>
                     </button>
@@ -734,21 +734,28 @@ class MivtonFriendsManager extends MivtonBaseComponent {
         }
     }
 
-    startChat(friendId) {
+    async startChat(friendId) {
         try {
-            console.log(`🚀 Starting chat with friend ${friendId}`);
+            console.log(`🚀 Starting real chat with friend ${friendId}`);
             
             // Get friend info
             const friendCard = this.element.querySelector(`[data-friend-id="${friendId}"]`);
             const friendName = friendCard?.querySelector('.friend-name')?.textContent?.trim() || 'Friend';
 
-            // Use ultra-simple chat
-            window.openChat(friendId, friendName);
+            // Initialize real chat system if not already done
+            if (!window.realChatSystem) {
+                console.log('🔄 Initializing real chat system...');
+                window.realChatSystem = new RealChatSystem();
+                await window.realChatSystem.init();
+            }
             
-            console.log(`✅ Chat opened with ${friendName}`);
+            // Open real conversation
+            await window.realChatSystem.openConversation(friendId, friendName);
+            
+            console.log(`✅ Real chat opened with ${friendName}`);
             
         } catch (error) {
-            console.error('❌ Error starting chat:', error);
+            console.error('❌ Error starting real chat:', error);
             alert('Failed to start chat. Please try again.');
         }
         
