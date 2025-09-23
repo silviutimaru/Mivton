@@ -398,8 +398,11 @@ class MivtonFriendsManager extends MivtonBaseComponent {
         const onlineStatusClass = this.getStatusClass(friend.online_status);
         const languageFlag = this.getLanguageFlag(friend.native_language);
         
+        // DEBUG: Log friend data to see what's available
+        console.log('🔍 Friend data:', friend);
+        
         return `
-            <div class="friend-card ${onlineStatusClass}" data-friend-id="${friend.id}">
+            <div class="friend-card ${onlineStatusClass}" data-friend-id="${friend.id || friend.user_id || friend.friend_id || 'unknown'}">
                 <div class="friend-avatar">
                     <i class="fas fa-user"></i>
                     <div class="status-indicator ${friend.online_status}"></div>
@@ -436,12 +439,12 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                 </div>
                 
                 <div class="friend-actions">
-                    <button class="btn btn-sm btn-primary chat-button" data-friend-id="${friend.id}" onclick="startDirectChat(${friend.id}, '${friend.full_name.replace(/'/g, "\\'")}')" title="Start Chat">
+                    <button class="btn btn-sm btn-primary chat-button" data-friend-id="${friend.id || friend.user_id || friend.friend_id || 'unknown'}" onclick="startDirectChat(${friend.id || friend.user_id || friend.friend_id || 'unknown'}, '${friend.full_name.replace(/'/g, "\\'")}')" title="Start Chat">
                         <i class="fas fa-comments"></i>
                         <span>Chat</span>
                     </button>
                     
-                    <button class="btn btn-sm btn-secondary" data-action="more" data-friend-id="${friend.id}" title="More Options">
+                    <button class="btn btn-sm btn-secondary" data-action="more" data-friend-id="${friend.id || friend.user_id || friend.friend_id || 'unknown'}" title="More Options">
                         <i class="fas fa-ellipsis-v"></i>
                     </button>
                 </div>
