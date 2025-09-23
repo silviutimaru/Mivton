@@ -348,8 +348,12 @@ try {
   const workingChatRoutes = require('./routes/working-chat');
   const userApiRoutes = require('./routes/user-api');
   
+  console.log('🔧 DEBUG: Working chat routes loaded, registering at /api/chat...');
+  
   // Register working chat routes at /api/chat (FIXED: was missing)
   app.use('/api/chat', workingChatRoutes);
+  
+  console.log('🔧 DEBUG: Working chat routes registered successfully');
   
   // Use simple chat routes (guaranteed to work)
   const simpleChatRoutes = require('./routes/simple-chat');
@@ -359,6 +363,7 @@ try {
   console.log('✅ Complete chat system routes loaded');
 } catch (error) {
   console.log('⚠️ Complete chat system routes not available:', error.message);
+  console.log('🔧 DEBUG: Error details:', error);
 }
 
 // Chat Monitoring Route (accessible without auth for monitoring)
