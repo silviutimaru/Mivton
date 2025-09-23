@@ -39,6 +39,15 @@ router.get('/test', (req, res) => {
     res.json({ success: true, message: 'Chat routes are working!' });
 });
 
+// Simple conversations endpoint for testing
+router.get('/conversations-simple', (req, res) => {
+    res.json({ 
+        success: true, 
+        conversations: [],
+        message: 'Simple conversations endpoint working'
+    });
+});
+
 /**
  * GET /api/chat/conversation/:userId
  * Get conversation with a specific user
