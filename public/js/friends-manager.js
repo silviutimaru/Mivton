@@ -436,7 +436,7 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                 </div>
                 
                 <div class="friend-actions">
-                    <button class="btn btn-sm btn-primary chat-button" data-friend-id="${friend.id}" onclick="window.realChatSystem ? window.realChatSystem.openConversation(${friend.id}, '${friend.full_name.replace(/'/g, "\\'")}') : alert('Chat system loading...')" title="Start Real Chat">
+                    <button class="btn btn-sm btn-primary chat-button" data-friend-id="${friend.id}" onclick="window.completeChatSystem ? window.completeChatSystem.openConversation(${friend.id}, '${friend.full_name.replace(/'/g, "\\'")}') : alert('Chat system loading...')" title="Start Complete Chat">
                         <i class="fas fa-comments"></i>
                         <span>Chat</span>
                     </button>
@@ -742,15 +742,15 @@ class MivtonFriendsManager extends MivtonBaseComponent {
             const friendCard = this.element.querySelector(`[data-friend-id="${friendId}"]`);
             const friendName = friendCard?.querySelector('.friend-name')?.textContent?.trim() || 'Friend';
 
-            // Initialize real chat system if not already done
-            if (!window.realChatSystem) {
-                console.log('🔄 Initializing real chat system...');
-                window.realChatSystem = new RealChatSystem();
-                await window.realChatSystem.init();
+            // Initialize complete chat system if not already done
+            if (!window.completeChatSystem) {
+                console.log('🔄 Initializing complete chat system...');
+                window.completeChatSystem = new CompleteChatSystem();
+                await window.completeChatSystem.init();
             }
             
-            // Open real conversation
-            await window.realChatSystem.openConversation(friendId, friendName);
+            // Open conversation
+            await window.completeChatSystem.openConversation(friendId, friendName);
             
             console.log(`✅ Real chat opened with ${friendName}`);
             

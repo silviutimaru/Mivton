@@ -335,13 +335,17 @@ try {
   console.log('⚠️ Phase 3.3 routes not available:', error.message);
 }
 
-// Multilingual Chat Routes
+// Complete Chat System Routes
 try {
-  const multilingualChatRoutes = require('./routes/multilingual-chat');
-  app.use('/api/chat', multilingualChatRoutes);
-  console.log('✅ Multilingual chat routes loaded');
+  const completeChatRoutes = require('./routes/complete-chat-api');
+  const userApiRoutes = require('./routes/user-api');
+  
+  app.use('/api/chat', completeChatRoutes);
+  app.use('/api/user', userApiRoutes);
+  
+  console.log('✅ Complete chat system routes loaded');
 } catch (error) {
-  console.log('⚠️ Multilingual chat routes not available:', error.message);
+  console.log('⚠️ Complete chat system routes not available:', error.message);
 }
 
 // Dashboard routes
@@ -514,11 +518,15 @@ app.get('/', (req, res) => {
 
 // ===== SOCKET.IO SETUP =====
 
-// Initialize Phase 3.2 Enhanced Real-Time Events
+// Initialize Complete Chat System and Enhanced Real-Time Events
 try {
   const { initializeEnhancedFriendsEvents } = require('./socket/enhanced-friends-events');
+  const { initializeCompleteChatEvents } = require('./socket/complete-chat-events');
+  
   initializeEnhancedFriendsEvents(io);
-  console.log('✅ Enhanced real-time events loaded (Phase 3.2)');
+  initializeCompleteChatEvents(io);
+  
+  console.log('✅ Complete chat system and enhanced real-time events loaded');
   
   // Store io instance globally for access from other modules
   global.io = io;
@@ -723,11 +731,12 @@ const startServer = async () => {
     await initializeDatabase();
     console.log('✅ Database connected successfully');
     
-    // Run multilingual chat migration
+    // Run complete chat system migration
     try {
-      require('./run-migration-on-startup.js');
+      const { runCompleteChatMigration } = require('./run-complete-chat-migration.js');
+      await runCompleteChatMigration();
     } catch (migrationError) {
-      console.log('⚠️ Multilingual chat migration failed, but continuing:', migrationError.message);
+      console.log('⚠️ Complete chat system migration failed, but continuing:', migrationError.message);
     }
     
     // Initialize Phase 3.1 Friends Database Schema
