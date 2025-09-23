@@ -733,20 +733,40 @@ class MivtonFriendsManager extends MivtonBaseComponent {
         }
     }
 
-    startChat(friendId) {
-        console.log('🗨️ Starting chat with friend:', friendId);
+    async startChat(friendId) {
+        try {
+            console.log(`🚀 Starting chat with friend ${friendId}`);
+            
+            // Get friend info
+            const friendCard = this.element.querySelector(`[data-friend-id="${friendId}"]`);
+            const friendName = friendCard?.querySelector('.friend-name')?.textContent?.trim() || 'Friend';
 
-        // Get friend information
-        const friendCard = this.element.querySelector(`[data-friend-id="${friendId}"]`);
-        const friendName = friendCard?.querySelector('.friend-name')?.textContent?.trim() || 'Friend';
-
-        // Use the simple chat function
-        if (window.createSimpleChat) {
-            window.createSimpleChat(friendName);
-            console.log('✅ Simple chat created');
-        } else {
-            console.error('❌ createSimpleChat function not available');
-            alert('Chat function not loaded. Please refresh the page.');
+            // Initialize multilingual chat if not already done
+            if (!window.multilingualChat) {
+                console.log('🔄 Initializing multilingual chat...');
+                window.multilingualChat = new MultilingualChat();
+                await window.multilingualChat.init();
+                
+                // Add chat container to the page
+                document.body.appendChild(window.multilingualChat.container);
+            }
+            
+            // Open conversation with the friend
+            await window.multilingualChat.openConversation(friendId, friendName);
+            
+            // Show the chat interface
+            window.multilingualChat.container.style.display = 'block';
+            
+            // Scroll to chat
+            window.multilingualChat.container.scrollIntoView({ behavior: 'smooth' });
+            
+            console.log(`✅ Chat opened with ${friendName}`);
+            
+        } catch (error) {
+            console.error('❌ Error starting chat:', error);
+            if (window.toast) {
+                window.toast.show('Failed to start chat. Please try again.', 'error');
+            }
         }
         
         // Close the friend actions modal if it's open
