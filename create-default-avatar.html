@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Default Avatar</title>
+</head>
+<body>
+    <canvas id="avatarCanvas" width="100" height="100" style="border: 1px solid #ccc;"></canvas>
+    <br><br>
+    <button onclick="downloadAvatar()">Download Avatar as PNG</button>
+    
+    <script>
+        const canvas = document.getElementById('avatarCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Draw avatar
+        // Background circle
+        ctx.fillStyle = '#4a5568';
+        ctx.beginPath();
+        ctx.arc(50, 50, 50, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Head circle
+        ctx.fillStyle = '#e2e8f0';
+        ctx.beginPath();
+        ctx.arc(50, 35, 15, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Body ellipse
+        ctx.beginPath();
+        ctx.ellipse(50, 75, 20, 15, 0, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        function downloadAvatar() {
+            const link = document.createElement('a');
+            link.download = 'default-avatar.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+</html>

@@ -1047,12 +1047,465 @@ if (typeof window !== 'undefined') {
     }
 }
 
+/**
+ * 🚀 MESSAGES MANAGER - Complete messaging system with persistence
+ * Features: Offline messaging, message history, unread counts, notifications
+ */
+
+class MivtonMessagesManager extends MivtonBaseComponent {
+    constructor(element, options = {}) {
+        super(element, options);
+        
+        this.options = {
+            refreshInterval: 30000, // 30 seconds
+            pageSize: 20,
+            ...options
+        };
+
+        this.state = {
+            conversations: [],
+            currentConversation: null,
+            unreadCount: 0,
+            loading: false,
+            error: null
+        };
+
+        this.refreshTimer = null;
+        this.isInitialized = false;
+        
+        // FIXED: Add error tracking to prevent infinite loops
+        this.errorCount = 0;
+        this.maxErrors = 3;
+        this.isCircuitBreakerOpen = false;
+        this.lastErrorTime = null;
+        this.circuitBreakerTimeout = 60000; // 1 minute
+
+        this.initialize();
+    }
+
+    async initialize() {
+        try {
+            console.log('🚀 Initializing Messages Manager...');
+            
+            this.createMessagesInterface();
+            this.bindEvents();
+            await this.loadConversations();
+            this.startAutoRefresh();
+            
+            this.isInitialized = true;
+            console.log('✅ Messages Manager initialized successfully');
+            
+        } catch (error) {
+            console.error('❌ Failed to initialize Messages Manager:', error);
+            this.showError('Failed to initialize messages system');
+        }
+    }
+
+    createMessagesInterface() {
+        this.element.innerHTML = `
+            <div class="messages-manager" data-component="messages-manager">
+                <!-- Messages Header -->
+                <div class="messages-header">
+                    <div class="messages-title">
+                        <h2>
+                            <i class="fas fa-envelope"></i>
+                            Messages
+                            <span class="unread-badge" data-unread-count="0" style="display: none;">0</span>
+                        </h2>
+                        <div class="messages-stats">
+                            <span class="stat" data-total-conversations="0">
+                                <i class="fas fa-comments"></i> 0 conversations
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="messages-actions">
+                        <button class="btn btn-primary" data-action="compose">
+                            <i class="fas fa-plus"></i>
+                            New Message
+                        </button>
+                        <button class="btn btn-secondary" data-action="refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages Content -->
+                <div class="messages-content">
+                    <!-- Loading State -->
+                    <div class="messages-loading" data-loading style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <p>Loading messages...</p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div class="messages-error" data-error style="display: none;">
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p data-error-message>Something went wrong</p>
+                            <button class="btn btn-primary" data-action="retry">Try Again</button>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div class="messages-empty" data-empty style="display: none;">
+                        <div class="empty-state">
+                            <i class="fas fa-envelope-open"></i>
+                            <h3>No Messages Yet</h3>
+                            <p>Start a conversation with your friends!</p>
+                            <button class="btn btn-primary" data-action="compose">
+                                <i class="fas fa-plus"></i>
+                                Send Your First Message
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Conversations List -->
+                    <div class="conversations-list" data-conversations-list>
+                        <!-- Conversations will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.element.classList.add('mivton-messages-manager');
+    }
+
+    bindEvents() {
+        // Action buttons
+        this.element.addEventListener('click', (e) => {
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            if (!action) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            switch (action) {
+                case 'compose':
+                    this.openComposeModal();
+                    break;
+                case 'refresh':
+                    this.loadConversations();
+                    break;
+                case 'retry':
+                    this.loadConversations();
+                    break;
+                case 'open-conversation':
+                    const conversationId = e.target.closest('[data-conversation-id]')?.dataset.conversationId;
+                    if (conversationId) {
+                        this.openConversation(conversationId);
+                    }
+                    break;
+            }
+        });
+    }
+
+    async loadConversations() {
+        try {
+            // FIXED: Check circuit breaker before making API calls
+            if (this.isCircuitBreakerOpen) {
+                const timeSinceLastError = Date.now() - this.lastErrorTime;
+                if (timeSinceLastError < this.circuitBreakerTimeout) {
+                    console.log('🔒 Circuit breaker open, skipping API call');
+                    this.state.conversations = await this.loadFallbackConversations();
+                    this.renderConversations();
+                    return;
+                } else {
+                    // Reset circuit breaker
+                    console.log('🔄 Circuit breaker timeout reached, resetting');
+                    this.isCircuitBreakerOpen = false;
+                    this.errorCount = 0;
+                }
+            }
+            
+            this.showLoading();
+            console.log('📬 Loading conversations...');
+            
+            // Try to load from API first
+            try {
+                const response = await fetch('/api/chat/conversations', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.state.conversations = data.conversations || [];
+                    console.log('✅ Conversations loaded from API:', this.state.conversations.length);
+                    
+                    // Reset error count on success
+                    this.errorCount = 0;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (apiError) {
+                console.warn('⚠️ API error, using fallback:', apiError);
+                
+                // FIXED: Increment error count and check circuit breaker
+                this.errorCount++;
+                this.lastErrorTime = Date.now();
+                
+                if (this.errorCount >= this.maxErrors) {
+                    this.isCircuitBreakerOpen = true;
+                    console.log('🚨 Circuit breaker opened due to repeated failures');
+                }
+                
+                this.state.conversations = await this.loadFallbackConversations();
+            }
+
+            // Calculate unread count
+            this.state.unreadCount = this.state.conversations.reduce((total, conv) => {
+                return total + (conv.unread_count || 0);
+            }, 0);
+
+            this.renderConversations();
+            this.updateUnreadBadge();
+            this.hideLoading();
+
+        } catch (error) {
+            console.error('❌ Error loading conversations:', error);
+            this.showError('Failed to load messages');
+            
+            // FIXED: Increment error count for unexpected errors
+            this.errorCount++;
+            this.lastErrorTime = Date.now();
+            
+            if (this.errorCount >= this.maxErrors) {
+                this.isCircuitBreakerOpen = true;
+                console.log('🚨 Circuit breaker opened due to unexpected errors');
+            }
+        }
+    }
+
+    async loadFallbackConversations() {
+        // Fallback: Return empty array if no API data available
+        console.log('⚠️ No API data available, showing empty messages');
+        return [];
+    }
+
+    renderConversations() {
+        const conversationsList = this.element.querySelector('[data-conversations-list]');
+        if (!conversationsList) return;
+
+        if (this.state.conversations.length === 0) {
+            this.showEmpty();
+            return;
+        }
+
+        this.hideEmpty();
+
+        conversationsList.innerHTML = this.state.conversations.map(conv => `
+            <div class="conversation-item ${conv.unread_count > 0 ? 'unread' : ''}" 
+                 data-conversation-id="${conv.conversation_id || conv.id}" 
+                 data-action="open-conversation">
+                <div class="conversation-avatar">
+                    <img src="${conv.friend_profile_picture || '/images/default-avatar.svg'}" 
+                         alt="${conv.friend_name}" 
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="default-avatar" style="display:none; width:40px; height:40px; border-radius:50%; background:linear-gradient(45deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; font-size:14px;">${conv.friend_name.charAt(0).toUpperCase()}</div>
+                    ${conv.unread_count > 0 ? '<span class="unread-dot"></span>' : ''}
+                </div>
+                
+                <div class="conversation-info">
+                    <div class="conversation-header">
+                        <h4 class="conversation-name">${conv.friend_name}</h4>
+                        <span class="conversation-time">${this.formatTime(conv.last_message_at)}</span>
+                    </div>
+                    
+                    <div class="conversation-preview">
+                        <p class="conversation-message">${conv.last_message_body || 'No messages yet'}</p>
+                        ${conv.unread_count > 0 ? `<span class="unread-count">${conv.unread_count}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // Update stats
+        const totalConversations = this.element.querySelector('[data-total-conversations]');
+        if (totalConversations) {
+            totalConversations.textContent = `${this.state.conversations.length} conversations`;
+        }
+    }
+
+    async openConversation(conversationId) {
+        try {
+            console.log(`📖 Opening conversation ${conversationId}`);
+            
+            const conversation = this.state.conversations.find(c => 
+                (c.conversation_id || c.id) == conversationId
+            );
+            
+            if (!conversation) {
+                console.error('❌ Conversation not found:', conversationId);
+                return;
+            }
+
+            // Mark as read
+            await this.markAsRead(conversation.friend_id);
+            
+            // Open chat with the friend
+            if (window.bulletproofChat) {
+                window.bulletproofChat.openConversation(conversation.friend_id, conversation.friend_name);
+            } else {
+                console.warn('⚠️ Chat system not available');
+                alert('Chat system not available. Please try again.');
+            }
+
+        } catch (error) {
+            console.error('❌ Error opening conversation:', error);
+        }
+    }
+
+    async markAsRead(friendId) {
+        try {
+            // Update local state
+            const conversation = this.state.conversations.find(c => c.friend_id === friendId);
+            if (conversation) {
+                conversation.unread_count = 0;
+                this.renderConversations();
+                this.updateUnreadBadge();
+            }
+
+            // Try to mark as read via API
+            try {
+                await fetch(`/api/chat/mark-read/${friendId}`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (apiError) {
+                console.warn('⚠️ API mark-read failed:', apiError);
+            }
+
+        } catch (error) {
+            console.error('❌ Error marking as read:', error);
+        }
+    }
+
+    updateUnreadBadge() {
+        const unreadBadge = this.element.querySelector('[data-unread-count]');
+        if (!unreadBadge) return;
+
+        if (this.state.unreadCount > 0) {
+            unreadBadge.textContent = this.state.unreadCount;
+            unreadBadge.style.display = 'inline-block';
+        } else {
+            unreadBadge.style.display = 'none';
+        }
+
+        // Update global unread count for other components
+        window.messagesUnreadCount = this.state.unreadCount;
+        
+        // Dispatch custom event for other components
+        window.dispatchEvent(new CustomEvent('messagesUnreadUpdated', {
+            detail: { unreadCount: this.state.unreadCount }
+        }));
+    }
+
+    openComposeModal() {
+        // For now, redirect to friends section to start a chat
+        if (window.showSection) {
+            window.showSection('friends');
+        } else {
+            alert('Please go to Friends section to start a new conversation.');
+        }
+    }
+
+    startAutoRefresh() {
+        this.refreshTimer = setInterval(() => {
+            if (this.isInitialized) {
+                this.loadConversations();
+            }
+        }, this.options.refreshInterval);
+    }
+
+    stopAutoRefresh() {
+        if (this.refreshTimer) {
+            clearInterval(this.refreshTimer);
+            this.refreshTimer = null;
+        }
+    }
+
+    formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffHours = diffMs / (1000 * 60 * 60);
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+        if (diffHours < 1) {
+            const minutes = Math.floor(diffMs / (1000 * 60));
+            return minutes < 1 ? 'Just now' : `${minutes}m ago`;
+        } else if (diffHours < 24) {
+            return `${Math.floor(diffHours)}h ago`;
+        } else if (diffDays < 7) {
+            return `${Math.floor(diffDays)}d ago`;
+        } else {
+            return date.toLocaleDateString();
+        }
+    }
+
+    showLoading() {
+        const loading = this.element.querySelector('[data-loading]');
+        const error = this.element.querySelector('[data-error]');
+        const empty = this.element.querySelector('[data-empty]');
+        
+        if (loading) loading.style.display = 'block';
+        if (error) error.style.display = 'none';
+        if (empty) empty.style.display = 'none';
+    }
+
+    hideLoading() {
+        const loading = this.element.querySelector('[data-loading]');
+        if (loading) loading.style.display = 'none';
+    }
+
+    showError(message) {
+        const loading = this.element.querySelector('[data-loading]');
+        const error = this.element.querySelector('[data-error]');
+        const empty = this.element.querySelector('[data-empty]');
+        const errorMessage = this.element.querySelector('[data-error-message]');
+        
+        if (loading) loading.style.display = 'none';
+        if (error) error.style.display = 'block';
+        if (empty) empty.style.display = 'none';
+        if (errorMessage) errorMessage.textContent = message;
+    }
+
+    showEmpty() {
+        const loading = this.element.querySelector('[data-loading]');
+        const error = this.element.querySelector('[data-error]');
+        const empty = this.element.querySelector('[data-empty]');
+        
+        if (loading) loading.style.display = 'none';
+        if (error) error.style.display = 'none';
+        if (empty) empty.style.display = 'block';
+    }
+
+    hideEmpty() {
+        const empty = this.element.querySelector('[data-empty]');
+        if (empty) empty.style.display = 'none';
+    }
+
+    destroy() {
+        this.stopAutoRefresh();
+        super.destroy();
+    }
+}
+
 // Auto-initialize friends managers
 document.addEventListener('DOMContentLoaded', () => {
     const friendsElements = document.querySelectorAll('[data-component="friends-manager"]');
     friendsElements.forEach(element => {
         if (!element.mivtonComponent) {
             element.mivtonComponent = new MivtonFriendsManager(element);
+        }
+    });
+
+    // Auto-initialize messages managers
+    const messagesElements = document.querySelectorAll('[data-component="messages-manager"]');
+    messagesElements.forEach(element => {
+        if (!element.mivtonComponent) {
+            element.mivtonComponent = new MivtonMessagesManager(element);
         }
     });
 });

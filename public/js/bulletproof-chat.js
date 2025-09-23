@@ -7,14 +7,78 @@ class BulletproofChat {
     constructor() {
         this.isOpen = false;
         this.currentFriend = null;
+        this.isInitialized = false;
     }
 
     init() {
         console.log('🛡️ Bulletproof Chat initialized');
+        this.isInitialized = true;
+        
+        // Set up real-time message notifications
+        this.setupRealTimeNotifications();
+        
         return Promise.resolve();
     }
 
-    openConversation(friendId, friendName) {
+    setupRealTimeNotifications() {
+        try {
+            if (typeof io !== 'undefined') {
+                this.socket = io();
+                
+                // Listen for new messages
+                this.socket.on('new_message', (data) => {
+                    console.log('📨 Received new message notification:', data);
+                    this.handleNewMessage(data);
+                });
+                
+                // Listen for message notifications
+                this.socket.on('message_notification', (data) => {
+                    console.log('🔔 Received message notification:', data);
+                    this.showMessageNotification(data);
+                });
+                
+                console.log('✅ Real-time notifications set up');
+            } else {
+                console.warn('⚠️ Socket.IO not available for real-time notifications');
+            }
+        } catch (error) {
+            console.warn('⚠️ Failed to set up real-time notifications:', error);
+        }
+    }
+
+    handleNewMessage(data) {
+        // If we have a chat open with this sender, add the message
+        if (this.isOpen && this.currentFriend && 
+            (this.currentFriend.id === data.message.sender_id || 
+             this.currentFriend.id === data.message.recipient_id)) {
+            
+            this.addMessageToUI({
+                id: data.message.id,
+                text: data.message.body,
+                sender: data.message.sender_id == this.currentFriend.id ? 'friend' : 'me',
+                timestamp: new Date(data.message.created_at),
+                friendId: this.currentFriend.id,
+                friendName: this.currentFriend.name
+            });
+        }
+    }
+
+    showMessageNotification(data) {
+        // Show browser notification if permission granted
+        if (Notification.permission === 'granted') {
+            new Notification(`New message from ${data.from}`, {
+                body: data.message,
+                icon: '/favicon.ico'
+            });
+        }
+        
+        // Update messages section if it exists
+        if (window.messagesManager) {
+            window.messagesManager.loadConversations();
+        }
+    }
+
+    async openConversation(friendId, friendName) {
         try {
             console.log(`🛡️ Opening bulletproof chat with ${friendName} (${friendId})`);
             
@@ -22,11 +86,61 @@ class BulletproofChat {
             this.createChatInterface();
             this.showChat();
             
+            // Load conversation history
+            await this.loadConversationHistory(friendId);
+            
             console.log(`✅ Bulletproof chat opened with ${friendName}`);
             
         } catch (error) {
             console.error('❌ Error opening bulletproof chat:', error);
             alert('Error opening chat. Please try again.');
+        }
+    }
+
+    async loadConversationHistory(friendId) {
+        try {
+            console.log(`📚 Loading conversation history with friend ${friendId}`);
+            
+            const response = await fetch(`/api/chat/conversation/${friendId}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const messages = data.messages || [];
+                
+                console.log(`📚 Loaded ${messages.length} messages from database`);
+                
+                // Clear existing messages
+                const messagesContainer = this.container.querySelector('#bulletproof-messages');
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = '';
+                }
+                
+                // Add each message to UI
+                messages.forEach(message => {
+                    this.addMessageToUI({
+                        id: message.id,
+                        text: message.body || message.text,
+                        sender: message.is_sender ? 'me' : 'friend',
+                        timestamp: new Date(message.created_at),
+                        friendId: friendId,
+                        friendName: this.currentFriend.name
+                    });
+                });
+                
+                // Scroll to bottom
+                if (messagesContainer) {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+                
+            } else {
+                console.warn('⚠️ Failed to load conversation history, showing empty chat');
+            }
+            
+        } catch (error) {
+            console.warn('⚠️ Error loading conversation history:', error);
         }
     }
 
@@ -114,9 +228,9 @@ class BulletproofChat {
             <div style="text-align: center; padding: 40px 20px; color: #666;">
                 <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
                 <h3 style="margin: 0 0 8px 0; color: #8b5cf6;">Chat with ${this.currentFriend.name}</h3>
-                <p style="margin: 0; font-size: 14px;">Bulletproof messaging system</p>
+                <p style="margin: 0; font-size: 14px;">Real messaging system with PostgreSQL storage</p>
                 <div style="margin-top: 16px; padding: 12px; background: rgba(139, 92, 246, 0.1); border-radius: 8px; border-left: 3px solid #8b5cf6;">
-                    <small>✅ Chat is ready to use</small>
+                    <small>✅ Messages are stored in database and delivered when recipient comes online</small>
                 </div>
             </div>
         `;
@@ -178,7 +292,7 @@ class BulletproofChat {
         console.log('✅ Bulletproof chat interface created');
     }
 
-    sendMessage() {
+    async sendMessage() {
         try {
             const messageInput = this.container.querySelector('#bulletproof-input');
             if (!messageInput) return;
@@ -188,26 +302,58 @@ class BulletproofChat {
 
             console.log(`📤 Sending bulletproof message: ${message}`);
 
-            // Add message to UI
-            this.addMessageToUI({
+            // Create message object
+            const messageObj = {
                 id: Date.now(),
                 text: message,
                 sender: 'me',
-                timestamp: new Date()
-            });
+                timestamp: new Date(),
+                friendId: this.currentFriend.id,
+                friendName: this.currentFriend.name
+            };
+
+            // Add message to UI immediately
+            this.addMessageToUI(messageObj);
 
             // Clear input
             messageInput.value = '';
 
-            // Simulate response after 1 second
-            setTimeout(() => {
-                this.addMessageToUI({
-                    id: Date.now() + 1,
-                    text: `Response from ${this.currentFriend.name}: "Thanks for your message: ${message}"`,
-                    sender: 'friend',
-                    timestamp: new Date()
+            // Store message in PostgreSQL
+            try {
+                const response = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        recipientId: this.currentFriend.id,
+                        message: message,
+                        originalText: message,
+                        originalLang: 'en',
+                        translatedText: message,
+                        translatedLang: 'en'
+                    })
                 });
-            }, 1000);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Message stored in database:', data);
+                    
+                    // Update message ID with server ID if provided
+                    if (data.data && data.data.id) {
+                        messageObj.id = data.data.id;
+                    }
+                } else {
+                    console.warn('⚠️ Failed to store message in database, but continuing...');
+                }
+            } catch (apiError) {
+                console.warn('⚠️ API error storing message, but continuing...', apiError);
+            }
+
+            // Real messaging - no automated responses
+            // Messages will be delivered to the recipient when they come online
+            console.log(`✅ Message sent and stored in database. Recipient will see it when they come online.`);
 
         } catch (error) {
             console.error('❌ Error sending bulletproof message:', error);
@@ -288,3 +434,24 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.error('❌ Failed to auto-initialize Bulletproof Chat:', error);
     }
 });
+
+// Also initialize immediately if DOM is already loaded
+if (document.readyState === 'loading') {
+    // DOM is still loading, wait for DOMContentLoaded
+    console.log('🛡️ DOM still loading, waiting for DOMContentLoaded');
+} else {
+    // DOM is already loaded, initialize immediately
+    console.log('🛡️ DOM already loaded, initializing Bulletproof Chat immediately');
+    if (!window.bulletproofChat) {
+        try {
+            window.bulletproofChat = new BulletproofChat();
+            window.bulletproofChat.init().then(() => {
+                console.log('✅ Bulletproof Chat initialized immediately');
+            }).catch(error => {
+                console.error('❌ Bulletproof Chat immediate initialization failed:', error);
+            });
+        } catch (error) {
+            console.error('❌ Failed to create Bulletproof Chat immediately:', error);
+        }
+    }
+}

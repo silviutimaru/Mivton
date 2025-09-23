@@ -1,8 +1,20 @@
 const { Pool } = require('pg');
 
 // Check if we're in local development mode
-// Force PostgreSQL for Railway production
-const isLocalDev = (!process.env.DATABASE_URL || process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && !process.env.RAILWAY_ENVIRONMENT;
+// Force PostgreSQL for Railway production - ALWAYS use PostgreSQL if DATABASE_URL exists
+// Also force PostgreSQL if we're explicitly told to use it
+// OR if we're in production mode
+const isLocalDev = !process.env.DATABASE_URL && 
+                   !process.env.FORCE_POSTGRESQL && 
+                   process.env.NODE_ENV !== 'production' && 
+                   (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test');
+
+console.log('🔍 Database connection decision:', {
+    DATABASE_URL: !!process.env.DATABASE_URL,
+    FORCE_POSTGRESQL: !!process.env.FORCE_POSTGRESQL,
+    NODE_ENV: process.env.NODE_ENV,
+    isLocalDev
+});
 
 if (isLocalDev) {
   // Use local SQLite for development
@@ -12,10 +24,10 @@ if (isLocalDev) {
   // Use PostgreSQL for production
   console.log('🔧 Using PostgreSQL database for production');
   
-  // Database configuration - SSL should always be enabled for Railway
+  // Database configuration - SSL for Railway, no SSL for local
   const dbConfig = {
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }, // Always use SSL for Railway
+    ssl: process.env.RAILWAY_ENVIRONMENT ? { rejectUnauthorized: false } : false, // SSL only for Railway
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,

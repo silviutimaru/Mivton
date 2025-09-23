@@ -3,7 +3,7 @@
  * Full-featured real-time chat with messaging, typing, read receipts, and notifications
  */
 
-const { query } = require('../database/connection');
+const { query, saveMessage } = require('../database/query-adapter');
 const { notificationManager } = require('./notification-events');
 const { presenceManager } = require('./presence-events');
 const { chatMonitor } = require('../utils/chat-monitor');
@@ -82,30 +82,23 @@ function initializeCompleteChatEvents(io) {
                 console.log(`📤 Socket message: ${userId} -> ${recipientId}`);
                 chatMonitor.logMessageSent(userId, recipientId, message, Date.now());
 
-                // Save message to database
-                const result = await query(
-                    `SELECT * FROM save_complete_message($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-                    [
-                        userId, 
-                        parseInt(recipientId), 
-                        message.trim(),
-                        message.trim(), // original_text
-                        message.trim(), // translated_text
-                        'en', // original_lang
-                        'en', // translated_lang
-                        messageType,
-                        replyToId
-                    ]
+                // Save message to database using adapter
+                const savedMessage = await saveMessage(
+                    userId, 
+                    parseInt(recipientId), 
+                    message.trim(),
+                    message.trim(), // original_text
+                    message.trim(), // translated_text
+                    'en', // original_lang
+                    'en'  // translated_lang
                 );
 
-                if (!result.rows || result.rows.length === 0) {
+                if (!savedMessage) {
                     const error = 'Failed to save message';
                     socket.emit('message_error', { error });
                     if (callback) callback({ success: false, error });
                     return;
                 }
-
-                const savedMessage = result.rows[0];
 
                 // Get sender information
                 const senderResult = await query(

@@ -5,7 +5,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { query, getDb } = require('../database/connection');
+const { query, saveMessage, getConversation } = require('../database/query-adapter');
+const { getDb } = require('../database/connection');
 const { requireAuth } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
 const { chatMonitor } = require('../utils/chat-monitor');
@@ -68,33 +69,26 @@ router.post('/send', async (req, res) => {
             });
         }
 
-        console.log(`💬 Sending message: ${senderId} -> ${recipientId}`);
-        chatMonitor.logMessageSent(senderId, recipientId, message, Date.now());
+           console.log(`💬 Sending message: ${senderId} -> ${recipientId}`);
+           chatMonitor.logMessageSent(senderId, recipientId, message, Date.now());
 
-        // Save complete message with status tracking
-        const result = await query(
-            `SELECT * FROM save_complete_message($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-            [
-                senderId, 
-                parseInt(recipientId), 
-                message.trim(),
-                originalText || message.trim(),
-                translatedText || message.trim(),
-                originalLang,
-                translatedLang,
-                messageType,
-                replyToId
-            ]
-        );
+           // Save message using database adapter
+           const savedMessage = await saveMessage(
+               senderId, 
+               parseInt(recipientId), 
+               message.trim(),
+               originalText || message.trim(),
+               translatedText || message.trim(),
+               originalLang,
+               translatedLang
+           );
 
-        if (!result.rows || result.rows.length === 0) {
-            return res.status(500).json({
-                success: false,
-                error: 'Failed to save message'
-            });
-        }
-
-        const savedMessage = result.rows[0];
+           if (!savedMessage) {
+               return res.status(500).json({
+                   success: false,
+                   error: 'Failed to save message'
+               });
+           }
 
         // Get sender information
         const senderResult = await query(
@@ -103,6 +97,30 @@ router.post('/send', async (req, res) => {
         );
 
         const sender = senderResult.rows[0];
+
+        // Send real-time notification to recipient
+        try {
+            if (global.io) {
+                // Emit to recipient's personal room
+                global.io.to(`user:${recipientId}`).emit('new_message', {
+                    message: savedMessage,
+                    sender: sender,
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Also emit a notification
+                global.io.to(`user:${recipientId}`).emit('message_notification', {
+                    type: 'new_message',
+                    from: sender.full_name,
+                    message: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
+                    timestamp: new Date().toISOString()
+                });
+                
+                console.log(`📢 Notification sent to user ${recipientId} for new message from ${sender.full_name}`);
+            }
+        } catch (notificationError) {
+            console.warn('⚠️ Failed to send real-time notification:', notificationError.message);
+        }
 
         // Return success with complete message data
         res.json({
@@ -161,13 +179,10 @@ router.get('/conversation/:userId', async (req, res) => {
             });
         }
 
-        console.log(`📨 Getting conversation: ${currentUserId} <-> ${userId}`);
+           console.log(`📨 Getting conversation: ${currentUserId} <-> ${userId}`);
 
-        // Get conversation messages
-        const result = await query(
-            `SELECT * FROM get_conversation_messages($1, $2, $3, $4)`,
-            [currentUserId, parseInt(userId), parseInt(limit), parseInt(offset)]
-        );
+           // Get conversation messages using database adapter
+           const messages = await getConversation(currentUserId, userId, parseInt(limit), parseInt(offset));
 
         // Get friend information
         const friendResult = await query(
@@ -186,14 +201,14 @@ router.get('/conversation/:userId', async (req, res) => {
 
         res.json({
             success: true,
-            conversation: result.rows,
+            conversation: messages,
             friend: {
                 id: friend.id,
                 fullName: friend.full_name,
                 username: friend.username,
                 status: friend.status
             },
-            count: result.rows.length
+            count: messages.length
         });
 
     } catch (error) {
