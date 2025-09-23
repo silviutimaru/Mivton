@@ -741,24 +741,18 @@ class MivtonFriendsManager extends MivtonBaseComponent {
             const friendCard = this.element.querySelector(`[data-friend-id="${friendId}"]`);
             const friendName = friendCard?.querySelector('.friend-name')?.textContent?.trim() || 'Friend';
 
-            // Initialize multilingual chat if not already done
-            if (!window.multilingualChat) {
-                console.log('🔄 Initializing multilingual chat...');
-                window.multilingualChat = new MultilingualChat();
-                await window.multilingualChat.init();
-                
-                // Add chat container to the page
-                document.body.appendChild(window.multilingualChat.container);
+            // Initialize simple chat if not already done
+            if (!window.simpleChat) {
+                console.log('🔄 Initializing simple multilingual chat...');
+                window.simpleChat = new SimpleMultilingualChat();
+                await window.simpleChat.init();
             }
             
             // Open conversation with the friend
-            await window.multilingualChat.openConversation(friendId, friendName);
+            await window.simpleChat.openConversation(friendId, friendName);
             
             // Show the chat interface
-            window.multilingualChat.container.style.display = 'block';
-            
-            // Scroll to chat
-            window.multilingualChat.container.scrollIntoView({ behavior: 'smooth' });
+            window.simpleChat.show();
             
             console.log(`✅ Chat opened with ${friendName}`);
             
