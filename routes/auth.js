@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
-const { getDb } = require('../database/connection');
+const { getDb, query } = require('../database/connection');
 const { sendWelcomeEmail } = require('../utils/email');
 const router = express.Router();
 
