@@ -34,6 +34,11 @@ const simpleAuth = (req, res, next) => {
 // FIXED: Remove authentication middleware to allow unauthenticated access
 // router.use(simpleAuth);
 
+// Test endpoint to verify routes are working
+router.get('/test', (req, res) => {
+    res.json({ success: true, message: 'Chat routes are working!' });
+});
+
 /**
  * GET /api/chat/conversation/:userId
  * Get conversation with a specific user
