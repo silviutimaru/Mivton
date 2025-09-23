@@ -191,7 +191,7 @@ router.post('/send', async (req, res) => {
  * GET /api/chat/conversations
  * Get all conversations for current user
  */
-router.get('/conversations', async (req, res) => {
+router.get('/conversations-test', async (req, res) => {
     try {
         console.log('📬 Conversations endpoint called');
         
