@@ -345,6 +345,12 @@ try {
 try {
   console.log('🔧 DEBUG: Starting chat route registration...');
   
+  // Register simple test route first
+  app.get('/api/chat/test-direct', (req, res) => {
+    res.json({ success: true, message: 'Direct route test working!' });
+  });
+  console.log('🔧 DEBUG: Direct test route registered');
+  
   // Load working chat routes only (simplified)
   const workingChatRoutes = require('./routes/working-chat');
   console.log('🔧 DEBUG: Working chat routes loaded');
