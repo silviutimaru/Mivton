@@ -1,0 +1,2761 @@
+// Dashboard JavaScript - Main functionality
+
+class Dashboard {
+    constructor() {
+        this.currentUser = null;
+        this.currentSection = 'overview';
+        this.stats = {
+            friends: 0,
+            requests: 0,
+            blocked: 0,
+            messages: 0,
+            languages: 0,
+            hours: 0
+        };
+        
+        this.init();
+    }
+
+    async init() {
+        try {
+            // Show loading screen
+            this.showLoadingScreen();
+            
+            // Load user data
+            await this.loadUserData();
+            
+            // Initialize UI components
+            this.initializeComponents();
+            
+            // Setup event listeners
+            this.setupEventListeners();
+            
+            // Load dashboard data
+            await this.loadDashboardData();
+            
+            // Start real-time notifications polling
+            this.startNotificationPolling();
+            
+            // Hide loading screen
+            this.hideLoadingScreen();
+            
+        } catch (error) {
+            console.error('Dashboard initialization error:', error);
+            const errorMessage = error && error.message ? error.message : 'Unknown error occurred';
+            window.toast?.error('Failed to initialize dashboard: ' + errorMessage);
+            this.hideLoadingScreen();
+        }
+    }
+
+    showLoadingScreen() {
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen) {
+            loadingScreen.classList.remove('hidden');
+        }
+    }
+
+    startNotificationPolling() {
+        console.log('🔔 Starting real-time notification polling...');
+        
+        // Poll every 15 seconds for new notifications and friend requests
+        this.notificationPollingInterval = setInterval(async () => {
+            await this.checkForNewNotifications();
+        }, 15000); // 15 seconds
+        
+        // Also check when user becomes active (clicks, moves mouse, types)
+        let lastActivity = Date.now();
+        const activityEvents = ['click', 'mousemove', 'keypress', 'scroll'];
+        
+        const updateActivity = () => {
+            const now = Date.now();
+            if (now - lastActivity > 30000) { // If inactive for 30+ seconds
+                this.checkForNewNotifications();
+            }
+            lastActivity = now;
+        };
+        
+        activityEvents.forEach(event => {
+            document.addEventListener(event, updateActivity, { passive: true });
+        });
+        
+        console.log('✅ Real-time notifications enabled');
+    }
+    
+    async checkForNewNotifications() {
+        try {
+            // Check for new friend requests
+            const statsResponse = await fetch('/api/friend-requests/stats', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            if (statsResponse.ok) {
+                const statsData = await statsResponse.json();
+                const newRequestCount = statsData.stats.received.pending || 0;
+                
+                // Check if we have new requests
+                if (newRequestCount > this.stats.requests) {
+                    const diff = newRequestCount - this.stats.requests;
+                    console.log(`🔔 ${diff} new friend request${diff > 1 ? 's' : ''} detected!`);
+                    
+                    // Update stats
+                    this.stats.requests = newRequestCount;
+                    
+                    // Show notification
+                    if (window.toast) {
+                        window.toast.info(`📨 You have ${diff} new friend request${diff > 1 ? 's' : ''}!`);
+                    }
+                    
+                    // If user is on requests section, reload the data
+                    if (this.currentSection === 'requests') {
+                        console.log('🔄 Auto-refreshing friend requests...');
+                        await this.loadFriendRequests();
+                    }
+                    
+                    // Flash the requests badge
+                    this.flashNotificationBadge('requestsCount');
+                }
+            }
+            
+            // Also check for new notifications using Phase 3.2 API
+            const notifResponse = await fetch('/api/notifications/unread/count', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            if (notifResponse.ok) {
+                const notifData = await notifResponse.json();
+                const newNotificationCount = notifData.counts.total_unread || 0;
+                
+                // Check if notification count changed
+                if (newNotificationCount !== this.stats.unreadNotifications) {
+                    const diff = newNotificationCount - this.stats.unreadNotifications;
+                    console.log(`🔔 Notification count changed: ${this.stats.unreadNotifications} -> ${newNotificationCount}`);
+                    
+                    // Update notification count
+                    this.stats.unreadNotifications = newNotificationCount;
+                    this.updateBadgeCounts();
+                    
+                    // Flash the notification badge if count increased
+                    if (diff > 0) {
+                        this.flashNotificationBadge('notificationBadge');
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.warn('📡 Notification polling error:', error);
+        }
+    }
+    
+    flashNotificationBadge(badgeId) {
+        const badge = document.getElementById(badgeId);
+        if (badge) {
+            badge.style.animation = 'pulse 0.5s ease-in-out 3';
+            setTimeout(() => {
+                badge.style.animation = '';
+            }, 1500);
+        }
+    }
+    
+    stopNotificationPolling() {
+        if (this.notificationPollingInterval) {
+            clearInterval(this.notificationPollingInterval);
+            this.notificationPollingInterval = null;
+            console.log('🔕 Notification polling stopped');
+        }
+    }
+    hideLoadingScreen() {
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen) {
+            setTimeout(() => {
+                loadingScreen.classList.add('hidden');
+            }, 1000);
+        }
+    }
+
+    async loadUserData() {
+        try {
+            const response = await fetch('/api/auth/me', {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                throw new Error('Failed to load user data');
+            }
+
+            const data = await response.json();
+            
+            // Fix: Extract just the user object, not the entire response
+            this.currentUser = data.user || data;
+            
+            console.log('🔍 Fixed user data loading:', {
+                rawResponse: data,
+                extractedUser: this.currentUser,
+                userLanguage: this.currentUser?.nativeLanguage || this.currentUser?.native_language
+            });
+            
+            this.updateUserDisplay();
+            
+        } catch (error) {
+            console.error('Error loading user data:', error);
+            const errorMessage = error && error.message ? error.message : 'Failed to load user data';
+            window.toast?.error(errorMessage);
+            throw error;
+        }
+    }
+
+    updateUserDisplay() {
+        if (!this.currentUser) return;
+
+        // Update user name displays
+        const userNameElements = [
+            document.getElementById('userName'),
+            document.getElementById('welcomeUserName'),
+            document.getElementById('profileName')
+        ];
+
+        // Handle both snake_case and camelCase field names
+        const userName = this.currentUser.full_name || this.currentUser.fullName || this.currentUser.username;
+        userNameElements.forEach(element => {
+            if (element) {
+                element.textContent = userName;
+            }
+        });
+
+        // Update user avatars
+        const avatarElements = [
+            document.getElementById('userAvatar'),
+            document.getElementById('mobileUserAvatar'),
+            document.getElementById('profileAvatar')
+        ];
+
+        const initials = this.getUserInitials(userName);
+        avatarElements.forEach(element => {
+            if (element) {
+                element.textContent = initials;
+            }
+        });
+
+        // Update profile form
+        this.updateProfileForm();
+
+        // Update language display
+        this.updateLanguageDisplay();
+    }
+
+    getUserInitials(name) {
+        if (!name || typeof name !== 'string') {
+            return '?';
+        }
+        
+        return name
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase())
+            .join('')
+            .substring(0, 2);
+    }
+
+    updateProfileForm() {
+        if (!this.currentUser) return;
+
+        const elements = {
+            fullNameInput: this.currentUser.full_name || this.currentUser.fullName || '',
+            emailInput: this.currentUser.email || '',
+            profileUsername: '@' + (this.currentUser.username || ''),
+            nativeLanguageSelect: this.currentUser.native_language || this.currentUser.nativeLanguage || 'en',
+            genderSelect: this.currentUser.gender || '',
+            joinedDate: new Date(this.currentUser.created_at).getFullYear()
+        };
+
+        Object.entries(elements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                if (element.tagName === 'INPUT' || element.tagName === 'SELECT') {
+                    element.value = value;
+                } else {
+                    element.textContent = value;
+                }
+            }
+        });
+
+        // Show verified badge if user is verified
+        const verifiedBadge = document.getElementById('verifiedBadge');
+        if (verifiedBadge && this.currentUser.is_verified) {
+            verifiedBadge.style.display = 'inline-block';
+        }
+    }
+
+    updateLanguageDisplay() {
+        const languageMap = {
+            'en': { name: 'English', flag: '🇺🇸' },
+            'es': { name: 'Spanish', flag: '🇪🇸' },
+            'fr': { name: 'French', flag: '🇫🇷' },
+            'de': { name: 'German', flag: '🇩🇪' },
+            'it': { name: 'Italian', flag: '🇮🇹' },
+            'pt': { name: 'Portuguese', flag: '🇵🇹' },
+            'ru': { name: 'Russian', flag: '🇷🇺' },
+            'ja': { name: 'Japanese', flag: '🇯🇵' },
+            'ko': { name: 'Korean', flag: '🇰🇷' },
+            'zh': { name: 'Chinese', flag: '🇨🇳' },
+            // Add missing languages
+            'hu': { name: 'Hungarian', flag: '🇭🇺' },
+            'pl': { name: 'Polish', flag: '🇵🇱' },
+            'ro': { name: 'Romanian', flag: '🇷🇴' },
+            'nl': { name: 'Dutch', flag: '🇳🇱' },
+            'sv': { name: 'Swedish', flag: '🇸🇪' },
+            'da': { name: 'Danish', flag: '🇩🇰' },
+            'no': { name: 'Norwegian', flag: '🇳🇴' },
+            'fi': { name: 'Finnish', flag: '🇫🇮' },
+            'cs': { name: 'Czech', flag: '🇨🇿' },
+            'sk': { name: 'Slovak', flag: '🇸🇰' },
+            'hr': { name: 'Croatian', flag: '🇭🇷' },
+            'sr': { name: 'Serbian', flag: '🇷🇸' },
+            'bg': { name: 'Bulgarian', flag: '🇧🇬' },
+            'uk': { name: 'Ukrainian', flag: '🇺🇦' },
+            'el': { name: 'Greek', flag: '🇬🇷' },
+            'tr': { name: 'Turkish', flag: '🇹🇷' },
+            'ar': { name: 'Arabic', flag: '🇸🇦' },
+            'he': { name: 'Hebrew', flag: '🇮🇱' },
+            'hi': { name: 'Hindi', flag: '🇮🇳' },
+            'th': { name: 'Thai', flag: '🇹🇭' },
+            'vi': { name: 'Vietnamese', flag: '🇻🇳' },
+            'id': { name: 'Indonesian', flag: '🇮🇩' },
+            'ms': { name: 'Malay', flag: '🇲🇾' },
+            'tl': { name: 'Filipino', flag: '🇵🇭' }
+        };
+
+        // Fix: Use the correct field name (camelCase, not snake_case)
+        const userLang = this.currentUser?.nativeLanguage || 'en';
+        const langInfo = languageMap[userLang] || languageMap['en'];
+
+        console.log('🌐 Debug language info:', {
+            currentUser: this.currentUser,
+            userLang: userLang,
+            langInfo: langInfo,
+            availableLanguages: Object.keys(languageMap)
+        });
+
+        const userLanguageElement = document.getElementById('userLanguage');
+        if (userLanguageElement) {
+            userLanguageElement.textContent = langInfo.name;
+        }
+
+        const languageFlag = document.querySelector('.language-flag');
+        if (languageFlag) {
+            languageFlag.textContent = langInfo.flag;
+        }
+    }
+
+    initializeComponents() {
+        // Initialize tab manager for requests section
+        if (window.TabManager) {
+            this.requestTabs = new window.TabManager('.requests-container');
+        }
+        
+        // Initialize search component
+        if (window.SearchComponent) {
+            this.searchComponent = new window.SearchComponent('#userSearchInput', {
+                onSearch: (query) => this.performUserSearch(query),
+                onClear: () => this.clearSearchResults()
+            });
+        }
+
+        // Initialize mobile menu
+        this.initializeMobileMenu();
+        
+        // Initialize navigation
+        this.initializeNavigation();
+    }
+
+    initializeMobileMenu() {
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarClose = document.getElementById('sidebarClose');
+
+        if (mobileMenuBtn && sidebar) {
+            mobileMenuBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                mobileMenuBtn.classList.toggle('active');
+            });
+        }
+
+        if (sidebarClose && sidebar) {
+            sidebarClose.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+                if (mobileMenuBtn) {
+                    mobileMenuBtn.classList.remove('active');
+                }
+            });
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && sidebar && sidebar.classList.contains('open')) {
+                if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+                    sidebar.classList.remove('open');
+                    if (mobileMenuBtn) {
+                        mobileMenuBtn.classList.remove('active');
+                    }
+                }
+            }
+        });
+    }
+
+    initializeNavigation() {
+        const navItems = document.querySelectorAll('.nav-item[data-section]');
+        
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = item.dataset.section;
+                this.showSection(section);
+            });
+        });
+    }
+
+    showSection(sectionName) {
+        // Update active nav item
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        const activeNavItem = document.querySelector(`[data-section="${sectionName}"]`);
+        if (activeNavItem) {
+            activeNavItem.classList.add('active');
+        }
+
+        // Update content sections
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        
+        const activeSection = document.getElementById(`${sectionName}-section`);
+        if (activeSection) {
+            activeSection.classList.add('active');
+        }
+
+        // Update header title and breadcrumb
+        const sectionTitle = document.getElementById('sectionTitle');
+        const currentSection = document.getElementById('currentSection');
+        
+        const titles = {
+            overview: 'Overview',
+            friends: 'Friends',
+            requests: 'Friend Requests',
+            find: 'Find Friends',
+            blocked: 'Blocked Users',
+            profile: 'Profile & Settings'
+        };
+
+        if (sectionTitle) sectionTitle.textContent = titles[sectionName] || sectionName;
+        if (currentSection) currentSection.textContent = titles[sectionName] || sectionName;
+
+        this.currentSection = sectionName;
+
+        // Close mobile sidebar
+        const sidebar = document.getElementById('sidebar');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        if (window.innerWidth <= 768 && sidebar) {
+            sidebar.classList.remove('open');
+            if (mobileMenuBtn) {
+                mobileMenuBtn.classList.remove('active');
+            }
+        }
+
+        // Load section-specific data
+        this.loadSectionData(sectionName);
+    }
+
+    async loadSectionData(sectionName) {
+        console.log('💻 Loading section data for:', sectionName);
+        switch (sectionName) {
+            case 'friends':
+                await this.loadFriends();
+                break;
+            case 'requests':
+                console.log('📨 Loading requests section...');
+                await this.loadFriendRequests();
+                break;
+            case 'find':
+                this.initializeFindSection();
+                break;
+            case 'blocked':
+                await this.loadBlockedUsers();
+                break;
+            case 'profile':
+                this.initializeProfileSection();
+                break;
+        }
+        console.log('✅ Section data loaded for:', sectionName);
+    }
+
+    async loadDashboardData() {
+        try {
+            // Simulate loading dashboard stats
+            await this.loadDashboardStats();
+            await this.loadRecentActivity();
+            this.updateBadgeCounts();
+            
+        } catch (error) {
+            console.error('Error loading dashboard data:', error);
+        }
+    }
+
+    async loadDashboardStats() {
+        try {
+            // Initialize default stats
+            this.stats = {
+                friends: 0,
+                requests: 0,
+                blocked: 0,
+                messages: 0,
+                languages: 1,
+                hours: 0,
+                unreadNotifications: 0
+            };
+            
+            // Try to load friend request stats
+            try {
+                const statsResponse = await fetch('/api/friend-requests/stats', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (statsResponse.ok) {
+                    const statsData = await statsResponse.json();
+                    this.stats.requests = statsData.stats.received.pending || 0;
+                }
+            } catch (error) {
+                console.warn('Could not load friend request stats:', error);
+            }
+            
+            // Try to load notification count using the Phase 3.2 API
+            try {
+                const notifResponse = await fetch('/api/notifications/unread/count', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (notifResponse.ok) {
+                    const notifData = await notifResponse.json();
+                    this.stats.unreadNotifications = notifData.counts.total_unread || 0;
+                    console.log('✅ Loaded notification count:', this.stats.unreadNotifications);
+                } else {
+                    // Fallback: use friend requests count as notification count
+                    this.stats.unreadNotifications = this.stats.requests;
+                    console.warn('⚠️ Using friend requests as notification count fallback');
+                }
+            } catch (error) {
+                console.warn('Could not load notification count, using friend requests as fallback:', error);
+                // Fallback: use friend requests count as notification count
+                this.stats.unreadNotifications = this.stats.requests;
+            }
+
+            this.updateStatsDisplay();
+            
+        } catch (error) {
+            console.error('Error loading dashboard stats:', error);
+            // Final fallback to placeholder data
+            this.stats = {
+                friends: 0,
+                requests: 0,
+                blocked: 0,
+                messages: 0,
+                languages: 1,
+                hours: 0,
+                unreadNotifications: 0
+            };
+            this.updateStatsDisplay();
+        }
+    }
+
+    updateStatsDisplay() {
+        const elements = {
+            statMessages: this.stats.messages,
+            statLanguages: this.stats.languages,
+            statFriends: this.stats.friends,
+            statHours: this.stats.hours,
+            totalFriends: this.stats.friends,
+            onlineCount: 1 // Current user is always online
+        };
+
+        Object.entries(elements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = window.formatNumber ? window.formatNumber(value) : value;
+            }
+        });
+    }
+
+    updateBadgeCounts() {
+        const badges = {
+            friendsCount: this.stats.friends,
+            requestsCount: this.stats.requests,
+            blockedCount: this.stats.blocked,
+            notificationBadge: this.stats.unreadNotifications || this.stats.requests || 0
+        };
+
+        Object.entries(badges).forEach(([id, count]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = count;
+                
+                // Add notification class for requests and notifications
+                if (id === 'requestsCount' || id === 'notificationBadge') {
+                    element.classList.toggle('has-notifications', count > 0);
+                }
+            }
+        });
+
+        // Update other count displays
+        const blockedUsersCount = document.getElementById('blockedUsersCount');
+        if (blockedUsersCount) {
+            blockedUsersCount.textContent = `${this.stats.blocked} blocked users`;
+        }
+    }
+
+    async loadRecentActivity() {
+        const activityList = document.getElementById('recentActivity');
+        if (!activityList) return;
+
+        // Add welcome activity
+        const welcomeActivity = `
+            <div class="activity-item">
+                <div class="activity-icon">🎉</div>
+                <div class="activity-content">
+                    <div class="activity-title">Welcome to Mivton!</div>
+                    <div class="activity-time">Just now</div>
+                </div>
+            </div>
+        `;
+
+        activityList.innerHTML = welcomeActivity;
+    }
+
+    async loadFriends() {
+        console.log('👥 Loading friends list...');
+        
+        try {
+            const response = await fetch('/api/friends', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            console.log('🔍 Friends API response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`Friends API failed with status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('✅ Friends data received:', data);
+            
+            this.displayFriendsList(data.friends || []);
+            
+            // Update friends count in stats
+            if (data.stats) {
+                this.stats.friends = data.stats.total_friends || 0;
+                this.updateStatsDisplay();
+            }
+            
+        } catch (error) {
+            console.error('❌ Error loading friends:', error);
+            
+            // Fallback to showing empty state
+            this.displayFriendsList([]);
+        }
+    }
+    
+    displayFriendsList(friends) {
+        console.log('📝 Displaying friends list:', friends);
+        
+        const friendsList = document.getElementById('friendsList');
+        const friendsEmptyState = document.getElementById('friendsEmptyState');
+        
+        if (friends.length === 0) {
+            console.log('👥 No friends found, showing empty state');
+            if (friendsEmptyState) friendsEmptyState.style.display = 'block';
+            if (friendsList) friendsList.style.display = 'none';
+        } else {
+            console.log(`👥 Displaying ${friends.length} friends`);
+            if (friendsEmptyState) friendsEmptyState.style.display = 'none';
+            if (friendsList) {
+                friendsList.style.display = 'block';
+                
+                // Generate friends HTML
+                const friendsHTML = friends.map(friend => this.createFriendCard(friend)).join('');
+                friendsList.innerHTML = friendsHTML;
+            }
+        }
+    }
+    
+    createFriendCard(friend) {
+        const languageFlags = {
+            'en': '🇺🇸', 'es': '🇪🇸', 'fr': '🇫🇷', 'de': '🇩🇪', 'it': '🇮🇹',
+            'pt': '🇵🇹', 'ru': '🇷🇺', 'ja': '🇯🇵', 'ko': '🇰🇷', 'zh': '🇨🇳',
+            // Add missing languages
+            'hu': '🇭🇺', 'pl': '🇵🇱', 'ro': '🇷🇴', 'nl': '🇳🇱', 'sv': '🇸🇪',
+            'da': '🇩🇰', 'no': '🇳🇴', 'fi': '🇫🇮', 'cs': '🇨🇿', 'sk': '🇸🇰',
+            'hr': '🇭🇷', 'sr': '🇷🇸', 'bg': '🇧🇬', 'uk': '🇺🇦', 'el': '🇬🇷',
+            'tr': '🇹🇷', 'ar': '🇸🇦', 'he': '🇮🇱', 'hi': '🇮🇳', 'th': '🇹🇭',
+            'vi': '🇻🇳', 'id': '🇮🇩', 'ms': '🇲🇾', 'tl': '🇵🇭'
+        };
+        
+        const flag = languageFlags[friend.native_language] || '🌐';
+        const initials = this.getUserInitials(friend.full_name || friend.username);
+        const onlineStatus = friend.online_status || 'offline';
+        
+        return `
+            <div class="friend-card" data-friend-id="${friend.id}">
+                <div class="friend-header">
+                    <div class="user-avatar">
+                        ${initials}
+                        <div class="status-indicator ${onlineStatus}"></div>
+                    </div>
+                    <div class="friend-info">
+                        <div class="friend-name">
+                            ${friend.full_name || friend.username}
+                            ${friend.is_verified ? '<span class="verified-badge">✓</span>' : ''}
+                        </div>
+                        <div class="friend-username">@${friend.username}</div>
+                        <div class="friend-status">
+                            <span class="status-dot ${onlineStatus}"></span>
+                            <span class="status-text">${this.capitalizeFirst(onlineStatus)}</span>
+                        </div>
+                    </div>
+                    <div class="friend-language">
+                        ${flag}
+                    </div>
+                </div>
+                
+                <div class="friend-actions">
+                    <button class="friend-action-btn primary" onclick="dashboard.startChat(${friend.id})">
+                        <span>💬</span>
+                        Chat
+                    </button>
+                    <button class="friend-action-btn secondary" onclick="dashboard.viewFriendProfile(${friend.id})">
+                        <span>👁️</span>
+                        Profile
+                    </button>
+                    <button class="friend-action-btn danger" onclick="dashboard.removeFriend(${friend.id}, '${friend.username}')">
+                        <span>🗑️</span>
+                        Remove
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    async loadFriendRequests() {
+        console.log('📨 Loading friend requests...');
+        
+        // Initialize tab system - make sure Received tab is active
+        const receivedTab = document.querySelector('[data-tab="received"]');
+        const sentTab = document.querySelector('[data-tab="sent"]');
+        const receivedContent = document.getElementById('received-requests');
+        const sentContent = document.getElementById('sent-requests');
+        
+        if (receivedTab && sentTab && receivedContent && sentContent) {
+            // Activate received tab
+            receivedTab.classList.add('active');
+            sentTab.classList.remove('active');
+            receivedContent.classList.add('active');
+            sentContent.classList.remove('active');
+            console.log('✅ Tab system initialized - Received tab active');
+        }
+        
+        try {
+            // Load received requests
+            const receivedResponse = await fetch('/api/friend-requests/received', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            if (receivedResponse.ok) {
+                const receivedData = await receivedResponse.json();
+                console.log('✅ Received requests:', receivedData);
+                this.displayReceivedRequests(receivedData.requests || []);
+            } else {
+                console.error('❌ Failed to load received requests:', receivedResponse.status);
+            }
+            
+            // Load sent requests
+            const sentResponse = await fetch('/api/friend-requests/sent', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            if (sentResponse.ok) {
+                const sentData = await sentResponse.json();
+                console.log('✅ Sent requests:', sentData);
+                this.displaySentRequests(sentData.requests || []);
+            } else {
+                console.error('❌ Failed to load sent requests:', sentResponse.status);
+            }
+            
+        } catch (error) {
+            console.error('❌ Error loading friend requests:', error);
+        }
+    }
+    
+    displayReceivedRequests(requests) {
+        console.log('📨 Displaying received requests:', requests);
+        const receivedContainer = document.getElementById('received-requests');
+        if (!receivedContainer) {
+            console.error('❌ received-requests container not found!');
+            return;
+        }
+        
+        // FORCE THE CONTAINER TO BE VISIBLE
+        receivedContainer.style.display = 'block';
+        receivedContainer.classList.add('active');
+        console.log('🔧 Fixed container visibility - display:', receivedContainer.style.display);
+        
+        if (requests.length === 0) {
+            receivedContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📨</div>
+                    <h3>No friend requests</h3>
+                    <p>You're all caught up! No pending friend requests.</p>
+                </div>
+            `;
+        } else {
+            console.log('✅ Creating request cards for', requests.length, 'requests');
+            const requestsHTML = requests.map((request, index) => {
+                console.log(`Creating card ${index + 1}:`, request);
+                return this.createRequestCard(request, 'received');
+            }).join('');
+            
+            console.log('🎨 Generated HTML length:', requestsHTML.length);
+            
+            receivedContainer.innerHTML = `
+                <div class="requests-list">
+                    ${requestsHTML}
+                </div>
+            `;
+            
+            console.log('✅ Requests container updated with HTML');
+            
+            // Add event listeners to the newly created buttons
+            setTimeout(() => {
+                console.log('🕰️ About to attach button listeners...');
+                this.attachRequestButtonListeners();
+                
+                // Also try a more direct approach as backup
+                const buttons = document.querySelectorAll('.action-btn[data-action]');
+                console.log('🔍 Backup check: found', buttons.length, 'buttons');
+                
+                buttons.forEach((btn, index) => {
+                    console.log(`Button ${index}:`, btn, 'action:', btn.dataset.action, 'id:', btn.dataset.requestId);
+                });
+            }, 50);
+            
+            // Debug: Check if the HTML actually made it to the DOM
+            setTimeout(() => {
+                const updatedContainer = document.getElementById('received-requests');
+                console.log('🔍 Container after update:', updatedContainer);
+                console.log('🔍 Container innerHTML length:', updatedContainer?.innerHTML?.length);
+                console.log('🔍 Container is visible:', updatedContainer ? window.getComputedStyle(updatedContainer).display : 'not found');
+                
+                const requestCards = document.querySelectorAll('.request-card');
+                console.log('🔍 Found request cards:', requestCards.length);
+                requestCards.forEach((card, index) => {
+                    console.log(`Card ${index}:`, card, 'visible:', window.getComputedStyle(card).display);
+                });
+            }, 100);
+        }
+        
+        // Update badge count
+        this.stats.requests = requests.length;
+        this.updateBadgeCounts();
+    }
+    
+    displaySentRequests(requests) {
+        const sentContainer = document.getElementById('sent-requests');
+        if (!sentContainer) return;
+        
+        if (requests.length === 0) {
+            sentContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📤</div>
+                    <h3>No sent requests</h3>
+                    <p>Start connecting by sending friend requests!</p>
+                    <button class="empty-action-btn" onclick="showSection('find')">Find Friends</button>
+                </div>
+            `;
+        } else {
+            const requestsHTML = requests.map(request => this.createRequestCard(request, 'sent')).join('');
+            sentContainer.innerHTML = `
+                <div class="requests-list">
+                    ${requestsHTML}
+                </div>
+            `;
+        }
+    }
+    
+    createRequestCard(request, type) {
+        const isReceived = type === 'received';
+        const user = isReceived ? {
+            id: request.sender_id,
+            username: request.sender_username,
+            full_name: request.sender_full_name,
+            language: request.sender_language,
+            verified: request.sender_verified,
+            status: request.sender_status
+        } : {
+            id: request.receiver_id,
+            username: request.receiver_username,
+            full_name: request.receiver_full_name,
+            language: request.receiver_language,
+            verified: request.receiver_verified,
+            status: request.receiver_status
+        };
+        
+        const languageFlags = {
+            'en': '🇺🇸', 'es': '🇪🇸', 'fr': '🇫🇷', 'de': '🇩🇪', 'it': '🇮🇹',
+            'pt': '🇵🇹', 'ru': '🇷🇺', 'ja': '🇯🇵', 'ko': '🇰🇷', 'zh': '🇨🇳'
+        };
+        
+        const flag = languageFlags[user.language] || '🌐';
+        const initials = this.getUserInitials(user.full_name || user.username);
+        const timeAgo = this.formatTimeAgo(new Date(request.created_at));
+        
+        const actions = isReceived ? `
+            <div class="request-actions">
+                <button class="action-btn success" data-action="accept" data-request-id="${request.id}">
+                    <span>✅</span> Accept
+                </button>
+                <button class="action-btn danger" data-action="decline" data-request-id="${request.id}">
+                    <span>❌</span> Decline
+                </button>
+            </div>
+        ` : `
+            <div class="request-actions">
+                <button class="action-btn secondary" data-action="cancel" data-request-id="${request.id}">
+                    <span>🗑️</span> Cancel
+                </button>
+            </div>
+        `;
+        
+        return `
+            <div class="request-card" data-request-id="${request.id}">
+                <div class="request-header">
+                    <div class="user-avatar">
+                        ${initials}
+                        <div class="status-indicator ${user.status || 'offline'}"></div>
+                    </div>
+                    <div class="request-info">
+                        <div class="user-name">
+                            ${user.full_name || user.username}
+                            ${user.verified ? '<span class="verified-badge">✓</span>' : ''}
+                        </div>
+                        <div class="user-username">@${user.username}</div>
+                        <div class="request-time">${timeAgo}</div>
+                    </div>
+                    <div class="request-language">
+                        ${flag}
+                    </div>
+                </div>
+                
+                ${request.message ? `
+                    <div class="request-message">
+                        <p>"${request.message}"</p>
+                    </div>
+                ` : ''}
+                
+                ${actions}
+            </div>
+        `;
+    }
+    
+    formatTimeAgo(date) {
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+        
+        if (diffInSeconds < 60) return 'Just now';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+        
+        return date.toLocaleDateString();
+    }
+    
+    async acceptFriendRequest(requestId) {
+        try {
+            console.log('🚀 Accept friend request triggered for:', requestId);
+            
+            // Find the request card to get user info for confirmation
+            const requestCard = document.querySelector(`[data-request-id="${requestId}"]`);
+            let senderName = 'this user';
+            
+            if (requestCard) {
+                const nameElement = requestCard.querySelector('.user-name');
+                if (nameElement) {
+                    senderName = nameElement.textContent.replace('✓', '').trim();
+                }
+            }
+            
+            // 🚨 IMPORTANT: Show confirmation dialog
+            const confirmed = await this.showConfirmDialog(
+                `Are you sure you want to accept the friend request from ${senderName}?`,
+                'Accept Friend Request',
+                {
+                    confirmText: '✅ Yes, Accept',
+                    cancelText: '❌ Cancel',
+                    type: 'success'
+                }
+            );
+            
+            if (!confirmed) {
+                console.log('🙅 User cancelled friend request acceptance');
+                return;
+            }
+            
+            console.log('✅ User confirmed, accepting friend request:', requestId);
+            
+            const response = await fetch(`/api/friend-requests/${requestId}/accept`, {
+                method: 'PUT',
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                if (window.toast) {
+                    window.toast.success(data.message || `Friend request from ${senderName} accepted!`);
+                }
+                
+                // Remove the request card from UI
+                const requestCard = document.querySelector(`[data-request-id="${requestId}"]`);
+                if (requestCard) {
+                    // Add a nice animation before removing
+                    requestCard.style.transition = 'all 0.3s ease';
+                    requestCard.style.opacity = '0';
+                    requestCard.style.transform = 'scale(0.9)';
+                    
+                    setTimeout(() => {
+                        requestCard.remove();
+                    }, 300);
+                }
+                
+                // Update stats
+                this.stats.requests--;
+                this.stats.friends++;
+                this.updateBadgeCounts();
+                this.updateStatsDisplay();
+                
+                // Reload requests to refresh counts
+                setTimeout(() => {
+                    this.loadFriendRequests();
+                }, 500);
+                
+            } else {
+                throw new Error(data.error || 'Failed to accept friend request');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error accepting friend request:', error);
+            if (window.toast) {
+                window.toast.error('Failed to accept friend request: ' + error.message);
+            }
+        }
+    }
+    
+    async declineFriendRequest(requestId) {
+        try {
+            console.log('❌ Declining friend request:', requestId);
+            
+            const response = await fetch(`/api/friend-requests/${requestId}/decline`, {
+                method: 'PUT',
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                if (window.toast) {
+                    window.toast.success('Friend request declined');
+                }
+                
+                // Remove the request card from UI
+                const requestCard = document.querySelector(`[data-request-id="${requestId}"]`);
+                if (requestCard) {
+                    requestCard.remove();
+                }
+                
+                // Update stats
+                this.stats.requests--;
+                this.updateBadgeCounts();
+                
+                // Reload requests to refresh counts
+                await this.loadFriendRequests();
+                
+            } else {
+                throw new Error(data.error || 'Failed to decline friend request');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error declining friend request:', error);
+            if (window.toast) {
+                window.toast.error('Failed to decline friend request');
+            }
+        }
+    }
+    
+    async cancelFriendRequest(requestId) {
+        try {
+            console.log('🗑️ Cancelling friend request:', requestId);
+            
+            const response = await fetch(`/api/friend-requests/${requestId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                if (window.toast) {
+                    window.toast.success('Friend request cancelled');
+                }
+                
+                // Remove the request card from UI
+                const requestCard = document.querySelector(`[data-request-id="${requestId}"]`);
+                if (requestCard) {
+                    requestCard.remove();
+                }
+                
+                // Reload requests to refresh counts
+                await this.loadFriendRequests();
+                
+            } else {
+                throw new Error(data.error || 'Failed to cancel friend request');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error cancelling friend request:', error);
+            if (window.toast) {
+                window.toast.error('Failed to cancel friend request');
+            }
+        }
+    }
+
+    initializeFindSection() {
+        const searchResults = document.getElementById('searchResults');
+        if (searchResults) {
+            searchResults.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <h3>Start searching</h3>
+                    <p>Use the search box above to find friends by username or email.</p>
+                </div>
+            `;
+        }
+    }
+
+    async performUserSearch(query) {
+        const searchResults = document.getElementById('searchResults');
+        const searchResultsCount = document.getElementById('searchResultsCount');
+        
+        if (!searchResults) return;
+
+        console.log('🔍 Performing user search for:', query);
+
+        // Show loading state
+        searchResults.innerHTML = `
+            <div class="text-center" style="padding: 40px;">
+                <div class="spinner"></div>
+                <p style="margin-top: 16px; color: var(--text-muted);">Searching...</p>
+            </div>
+        `;
+
+        try {
+            // Get language filter
+            const languageFilter = document.getElementById('languageFilter');
+            const language = languageFilter ? languageFilter.value : '';
+
+            // Build search parameters
+            const params = new URLSearchParams({
+                q: query,
+                limit: 20
+            });
+            
+            if (language) {
+                params.append('language', language);
+            }
+
+            console.log('🌐 Making API request to:', `/api/users/search?${params}`);
+
+            // Make actual API call
+            const response = await fetch(`/api/users/search?${params}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('📡 API Response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ API Error:', response.status, errorText);
+                throw new Error(`Search failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('✅ Search results received:', data);
+
+            if (data.success && data.users) {
+                // 🚨 IMPORTANT: Load friendship statuses for all users
+                await this.loadFriendshipStatuses(data.users);
+                
+                this.displaySearchResults(data.users, query);
+                
+                // Update search results count
+                if (searchResultsCount) {
+                    const count = data.users.length;
+                    searchResultsCount.textContent = `${count} user${count !== 1 ? 's' : ''} found`;
+                }
+            } else {
+                console.log('⚠️ No users found or API returned error:', data);
+                this.displayNoResults(query);
+                
+                if (searchResultsCount) {
+                    searchResultsCount.textContent = '0 users found';
+                }
+            }
+
+        } catch (error) {
+            console.error('❌ Search error:', error);
+            searchResults.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">⚠️</div>
+                    <h3>Search failed</h3>
+                    <p>Unable to search at this time. Please try again.</p>
+                    <button class="empty-action-btn" onclick="dashboard.performUserSearch('${query}')">Try Again</button>
+                </div>
+            `;
+            
+            if (searchResultsCount) {
+                searchResultsCount.textContent = 'Search failed';
+            }
+        }
+    }
+
+    async loadFriendshipStatuses(users) {
+        try {
+            console.log('🔎 Loading friendship statuses for', users.length, 'users');
+            
+            // Get user IDs
+            const userIds = users.map(user => user.id).filter(id => id !== this.currentUser?.id);
+            
+            if (userIds.length === 0) {
+                console.log('🔎 No other users to check friendship status for');
+                return;
+            }
+            
+            // Check friendship statuses in batch
+            const response = await fetch('/api/friends/status/batch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    user_ids: userIds
+                })
+            });
+            
+            if (response.ok) {
+                const statusData = await response.json();
+                console.log('✅ Retrieved friendship statuses:', statusData);
+                
+                // Update each user with their relationship status
+                users.forEach(user => {
+                    const status = statusData.statuses?.[user.id];
+                    if (status) {
+                        user.relationshipStatus = status.status; // 'friends', 'pending_sent', 'pending_received', 'none'
+                        user.friendRequestId = status.request_id;
+                    } else {
+                        user.relationshipStatus = 'none';
+                    }
+                });
+                
+                console.log('✅ Updated users with relationship statuses');
+            } else {
+                console.warn('⚠️ Failed to load friendship statuses, using fallback API');
+                // Fallback: load statuses individually (less efficient but works)
+                await this.loadFriendshipStatusesIndividually(users);
+            }
+            
+        } catch (error) {
+            console.error('❌ Error loading friendship statuses:', error);
+            // Set all to 'none' as fallback
+            users.forEach(user => {
+                if (user.id !== this.currentUser?.id) {
+                    user.relationshipStatus = 'none';
+                }
+            });
+        }
+    }
+    
+    async loadFriendshipStatusesIndividually(users) {
+        console.log('🔎 Loading friendship statuses individually (fallback)');
+        
+        for (const user of users) {
+            if (user.id === this.currentUser?.id) continue;
+            
+            try {
+                // Check if already friends
+                const friendsResponse = await fetch(`/api/friends/check/${user.id}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (friendsResponse.ok) {
+                    const friendData = await friendsResponse.json();
+                    if (friendData.are_friends) {
+                        user.relationshipStatus = 'friends';
+                        continue;
+                    }
+                }
+                
+                // Check for pending friend requests
+                const requestResponse = await fetch(`/api/friend-requests/check/${user.id}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (requestResponse.ok) {
+                    const requestData = await requestResponse.json();
+                    if (requestData.request) {
+                        user.relationshipStatus = requestData.request.sender_id === this.currentUser.id 
+                            ? 'pending_sent' 
+                            : 'pending_received';
+                        user.friendRequestId = requestData.request.id;
+                    } else {
+                        user.relationshipStatus = 'none';
+                    }
+                } else {
+                    user.relationshipStatus = 'none';
+                }
+                
+            } catch (error) {
+                console.warn(`Failed to load status for user ${user.id}:`, error);
+                user.relationshipStatus = 'none';
+            }
+    }
+    
+    displaySearchResults(users, query) {
+        const searchResults = document.getElementById('searchResults');
+        if (!searchResults) return;
+
+        if (users.length === 0) {
+            this.displayNoResults(query);
+            return;
+        }
+        
+        // 🚨 IMPORTANT: Additional safety - log users for debugging
+        console.log('🔍 Search results - Current user check:', {
+            currentUserId: this.currentUser?.id,
+            currentUsername: this.currentUser?.username,
+            resultCount: users.length,
+            userIds: users.map(u => ({ id: u.id, username: u.username, status: u.relationshipStatus }))
+        });
+
+        const resultsHTML = users.map(user => this.createUserCard(user)).join('');
+        
+        searchResults.innerHTML = `
+            <div class="search-results-grid">
+                ${resultsHTML}
+            </div>
+        `;
+    }
+
+    displayNoResults(query) {
+        const searchResults = document.getElementById('searchResults');
+        if (!searchResults) return;
+
+        searchResults.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <h3>No users found</h3>
+                <p>No users found matching "${query}". Try a different search term.</p>
+            </div>
+        `;
+    }
+
+    createUserCard(user) {
+        const languageFlags = {
+            'en': '🇺🇸', 'es': '🇪🇸', 'fr': '🇫🇷', 'de': '🇩🇪', 'it': '🇮🇹',
+            'pt': '🇵🇹', 'ru': '🇷🇺', 'ja': '🇯🇵', 'ko': '🇰🇷', 'zh': '🇨🇳',
+            // Add missing languages
+            'hu': '🇭🇺', 'pl': '🇵🇱', 'ro': '🇷🇴', 'nl': '🇳🇱', 'sv': '🇸🇪',
+            'da': '🇩🇰', 'no': '🇳🇴', 'fi': '🇫🇮', 'cs': '🇨🇿', 'sk': '🇸🇰',
+            'hr': '🇭🇷', 'sr': '🇷🇸', 'bg': '🇧🇬', 'uk': '🇺🇦', 'el': '🇬🇷',
+            'tr': '🇹🇷', 'ar': '🇸🇦', 'he': '🇮🇱', 'hi': '🇮🇳', 'th': '🇹🇭',
+            'vi': '🇻🇳', 'id': '🇮🇩', 'ms': '🇲🇾', 'tl': '🇵🇭'
+        };
+        
+        const languageNames = {
+            'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian',
+            'pt': 'Portuguese', 'ru': 'Russian', 'ja': 'Japanese', 'ko': 'Korean', 'zh': 'Chinese',
+            // Add missing languages
+            'hu': 'Hungarian', 'pl': 'Polish', 'ro': 'Romanian', 'nl': 'Dutch', 'sv': 'Swedish',
+            'da': 'Danish', 'no': 'Norwegian', 'fi': 'Finnish', 'cs': 'Czech', 'sk': 'Slovak',
+            'hr': 'Croatian', 'sr': 'Serbian', 'bg': 'Bulgarian', 'uk': 'Ukrainian', 'el': 'Greek',
+            'tr': 'Turkish', 'ar': 'Arabic', 'he': 'Hebrew', 'hi': 'Hindi', 'th': 'Thai',
+            'vi': 'Vietnamese', 'id': 'Indonesian', 'ms': 'Malay', 'tl': 'Filipino'
+        };
+
+        const flag = languageFlags[user.native_language] || '🌐';
+        const langName = languageNames[user.native_language] || user.native_language || 'Unknown';
+        const initials = this.getUserInitials(user.full_name || user.username);
+        const memberSince = new Date(user.created_at).getFullYear();
+        
+        // 🚨 IMPORTANT: Check if this is the current user
+        // Handle both integer and string comparison for robustness
+        const currentUserId = this.currentUser?.id;
+        const isCurrentUser = currentUserId && (user.id === currentUserId || parseInt(user.id) === parseInt(currentUserId));
+        
+        // Get relationship status
+        const relationshipStatus = user.relationshipStatus || 'none';
+        
+        console.log('🔍 Creating user card - Relationship check:', {
+            userId: user.id,
+            currentUserId: this.currentUser?.id,
+            isCurrentUser: isCurrentUser,
+            username: user.username,
+            relationshipStatus: relationshipStatus
+        });
+        
+        // Generate action buttons based on relationship status
+        let actionButtons;
+        
+        if (isCurrentUser) {
+            actionButtons = `
+                <div class="user-actions">
+                    <button class="user-action-btn disabled" disabled>
+                        <span>👤</span>
+                        That's You!
+                    </button>
+                    <button class="user-action-btn secondary" onclick="dashboard.viewUserProfile(${user.id})">
+                        <span>👁️</span>
+                        View
+                    </button>
+                </div>
+            `;
+        } else {
+            switch (relationshipStatus) {
+                case 'friends':
+                    actionButtons = `
+                        <div class="user-actions">
+                            <button class="user-action-btn success" disabled>
+                                <span>✅</span>
+                                Friends
+                            </button>
+                            <button class="user-action-btn secondary" onclick="dashboard.viewUserProfile(${user.id})">
+                                <span>👁️</span>
+                                View
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'pending_sent':
+                    actionButtons = `
+                        <div class="user-actions">
+                            <button class="user-action-btn warning" disabled>
+                                <span>📬</span>
+                                Request Sent
+                            </button>
+                            <button class="user-action-btn secondary" onclick="dashboard.viewUserProfile(${user.id})">
+                                <span>👁️</span>
+                                View
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'pending_received':
+                    actionButtons = `
+                        <div class="user-actions">
+                            <button class="user-action-btn info" onclick="dashboard.showSection('requests')">
+                                <span>📨</span>
+                                Respond to Request
+                            </button>
+                            <button class="user-action-btn secondary" onclick="dashboard.viewUserProfile(${user.id})">
+                                <span>👁️</span>
+                                View
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'none':
+                default:
+                    actionButtons = `
+                        <div class="user-actions">
+                            <button class="user-action-btn primary" onclick="dashboard.sendFriendRequest(${user.id}, '${user.username}')">
+                                <span>👋</span>
+                                Add Friend
+                            </button>
+                            <button class="user-action-btn secondary" onclick="dashboard.viewUserProfile(${user.id})">
+                                <span>👁️</span>
+                                View
+                            </button>
+                        </div>
+                    `;
+                    break;
+            }
+        }
+
+        return `
+            <div class="user-card ${isCurrentUser ? 'current-user' : ''}" data-user-id="${user.id}">
+                <div class="user-card-header">
+                    <div class="user-avatar">
+                        ${initials}
+                        <div class="status-indicator ${user.status || 'offline'}"></div>
+                        ${isCurrentUser ? '<div class="current-user-badge">YOU</div>' : ''}
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">
+                            ${user.full_name || user.username}
+                            ${user.is_verified ? '<span class="verified-badge">✓</span>' : ''}
+                            ${user.is_admin ? '<span class="admin-badge">Admin</span>' : ''}
+                            ${isCurrentUser ? '<span class="you-badge">👤 You</span>' : ''}
+                        </div>
+                        <div class="user-username">@${user.username}</div>
+                        <div class="user-status">
+                            <span class="status-dot ${user.status || 'offline'}"></span>
+                            <span class="status-text">${this.capitalizeFirst(user.status || 'offline')}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="user-details">
+                    <div class="user-detail">
+                        <span class="detail-icon">🌐</span>
+                        <span class="detail-text">${flag} ${langName}</span>
+                    </div>
+                    <div class="user-detail">
+                        <span class="detail-icon">📅</span>
+                        <span class="detail-text">Joined ${memberSince}</span>
+                    </div>
+                </div>
+                
+                ${actionButtons}
+            </div>
+        `;
+    }
+
+    capitalizeFirst(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    clearSearchResults() {
+        const searchResults = document.getElementById('searchResults');
+        const searchResultsCount = document.getElementById('searchResultsCount');
+        
+        if (searchResults) {
+            searchResults.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <h3>Start searching</h3>
+                    <p>Use the search box above to find friends by username or email.</p>
+                </div>
+            `;
+        }
+        
+        if (searchResultsCount) {
+            searchResultsCount.textContent = '0 users found';
+        }
+    }
+
+    async loadBlockedUsers() {
+        const blockedList = document.getElementById('blockedList');
+        const blockedEmptyState = document.getElementById('blockedEmptyState');
+        
+        if (this.stats.blocked === 0) {
+            if (blockedEmptyState) blockedEmptyState.style.display = 'block';
+            if (blockedList) blockedList.style.display = 'none';
+        } else {
+            if (blockedEmptyState) blockedEmptyState.style.display = 'none';
+            if (blockedList) blockedList.style.display = 'block';
+            // TODO: Populate blocked users list
+        }
+    }
+
+    initializeProfileSection() {
+        // Profile section is already populated in updateProfileForm
+        // Add any additional initialization here
+    }
+
+    setupEventListeners() {
+        // Logout button - multiple approaches for reliability
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            console.log('🔧 Setting up logout button listeners...');
+            
+            // Remove any existing listeners
+            logoutBtn.onclick = null;
+            
+            // Add event listener
+            const logoutHandler = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🚪 Logout button clicked!');
+                this.handleLogout();
+            };
+            
+            logoutBtn.addEventListener('click', logoutHandler);
+            logoutBtn.onclick = logoutHandler;
+            
+            console.log('✅ Logout button listeners attached');
+        } else {
+            console.error('❌ Logout button not found!');
+        }
+
+        // Save profile button
+        const saveProfileBtn = document.getElementById('saveProfileBtn');
+        if (saveProfileBtn) {
+            saveProfileBtn.addEventListener('click', () => this.handleSaveProfile());
+        }
+
+        // Notifications button
+        const notificationsBtn = document.getElementById('notificationsBtn');
+        if (notificationsBtn) {
+            notificationsBtn.addEventListener('click', () => this.handleNotifications());
+        }
+
+        // Search functionality
+        const searchBtn = document.getElementById('searchBtn');
+        const searchInput = document.getElementById('userSearchInput');
+        
+        if (searchBtn) {
+            searchBtn.addEventListener('click', () => {
+                if (searchInput && searchInput.value.trim()) {
+                    this.performUserSearch(searchInput.value.trim());
+                }
+            });
+        }
+        
+        if (searchInput) {
+            // Search on Enter key
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && searchInput.value.trim()) {
+                    this.performUserSearch(searchInput.value.trim());
+                }
+            });
+            
+            // Real-time search with debounce
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                const query = e.target.value.trim();
+                
+                if (query.length >= 2) {
+                    searchTimeout = setTimeout(() => {
+                        this.performUserSearch(query);
+                    }, 300);
+                } else if (query.length === 0) {
+                    this.clearSearchResults();
+                }
+            });
+        }
+        
+        // Language filter
+        const languageFilter = document.getElementById('languageFilter');
+        if (languageFilter) {
+            languageFilter.addEventListener('change', () => {
+                if (searchInput && searchInput.value.trim()) {
+                    this.performUserSearch(searchInput.value.trim());
+                }
+            });
+        }
+    }
+
+    async handleLogout() {
+        let confirmed = true;
+        
+        if (window.showConfirmDialog) {
+            try {
+                confirmed = await window.showConfirmDialog(
+                    'Are you sure you want to logout?',
+                    'Confirm Logout'
+                );
+            } catch (error) {
+                console.error('Confirm dialog error:', error);
+                // If dialog fails, just proceed without confirmation
+            }
+        }
+
+        if (!confirmed) return;
+
+        try {
+            if (window.loading) {
+                window.loading.show('Logging out...');
+            }
+
+            const response = await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                window.location.href = '/';
+            } else {
+                throw new Error('Logout failed');
+            }
+
+        } catch (error) {
+            console.error('Logout error:', error);
+            if (window.toast) {
+                window.toast.error('Logout failed. Please try again.');
+            }
+        } finally {
+            if (window.loading) {
+                window.loading.hide();
+            }
+        }
+    }
+
+    async handleSaveProfile() {
+        console.log('💾 === SAVE PROFILE DEBUG START ===');
+        
+        try {
+            // Debug: Check if elements exist
+            const fullNameInput = document.getElementById('fullNameInput');
+            const languageSelect = document.getElementById('nativeLanguageSelect');
+            const genderSelect = document.getElementById('genderSelect');
+            
+            // Privacy settings elements
+            const profileVisibilitySelect = document.getElementById('profileVisibility');
+            const showLanguageCheckbox = document.getElementById('showLanguage');
+            const showOnlineStatusCheckbox = document.getElementById('showOnlineStatus');
+            
+            console.log('🔍 Form elements found:');
+            console.log('- Full Name Input:', fullNameInput, fullNameInput?.value);
+            console.log('- Language Select:', languageSelect, languageSelect?.value);
+            console.log('- Gender Select:', genderSelect, genderSelect?.value);
+            console.log('- Profile Visibility:', profileVisibilitySelect, profileVisibilitySelect?.value);
+            console.log('- Show Language:', showLanguageCheckbox, showLanguageCheckbox?.checked);
+            console.log('- Show Online Status:', showOnlineStatusCheckbox, showOnlineStatusCheckbox?.checked);
+            
+            if (!fullNameInput || !languageSelect) {
+                throw new Error('Required form elements not found!');
+            }
+            
+            if (window.loading) {
+                window.loading.show('Saving profile...');
+            }
+
+            // Save profile data first
+            const profileData = {
+                full_name: fullNameInput.value || '',
+                native_language: languageSelect.value || 'en'
+                // Note: Removed gender - now read-only for legal compliance
+            };
+            
+            console.log('📤 Sending profile data:', profileData);
+            console.log('🌐 Making API request to: /api/dashboard/profile');
+
+            const profileResponse = await fetch('/api/dashboard/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(profileData)
+            });
+            
+            console.log('📡 Profile API Response:', {
+                status: profileResponse.status,
+                statusText: profileResponse.statusText,
+                ok: profileResponse.ok
+            });
+
+            if (!profileResponse.ok) {
+                const errorData = await profileResponse.text();
+                console.error('❌ Profile API Error Response:', errorData);
+                throw new Error(`Profile API Error: ${profileResponse.status} - ${errorData}`);
+            }
+
+            const profileResponseData = await profileResponse.json();
+            console.log('✅ Profile API Response Data:', profileResponseData);
+            
+            // Save privacy settings if elements exist
+            if (profileVisibilitySelect && showLanguageCheckbox && showOnlineStatusCheckbox) {
+                const settingsData = {
+                    profile_visibility: profileVisibilitySelect.value,
+                    show_language: showLanguageCheckbox.checked,
+                    show_online_status: showOnlineStatusCheckbox.checked
+                };
+                
+                console.log('🔒 Sending privacy settings:', settingsData);
+                console.log('🌐 Making API request to: /api/dashboard/settings');
+
+                const settingsResponse = await fetch('/api/dashboard/settings', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(settingsData)
+                });
+                
+                console.log('📡 Settings API Response:', {
+                    status: settingsResponse.status,
+                    statusText: settingsResponse.statusText,
+                    ok: settingsResponse.ok
+                });
+
+                if (!settingsResponse.ok) {
+                    const errorData = await settingsResponse.text();
+                    console.error('❌ Settings API Error Response:', errorData);
+                    // Don't throw here - profile was saved successfully
+                    console.warn('⚠️ Privacy settings failed to save, but profile was updated');
+                } else {
+                    const settingsResponseData = await settingsResponse.json();
+                    console.log('✅ Settings API Response Data:', settingsResponseData);
+                }
+            }
+            
+            // Update current user with the response
+            if (profileResponseData.user) {
+                this.currentUser = { ...this.currentUser, ...profileResponseData.user };
+                console.log('👤 Updated current user:', this.currentUser);
+            } else {
+                this.currentUser = { ...this.currentUser, ...profileData };
+                console.log('👤 Updated current user with form data:', this.currentUser);
+            }
+            
+            // Update UI display
+            this.updateUserDisplay();
+            this.updateLanguageDisplay();
+            
+            if (window.toast) {
+                window.toast.success('✅ Profile and privacy settings updated successfully!');
+            }
+            
+            console.log('✅ Profile save completed successfully');
+            
+        } catch (error) {
+            console.error('❌ Save profile error:', error);
+            console.error('❌ Error stack:', error.stack);
+            
+            if (window.toast) {
+                window.toast.error('Failed to save profile: ' + error.message);
+            } else {
+                alert('Failed to save profile: ' + error.message);
+            }
+        } finally {
+            if (window.loading) {
+                window.loading.hide();
+            }
+            console.log('💾 === SAVE PROFILE DEBUG END ===');
+        }
+    }
+
+    async handleNotifications() {
+        console.log('🔔 Opening notifications panel...');
+        
+        // Create notifications panel if it doesn't exist
+        let notificationsPanel = document.getElementById('notificationsPanel');
+        if (!notificationsPanel) {
+            this.createNotificationsPanel();
+            notificationsPanel = document.getElementById('notificationsPanel');
+        }
+        
+        // Toggle panel visibility
+        const isVisible = notificationsPanel.classList.contains('visible');
+        if (isVisible) {
+            this.hideNotificationsPanel();
+        } else {
+            this.showNotificationsPanel();
+            await this.loadNotifications();
+        }
+    }
+    
+    createNotificationsPanel() {
+        const panel = document.createElement('div');
+        panel.id = 'notificationsPanel';
+        panel.className = 'notifications-panel';
+        panel.innerHTML = `
+            <div class="notifications-header">
+                <h3>🔔 Notifications</h3>
+                <button class="close-btn" onclick="dashboard.hideNotificationsPanel()">×</button>
+            </div>
+            <div class="notifications-content" id="notificationsContent">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading notifications...</p>
+                </div>
+            </div>
+            <div class="notifications-footer">
+                <button class="mark-all-read-btn" onclick="dashboard.markAllNotificationsRead()">
+                    Mark All Read
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(panel);
+        
+        // Close panel when clicking outside - with better event handling
+        setTimeout(() => {
+            document.addEventListener('click', (e) => {
+                const notificationsBtn = document.getElementById('notificationsBtn');
+                if (panel && !panel.contains(e.target) && notificationsBtn && !notificationsBtn.contains(e.target)) {
+                    this.hideNotificationsPanel();
+                }
+            });
+        }, 100);
+    }
+    
+    showNotificationsPanel() {
+        const panel = document.getElementById('notificationsPanel');
+        console.log('🔍 Showing notifications panel:', panel);
+        if (panel) {
+            panel.classList.add('visible');
+            console.log('🔍 Panel classes after showing:', panel.className);
+            console.log('🔍 Panel visibility:', window.getComputedStyle(panel).visibility);
+            console.log('🔍 Panel opacity:', window.getComputedStyle(panel).opacity);
+        } else {
+            console.error('❌ Notifications panel not found!');
+        }
+    }
+    
+    hideNotificationsPanel() {
+        const panel = document.getElementById('notificationsPanel');
+        if (panel) {
+            panel.classList.remove('visible');
+        }
+    }
+    
+    async loadNotifications() {
+        const content = document.getElementById('notificationsContent');
+        if (!content) return;
+        
+        try {
+            // Use the Phase 3.2 notifications API for consistency
+            const response = await fetch('/api/notifications?limit=50', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Loaded notifications:', data);
+                this.displayNotifications(data.notifications || []);
+                
+                // Update the notification badge with current unread count
+                if (data.stats && data.stats.unread_count !== undefined) {
+                    this.stats.unreadNotifications = data.stats.unread_count;
+                    this.updateBadgeCounts();
+                }
+            } else {
+                throw new Error('Failed to load notifications');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error loading notifications:', error);
+            content.innerHTML = `
+                <div class="error-state">
+                    <div class="error-icon">⚠️</div>
+                    <p>Failed to load notifications</p>
+                    <button class="retry-btn" onclick="dashboard.loadNotifications()">Try Again</button>
+                </div>
+            `;
+        }
+    }
+    
+    displayNotifications(notifications) {
+        const content = document.getElementById('notificationsContent');
+        if (!content) return;
+        
+        if (notifications.length === 0) {
+            content.innerHTML = `
+                <div class="empty-notifications">
+                    <div class="empty-icon">🔔</div>
+                    <h4>All caught up!</h4>
+                    <p>No new notifications</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const notificationsHTML = notifications.map(notification => this.createNotificationCard(notification)).join('');
+        content.innerHTML = `
+            <div class="notifications-list">
+                ${notificationsHTML}
+            </div>
+        `;
+    }
+    
+    createNotificationCard(notification) {
+        const timeAgo = this.formatTimeAgo(new Date(notification.created_at));
+        const isRead = notification.is_read;
+        
+        let icon = '🔔';
+        let title = notification.message;
+        let description = '';
+        
+        // Customize based on notification type
+        switch (notification.type) {
+            case 'friend_request':
+                icon = '👋';
+                title = `New friend request`;
+                description = notification.message;
+                break;
+            case 'friend_accepted':
+                icon = '✅';
+                title = `Friend request accepted`;
+                description = notification.message;
+                break;
+            case 'friend_declined':
+                icon = '❌';
+                title = `Friend request declined`;
+                description = notification.message;
+                break;
+            default:
+                title = notification.message;
+        }
+        
+        return `
+            <div class="notification-card ${isRead ? 'read' : 'unread'}" data-notification-id="${notification.id}">
+                <div class="notification-icon">${icon}</div>
+                <div class="notification-content">
+                    <div class="notification-title">${title}</div>
+                    ${description ? `<div class="notification-description">${description}</div>` : ''}
+                    <div class="notification-time">${timeAgo}</div>
+                </div>
+                ${!isRead ? '<div class="unread-indicator"></div>' : ''}
+            </div>
+        `;
+    }
+    
+    async showConfirmDialog(message, title = 'Confirm Action', options = {}) {
+        return new Promise((resolve) => {
+            console.log('💬 Showing confirmation dialog:', message);
+            
+            // Create modal element
+            const modal = document.createElement('div');
+            modal.className = 'confirm-modal-overlay';
+            modal.innerHTML = `
+                <div class="confirm-modal">
+                    <div class="confirm-modal-header">
+                        <h3>${title}</h3>
+                    </div>
+                    <div class="confirm-modal-body">
+                        <p>${message}</p>
+                    </div>
+                    <div class="confirm-modal-actions">
+                        <button class="confirm-btn cancel" data-result="false">
+                            ${options.cancelText || '❌ Cancel'}
+                        </button>
+                        <button class="confirm-btn confirm ${options.type || 'primary'}" data-result="true">
+                            ${options.confirmText || '✅ Confirm'}
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Add styles if not present
+            if (!document.getElementById('confirm-modal-styles')) {
+                const styles = document.createElement('style');
+                styles.id = 'confirm-modal-styles';
+                styles.textContent = `
+                    .confirm-modal-overlay {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.5);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 10000;
+                        animation: fadeIn 0.2s ease;
+                    }
+                    
+                    .confirm-modal {
+                        background: white;
+                        border-radius: 12px;
+                        min-width: 400px;
+                        max-width: 500px;
+                        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+                        animation: slideIn 0.3s ease;
+                    }
+                    
+                    .confirm-modal-header {
+                        padding: 20px 20px 0 20px;
+                        border-bottom: 1px solid #eee;
+                    }
+                    
+                    .confirm-modal-header h3 {
+                        margin: 0 0 15px 0;
+                        color: #333;
+                        font-size: 1.2em;
+                    }
+                    
+                    .confirm-modal-body {
+                        padding: 20px;
+                    }
+                    
+                    .confirm-modal-body p {
+                        margin: 0;
+                        color: #666;
+                        line-height: 1.5;
+                    }
+                    
+                    .confirm-modal-actions {
+                        padding: 0 20px 20px 20px;
+                        display: flex;
+                        gap: 10px;
+                        justify-content: flex-end;
+                    }
+                    
+                    .confirm-btn {
+                        padding: 10px 20px;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 500;
+                        transition: all 0.2s;
+                        min-width: 100px;
+                    }
+                    
+                    .confirm-btn.cancel {
+                        background: #6c757d;
+                        color: white;
+                    }
+                    
+                    .confirm-btn.cancel:hover {
+                        background: #545b62;
+                    }
+                    
+                    .confirm-btn.confirm.primary {
+                        background: #007bff;
+                        color: white;
+                    }
+                    
+                    .confirm-btn.confirm.primary:hover {
+                        background: #0056b3;
+                    }
+                    
+                    .confirm-btn.confirm.success {
+                        background: #28a745;
+                        color: white;
+                    }
+                    
+                    .confirm-btn.confirm.success:hover {
+                        background: #1e7e34;
+                    }
+                    
+                    .confirm-btn.confirm.danger {
+                        background: #dc3545;
+                        color: white;
+                    }
+                    
+                    .confirm-btn.confirm.danger:hover {
+                        background: #c82333;
+                    }
+                    
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    
+                    @keyframes slideIn {
+                        from { transform: scale(0.9) translateY(-20px); opacity: 0; }
+                        to { transform: scale(1) translateY(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(styles);
+            }
+            
+            // Add click handlers
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    // Clicked outside - cancel
+                    modal.remove();
+                    resolve(false);
+                }
+                
+                if (e.target.classList.contains('confirm-btn')) {
+                    const result = e.target.dataset.result === 'true';
+                    console.log('💬 User selected:', result ? 'Confirm' : 'Cancel');
+                    modal.remove();
+                    resolve(result);
+                }
+            });
+            
+            // Add keyboard handler
+            const keyHandler = (e) => {
+                if (e.key === 'Escape') {
+                    modal.remove();
+                    document.removeEventListener('keydown', keyHandler);
+                    resolve(false);
+                } else if (e.key === 'Enter') {
+                    modal.remove();
+                    document.removeEventListener('keydown', keyHandler);
+                    resolve(true);
+                }
+            };
+            document.addEventListener('keydown', keyHandler);
+            
+            // Add to DOM
+            document.body.appendChild(modal);
+            
+            // Focus the confirm button
+            setTimeout(() => {
+                const confirmBtn = modal.querySelector('.confirm-btn.confirm');
+                if (confirmBtn) {
+                    confirmBtn.focus();
+                }
+            }, 100);
+        });
+    }
+    
+    async markAllNotificationsRead() {
+        try {
+            console.log('📚 Marking all notifications as read...');
+            
+            // Use the Phase 3.2 notifications API for consistency
+            const response = await fetch('/api/notifications/read-all', {
+                method: 'PUT',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Mark all read response:', data);
+                
+                // Update UI
+                document.querySelectorAll('.notification-card.unread').forEach(card => {
+                    card.classList.remove('unread');
+                    card.classList.add('read');
+                    const indicator = card.querySelector('.unread-indicator');
+                    if (indicator) {
+                        indicator.remove();
+                    }
+                });
+                
+                // Reset unread notification count to 0
+                this.stats.unreadNotifications = 0;
+                this.updateBadgeCounts();
+                
+                console.log('✅ Updated notification badge count to 0');
+                
+                if (window.toast) {
+                    window.toast.success(`All notifications marked as read (${data.count || 0} notifications)`);
+                }
+            } else {
+                throw new Error('Failed to mark notifications as read');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error marking notifications as read:', error);
+            if (window.toast) {
+                window.toast.error('Failed to mark notifications as read');
+            }
+        }
+    }
+    
+    async sendFriendRequest(userId, username) {
+        try {
+            console.log('📤 Sending friend request to user:', userId, username);
+            
+            // 🚨 IMPORTANT: Prevent sending friend request to yourself
+            // Handle both integer and string comparison for robustness
+            const currentUserId = this.currentUser?.id;
+            if (currentUserId && (userId === currentUserId || parseInt(userId) === parseInt(currentUserId))) {
+                console.error('❌ Cannot send friend request to yourself!', {
+                    currentUserId: currentUserId,
+                    targetUserId: userId,
+                    currentUserType: typeof currentUserId,
+                    targetUserType: typeof userId
+                });
+                if (window.toast) {
+                    window.toast.error('❌ You cannot send a friend request to yourself!');
+                }
+                return;
+            }
+            
+            const response = await fetch('/api/friend-requests', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    receiver_id: userId,
+                    message: `Hi ${username}, let's be friends on Mivton!`
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                if (window.toast) {
+                    window.toast.success(`Friend request sent to ${username}!`);
+                }
+                
+                // Update the button in the UI
+                const userCard = document.querySelector(`[data-user-id="${userId}"]`);
+                const addBtn = userCard?.querySelector('.user-action-btn.primary');
+                if (addBtn) {
+                    addBtn.innerHTML = '<span>✅</span> Request Sent';
+                    addBtn.disabled = true;
+                    addBtn.classList.remove('primary');
+                    addBtn.classList.add('success');
+                }
+                
+                // Update stats
+                this.stats.requests++;
+                this.updateBadgeCounts();
+                
+            } else {
+                throw new Error(data.error || 'Failed to send friend request');
+            }
+            
+        } catch (error) {
+            console.error('❌ Friend request error:', error);
+            if (window.toast) {
+                if (error.message.includes('Cannot send friend request to yourself')) {
+                    window.toast.error('❌ You cannot send a friend request to yourself!');
+                } else if (error.message.includes('ALREADY_FRIENDS')) {
+                    window.toast.info('You are already friends with this user');
+                } else if (error.message.includes('REQUEST_EXISTS')) {
+                    window.toast.info('Friend request already sent');
+                } else {
+                    window.toast.error('Failed to send friend request: ' + error.message);
+                }
+            }
+        }
+    }
+    
+    viewUserProfile(userId) {
+        console.log('👁️ Viewing profile for user:', userId);
+        if (window.toast) {
+            window.toast.info('User profiles coming soon!');
+        }
+    }
+    
+    // Friend-specific functions
+    viewFriendProfile(friendId) {
+        console.log('👥 Viewing friend profile for:', friendId);
+        
+        // Create a modal or panel to show friend details
+        this.showFriendProfileModal(friendId);
+    }
+    
+    async showFriendProfileModal(friendId) {
+        try {
+            // For now, show a simple modal with friend info
+            const friendCard = document.querySelector(`[data-friend-id="${friendId}"]`);
+            let friendName = 'Friend';
+            let friendUsername = '';
+            
+            if (friendCard) {
+                const nameElement = friendCard.querySelector('.friend-name');
+                const usernameElement = friendCard.querySelector('.friend-username');
+                
+                if (nameElement) {
+                    friendName = nameElement.textContent.replace('✓', '').trim();
+                }
+                if (usernameElement) {
+                    friendUsername = usernameElement.textContent;
+                }
+            }
+            
+            // Create a simple profile modal
+            const modal = document.createElement('div');
+            modal.className = 'friend-profile-modal';
+            modal.innerHTML = `
+                <div class="modal-overlay" onclick="this.parentElement.remove()"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>👥 ${friendName}</h3>
+                        <button class="close-btn" onclick="this.closest('.friend-profile-modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="profile-info">
+                            <div class="profile-avatar">
+                                ${this.getUserInitials(friendName)}
+                            </div>
+                            <div class="profile-details">
+                                <h4>${friendName}</h4>
+                                <p>${friendUsername}</p>
+                                <div class="profile-actions">
+                                    <button class="btn-primary" onclick="dashboard.startChat(${friendId})">
+                                        💬 Start Chat
+                                    </button>
+                                    <button class="btn-secondary" onclick="dashboard.removeFriend(${friendId}, '${friendName.replace(/'/g, '\\&apos;')}')">
+                                        🗑️ Remove Friend
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="profile-section">
+                            <h5>📊 Activity</h5>
+                            <p>Detailed friend activity and statistics will be available soon!</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal styles if not already present
+            if (!document.getElementById('friend-profile-modal-styles')) {
+                const styles = document.createElement('style');
+                styles.id = 'friend-profile-modal-styles';
+                styles.textContent = `
+                    .friend-profile-modal {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        z-index: 1000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .friend-profile-modal .modal-overlay {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.5);
+                        cursor: pointer;
+                    }
+                    .friend-profile-modal .modal-content {
+                        background: white;
+                        border-radius: 12px;
+                        width: 90%;
+                        max-width: 500px;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+                        position: relative;
+                        z-index: 1001;
+                    }
+                    .friend-profile-modal .modal-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 20px;
+                        border-bottom: 1px solid #eee;
+                    }
+                    .friend-profile-modal .modal-header h3 {
+                        margin: 0;
+                        color: #333;
+                    }
+                    .friend-profile-modal .close-btn {
+                        background: none;
+                        border: none;
+                        font-size: 24px;
+                        cursor: pointer;
+                        color: #666;
+                        padding: 0;
+                        width: 30px;
+                        height: 30px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 50%;
+                    }
+                    .friend-profile-modal .close-btn:hover {
+                        background: #f0f0f0;
+                    }
+                    .friend-profile-modal .modal-body {
+                        padding: 20px;
+                    }
+                    .friend-profile-modal .profile-info {
+                        display: flex;
+                        gap: 16px;
+                        margin-bottom: 24px;
+                    }
+                    .friend-profile-modal .profile-avatar {
+                        width: 60px;
+                        height: 60px;
+                        border-radius: 50%;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: 600;
+                        font-size: 1.2em;
+                    }
+                    .friend-profile-modal .profile-details h4 {
+                        margin: 0 0 4px 0;
+                        color: #333;
+                    }
+                    .friend-profile-modal .profile-details p {
+                        margin: 0 0 16px 0;
+                        color: #666;
+                    }
+                    .friend-profile-modal .profile-actions {
+                        display: flex;
+                        gap: 8px;
+                    }
+                    .friend-profile-modal .btn-primary,
+                    .friend-profile-modal .btn-secondary {
+                        padding: 8px 16px;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 500;
+                        transition: all 0.2s;
+                    }
+                    .friend-profile-modal .btn-primary {
+                        background: #007bff;
+                        color: white;
+                    }
+                    .friend-profile-modal .btn-primary:hover {
+                        background: #0056b3;
+                    }
+                    .friend-profile-modal .btn-secondary {
+                        background: #6c757d;
+                        color: white;
+                    }
+                    .friend-profile-modal .btn-secondary:hover {
+                        background: #545b62;
+                    }
+                    .friend-profile-modal .profile-section {
+                        border-top: 1px solid #eee;
+                        padding-top: 16px;
+                    }
+                    .friend-profile-modal .profile-section h5 {
+                        margin: 0 0 8px 0;
+                        color: #333;
+                    }
+                    .friend-profile-modal .profile-section p {
+                        margin: 0;
+                        color: #666;
+                        font-style: italic;
+                    }
+                `;
+                document.head.appendChild(styles);
+            }
+            
+            document.body.appendChild(modal);
+            
+        } catch (error) {
+            console.error('❌ Error showing friend profile:', error);
+            if (window.toast) {
+                window.toast.error('Unable to show friend profile');
+            }
+        }
+    }
+    
+    async startChat(friendId) {
+        console.log('💬 Starting chat with friend:', friendId);
+        
+        if (window.toast) {
+            window.toast.info('Chat feature coming soon! 🚀');
+        }
+        
+        // TODO: Implement chat functionality
+        // This will be part of Phase 3.2 - Real-time messaging
+    }
+    
+    async removeFriend(friendId, friendName) {
+        try {
+            console.log('🗑️ Removing friend:', friendId, friendName);
+            
+            // Show confirmation dialog
+            const confirmed = confirm(`Are you sure you want to remove ${friendName} from your friends list?`);
+            
+            if (!confirmed) {
+                return;
+            }
+            
+            if (window.loading) {
+                window.loading.show('Removing friend...');
+            }
+            
+            const response = await fetch(`/api/friends/${friendId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                if (window.toast) {
+                    window.toast.success(data.message || `${friendName} removed from friends`);
+                }
+                
+                // Remove friend card from UI
+                const friendCard = document.querySelector(`[data-friend-id="${friendId}"]`);
+                if (friendCard) {
+                    friendCard.remove();
+                }
+                
+                // Update stats
+                this.stats.friends--;
+                this.updateStatsDisplay();
+                this.updateBadgeCounts();
+                
+                // Close any open profile modal
+                const modal = document.querySelector('.friend-profile-modal');
+                if (modal) {
+                    modal.remove();
+                }
+                
+                // Refresh friends list if no friends left
+                if (this.stats.friends === 0) {
+                    await this.loadFriends();
+                }
+                
+            } else {
+                throw new Error(data.error || 'Failed to remove friend');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error removing friend:', error);
+            if (window.toast) {
+                window.toast.error('Failed to remove friend. Please try again.');
+            }
+        } finally {
+            if (window.loading) {
+                window.loading.hide();
+            }
+        }
+    }
+    
+    // Debug method to test notifications panel
+    testNotificationsPanel() {
+        console.log('📝 Testing notifications panel...');
+        const btn = document.getElementById('notificationsBtn');
+        console.log('Notifications button:', btn);
+        
+        if (btn) {
+            console.log('Button found, triggering click...');
+            this.handleNotifications();
+        } else {
+            console.error('Notifications button not found!');
+        }
+    }
+    
+    attachRequestButtonListeners() {
+        console.log('🔗 Attaching event listeners to request buttons...');
+        
+        // Try direct approach - attach listeners directly to existing buttons
+        const actionButtons = document.querySelectorAll('.action-btn[data-action]');
+        console.log(`🔍 Found ${actionButtons.length} action buttons`);
+        
+        if (actionButtons.length === 0) {
+            console.warn('⚠️ No action buttons found!');
+            return;
+        }
+        
+        actionButtons.forEach((button, index) => {
+            const action = button.dataset.action;
+            const requestId = parseInt(button.dataset.requestId);
+            
+            console.log(`🔗 Adding listener ${index} for ${action} on request ${requestId}`);
+            console.log('Button element:', button);
+            
+            // Remove any existing onclick handler
+            button.onclick = null;
+            
+            // Add click event listener
+            const clickHandler = async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log(`📝 BUTTON CLICKED: ${action} for request ${requestId}`);
+                
+                // Disable button during request
+                button.disabled = true;
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<span>⏳</span> Processing...';
+                
+                try {
+                    switch (action) {
+                        case 'accept':
+                            console.log('📞 Calling acceptFriendRequest...');
+                            await this.acceptFriendRequest(requestId);
+                            break;
+                        case 'decline':
+                            console.log('📞 Calling declineFriendRequest...');
+                            await this.declineFriendRequest(requestId);
+                            break;
+                        case 'cancel':
+                            console.log('📞 Calling cancelFriendRequest...');
+                            await this.cancelFriendRequest(requestId);
+                            break;
+                        default:
+                            console.error('Unknown action:', action);
+                    }
+                } catch (error) {
+                    console.error(`Error handling ${action}:`, error);
+                    // Restore button
+                    button.disabled = false;
+                    button.innerHTML = originalHTML;
+                }
+            };
+            
+            // Remove existing listeners
+            button.removeEventListener('click', clickHandler);
+            
+            // Add the new listener
+            button.addEventListener('click', clickHandler);
+            
+            // Also try onclick as backup
+            button.onclick = clickHandler;
+            
+            console.log(`✅ Listener added to button ${index}`);
+        });
+        
+        console.log('✅ All event listeners attached successfully');
+        
+        // Additional debugging - test if we can trigger a click programmatically
+        if (actionButtons.length > 0) {
+            console.log('🧪 Testing first button click programmatically in 2 seconds...');
+            setTimeout(() => {
+                console.log('🖯 Simulating click on first button');
+                actionButtons[0].click();
+            }, 2000);
+        }
+    }
+}
+
+// Global functions for HTML onclick handlers
+window.showSection = function(sectionName) {
+    if (window.dashboardInstance) {
+        window.dashboardInstance.showSection(sectionName);
+    }
+};
+
+// Make dashboard globally accessible
+window.dashboard = null;
+
+// Initialize dashboard when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait a bit to ensure all components are loaded
+    setTimeout(() => {
+        window.dashboardInstance = new Dashboard();
+        window.dashboard = window.dashboardInstance; // Global access
+    }, 100);
+});
+
+// Handle browser back/forward buttons
+window.addEventListener('popstate', (event) => {
+    // TODO: Implement URL-based navigation
+});

@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mivton - Phase 2.3 UI Polish Demo</title>
+    
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Import all component styles with correct paths -->
+    <link rel="stylesheet" href="/css/base-component.css">
+    <link rel="stylesheet" href="/css/user-interface.css">
+    <link rel="stylesheet" href="/css/status-indicators.css">
+    <link rel="stylesheet" href="/css/language-selector.css">
+    <link rel="stylesheet" href="/css/components.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .demo-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .demo-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .demo-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+        
+        .demo-subtitle {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+        
+        .demo-navigation {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+        }
+        
+        .nav-button {
+            padding: 0.75rem 1.5rem;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 0.5rem;
+            color: #3b82f6;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .nav-button:hover,
+        .nav-button.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+            transform: translateY(-1px);
+        }
+        
+        .demo-section {
+            margin-bottom: 4rem;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 1rem;
+            padding: 2rem;
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+        
+        .section-header {
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-description {
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+        
+        .demo-grid {
+            display: grid;
+            gap: 2rem;
+        }
+        
+        .demo-grid-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+        
+        .demo-grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        }
+        
+        .demo-card {
+            background: rgba(51, 65, 85, 0.3);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(71, 85, 105, 0.5);
+        }
+        
+        .demo-card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 1rem;
+        }
+        
+        .component-container {
+            background: #0f172a;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .feature-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+        
+        .feature-list li {
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        
+        .feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #22c55e;
+            font-weight: bold;
+        }
+        
+        .code-example {
+            background: #0f172a;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.875rem;
+            color: #e2e8f0;
+            overflow-x: auto;
+        }
+        
+        .placeholder-component {
+            padding: 2rem;
+            text-align: center;
+            color: #94a3b8;
+            border: 2px dashed rgba(148, 163, 184, 0.3);
+            border-radius: 0.5rem;
+            background: rgba(15, 23, 42, 0.5);
+            width: 100%;
+        }
+        
+        .placeholder-component h4 {
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+        }
+        
+        .placeholder-component small {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        .mivton-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid transparent;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .mivton-btn.primary {
+            background: #6366f1;
+            color: white;
+        }
+        
+        .mivton-btn.primary:hover {
+            background: #5855eb;
+            transform: translateY(-1px);
+        }
+        
+        .api-response {
+            background: #0f172a;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.8rem;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .demo-container {
+                padding: 1rem;
+            }
+            
+            .demo-title {
+                font-size: 2rem;
+            }
+            
+            .demo-grid-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <!-- Header -->
+        <div class="demo-header">
+            <h1 class="demo-title">Mivton Phase 2.3</h1>
+            <p class="demo-subtitle">User Interface Polish - Enhanced Components Demo</p>
+            
+            <div class="demo-navigation">
+                <button class="nav-button active" data-section="search">
+                    <i class="fas fa-search"></i> User Search
+                </button>
+                <button class="nav-button" data-section="profiles">
+                    <i class="fas fa-id-card"></i> Profile Cards
+                </button>
+                <button class="nav-button" data-section="status">
+                    <i class="fas fa-circle"></i> Status Manager
+                </button>
+                <button class="nav-button" data-section="settings">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+                <button class="nav-button" data-section="api">
+                    <i class="fas fa-code"></i> API Demo
+                </button>
+            </div>
+        </div>
+        
+        <!-- User Search Section -->
+        <div id="search" class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-search"></i>
+                    Enhanced User Search
+                </h2>
+                <p class="section-description">
+                    Advanced search functionality with real-time filtering, suggestions, and pagination.
+                </p>
+            </div>
+            
+            <div class="demo-grid demo-grid-2">
+                <div class="demo-card">
+                    <h3 class="demo-card-title">Live Search Interface</h3>
+                    <div class="component-container">
+                        <div id="userSearchDemo"></div>
+                    </div>
+                    
+                    <ul class="feature-list">
+                        <li>Real-time search with debouncing</li>
+                        <li>Advanced filters (language, status, type)</li>
+                        <li>Search suggestions and history</li>
+                        <li>Keyboard navigation support</li>
+                        <li>Responsive design</li>
+                    </ul>
+                </div>
+                
+                <div class="demo-card">
+                    <h3 class="demo-card-title">Search Results</h3>
+                    <div class="component-container">
+                        <div id="searchResultsDemo"></div>
+                    </div>
+                    
+                    <ul class="feature-list">
+                        <li>Pagination with smooth transitions</li>
+                        <li>Result highlighting</li>
+                        <li>Sort options</li>
+                        <li>Loading states</li>
+                        <li>Empty state handling</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Profile Cards Section -->
+        <div id="profiles" class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-id-card"></i>
+                    Enhanced Profile Cards
+                </h2>
+                <p class="section-description">
+                    Beautiful, interactive profile cards with hover effects and action buttons.
+                </p>
+            </div>
+            
+            <div class="demo-grid demo-grid-3">
+                <div class="demo-card">
+                    <h3 class="demo-card-title">Basic Profile Card</h3>
+                    <div class="component-container">
+                        <div id="profileCardDemo1"></div>
+                    </div>
+                </div>
+                
+                <div class="demo-card">
+                    <h3 class="demo-card-title">Compact Profile Card</h3>
+                    <div class="component-container">
+                        <div id="profileCardDemo2"></div>
+                    </div>
+                </div>
+                
+                <div class="demo-card">
+                    <h3 class="demo-card-title">Detailed Profile Card</h3>
+                    <div class="component-container">
+                        <div id="profileCardDemo3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Manager Section -->
+        <div id="status" class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-circle"></i>
+                    Status Manager
+                </h2>
+                <p class="section-description">
+                    Comprehensive status management with auto-status, custom messages, and history.
+                </p>
+            </div>
+            
+            <div class="demo-grid demo-grid-2">
+                <div class="demo-card">
+                    <h3 class="demo-card-title">Status Interface</h3>
+                    <div class="component-container">
+                        <div id="statusManagerDemo"></div>
+                    </div>
+                    
+                    <ul class="feature-list">
+                        <li>Multiple status options (online, away, busy, offline)</li>
+                        <li>Custom status messages</li>
+                        <li>Auto-status based on activity</li>
+                        <li>Status history tracking</li>
+                        <li>Keyboard shortcuts</li>
+                    </ul>
+                </div>
+                
+                <div class="demo-card">
+                    <h3 class="demo-card-title">Status Features</h3>
+                    
+                    <div class="code-example">
+// Status Manager Usage
+const statusManager = new MivtonStatusManager(
+    document.getElementById('status-container'),
+    {
+        currentStatus: 'online',
+        enableAutoStatus: true,
+        autoAwayTime: 300000, // 5 minutes
+        enableCustomMessages: true,
+        maxMessageLength: 100
+    }
+);
+
+// Set user info
+statusManager.setUserInfo({
+    name: 'John Doe'
+});
+
+// Listen for status changes
+statusManager.on('status-changed', (data) => {
+    console.log('Status changed:', data);
+});
+                    </div>
+                    
+                    <ul class="feature-list">
+                        <li>Activity tracking for auto-status</li>
+                        <li>Presence indicators with animations</li>
+                        <li>Status persistence</li>
+                        <li>Real-time status updates</li>
+                        <li>Accessibility support</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings Interface Section -->
+        <div id="settings" class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-cog"></i>
+                    Settings Interface
+                </h2>
+                <p class="section-description">
+                    Modern settings panel with enhanced controls, auto-save, and validation.
+                </p>
+            </div>
+            
+            <div class="demo-card">
+                <h3 class="demo-card-title">Enhanced Settings Panel</h3>
+                <div class="component-container">
+                    <div id="settingsInterfaceDemo"></div>
+                </div>
+                
+                <ul class="feature-list">
+                    <li>Tabbed navigation between sections</li>
+                    <li>Auto-save with unsaved changes indicator</li>
+                    <li>Input validation and error handling</li>
+                    <li>Modern toggle switches and sliders</li>
+                    <li>Theme and appearance controls</li>
+                    <li>Export functionality</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- API Demo Section -->
+        <div id="api" class="demo-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-code"></i>
+                    API Integration
+                </h2>
+                <p class="section-description">
+                    Live demonstration of Phase 2.3 API endpoints and functionality.
+                </p>
+            </div>
+            
+            <div class="demo-grid demo-grid-2">
+                <div class="demo-card">
+                    <h3 class="demo-card-title">API Test Console</h3>
+                    <div class="component-container">
+                        <div id="apiTestDemo">
+                            <div class="placeholder-component">
+                                <h4>API Test Console</h4>
+                                <small>Test the Phase 2.3 API endpoints</small>
+                                <div style="margin-top: 1rem;">
+                                    <button onclick="testSearchAPI()" class="mivton-btn primary" style="margin: 0.25rem;">Test Search</button>
+                                    <button onclick="testPreferencesAPI()" class="mivton-btn primary" style="margin: 0.25rem;">Test Preferences</button>
+                                    <button onclick="testLanguagesAPI()" class="mivton-btn primary" style="margin: 0.25rem;">Test Languages</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="demo-card">
+                    <h3 class="demo-card-title">API Response</h3>
+                    <div class="component-container">
+                        <div id="apiResponseDemo">
+                            <div class="placeholder-component">
+                                <h4>API Response</h4>
+                                <small>API responses will appear here</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Import all component scripts with correct paths -->
+    <script src="/js/base-component.js"></script>
+    <script src="/js/user-search.js"></script>
+    <script src="/js/profile-cards.js"></script>
+    <script src="/js/status-manager.js"></script>
+    <script src="/js/settings-interface.js"></script>
+    <script src="/js/user-search-utils.js"></script>
+    
+    <script>
+        // Demo initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDemo();
+        });
+        
+        function initializeDemo() {
+            console.log('🚀 Initializing Mivton Phase 2.3 Demo...');
+            
+            // Initialize navigation
+            setupNavigation();
+            
+            // Initialize components with fallback for missing classes
+            try {
+                initializeUserSearch();
+            } catch (error) {
+                console.warn('User Search component not available:', error.message);
+                showPlaceholder('userSearchDemo', 'User Search Component');
+                showPlaceholder('searchResultsDemo', 'Search Results');
+            }
+            
+            try {
+                initializeProfileCards();
+            } catch (error) {
+                console.warn('Profile Cards component not available:', error.message);
+                showPlaceholder('profileCardDemo1', 'Basic Profile Card');
+                showPlaceholder('profileCardDemo2', 'Compact Profile Card');  
+                showPlaceholder('profileCardDemo3', 'Detailed Profile Card');
+            }
+            
+            try {
+                initializeStatusManager();
+            } catch (error) {
+                console.warn('Status Manager component not available:', error.message);
+                showPlaceholder('statusManagerDemo', 'Status Manager');
+            }
+            
+            try {
+                initializeSettings();
+            } catch (error) {
+                console.warn('Settings Interface component not available:', error.message);
+                showPlaceholder('settingsInterfaceDemo', 'Settings Interface');
+            }
+            
+            console.log('✅ Mivton Phase 2.3 Demo initialized!');
+        }
+        
+        function showPlaceholder(containerId, componentName) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `
+                    <div class="placeholder-component">
+                        <h4>${componentName}</h4>
+                        <small>Component will be loaded here when available</small>
+                    </div>
+                `;
+            }
+        }
+        
+        function setupNavigation() {
+            const navButtons = document.querySelectorAll('.nav-button');
+            const sections = document.querySelectorAll('.demo-section');
+            
+            navButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    // Update active button
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    // Show corresponding section
+                    const targetSection = button.dataset.section;
+                    sections.forEach(section => {
+                        section.style.display = section.id === targetSection ? 'block' : 'none';
+                    });
+                });
+            });
+            
+            // Show first section by default
+            sections.forEach((section, index) => {
+                section.style.display = index === 0 ? 'block' : 'none';
+            });
+        }
+        
+        function initializeUserSearch() {
+            const searchContainer = document.getElementById('userSearchDemo');
+            if (searchContainer && window.MivtonUserSearch) {
+                const userSearch = new MivtonUserSearch(searchContainer, {
+                    enableFilters: true,
+                    enableSuggestions: true,
+                    enableHistory: true,
+                    searchDelay: 300,
+                    maxResults: 10
+                });
+                
+                console.log('✅ User Search component initialized');
+            } else {
+                showPlaceholder('userSearchDemo', 'User Search Component');
+            }
+        }
+        
+        function initializeProfileCards() {
+            const mockUsers = generateMockUsers();
+            
+            // Basic profile card
+            const card1Container = document.getElementById('profileCardDemo1');
+            if (card1Container) {
+                if (window.MivtonProfileCard) {
+                    const profileCard1 = new MivtonProfileCard(card1Container, {
+                        layout: 'basic',
+                        showActions: true,
+                        enableHover: true
+                    });
+                    profileCard1.setUserData(mockUsers[0]);
+                } else {
+                    showPlaceholder('profileCardDemo1', 'Basic Profile Card');
+                }
+            }
+            
+            // Compact profile card
+            const card2Container = document.getElementById('profileCardDemo2');
+            if (card2Container) {
+                if (window.MivtonProfileCard) {
+                    const profileCard2 = new MivtonProfileCard(card2Container, {
+                        layout: 'compact',
+                        showActions: false,
+                        enableHover: true
+                    });
+                    profileCard2.setUserData(mockUsers[1]);
+                } else {
+                    showPlaceholder('profileCardDemo2', 'Compact Profile Card');
+                }
+            }
+            
+            // Detailed profile card
+            const card3Container = document.getElementById('profileCardDemo3');
+            if (card3Container) {
+                if (window.MivtonProfileCard) {
+                    const profileCard3 = new MivtonProfileCard(card3Container, {
+                        layout: 'detailed',
+                        showActions: true,
+                        showStats: true,
+                        enableHover: true
+                    });
+                    profileCard3.setUserData(mockUsers[2]);
+                } else {
+                    showPlaceholder('profileCardDemo3', 'Detailed Profile Card');
+                }
+            }
+        }
+        
+        function initializeStatusManager() {
+            const statusContainer = document.getElementById('statusManagerDemo');
+            if (statusContainer) {
+                if (window.MivtonStatusManager) {
+                    const statusManager = new MivtonStatusManager(statusContainer, {
+                        currentStatus: 'online',
+                        enableAutoStatus: true,
+                        autoAwayTime: 300000,
+                        enableCustomMessages: true,
+                        maxMessageLength: 100,
+                        showStatusHistory: true
+                    });
+                    
+                    statusManager.setUserInfo({
+                        name: 'Demo User'
+                    });
+                    
+                    console.log('✅ Status Manager initialized');
+                } else {
+                    showPlaceholder('statusManagerDemo', 'Status Manager');
+                }
+            }
+        }
+        
+        function initializeSettings() {
+            const settingsContainer = document.getElementById('settingsInterfaceDemo');
+            if (settingsContainer) {
+                if (window.MivtonSettingsInterface) {
+                    const settingsInterface = new MivtonSettingsInterface(settingsContainer, {
+                        enableAutoSave: true,
+                        autoSaveDelay: 1000,
+                        showUnsavedIndicator: true,
+                        sections: ['profile', 'privacy', 'notifications', 'appearance']
+                    });
+                    
+                    console.log('✅ Settings Interface initialized');
+                } else {
+                    showPlaceholder('settingsInterfaceDemo', 'Settings Interface');
+                }
+            }
+        }
+        
+        function generateMockUsers() {
+            return [
+                {
+                    id: 1,
+                    username: 'john_doe',
+                    full_name: 'John Doe',
+                    native_language: 'en',
+                    is_verified: true,
+                    is_admin: false,
+                    status: 'online',
+                    status_message: 'Working on something amazing!',
+                    is_friend: false,
+                    friend_request_sent: false,
+                    friend_count: 42,
+                    created_at: new Date('2023-01-15'),
+                    last_seen: new Date()
+                },
+                {
+                    id: 2,
+                    username: 'maria_garcia',
+                    full_name: 'Maria Garcia',
+                    native_language: 'es',
+                    is_verified: false,
+                    is_admin: false,
+                    status: 'away',
+                    status_message: null,
+                    is_friend: true,
+                    friend_request_sent: false,
+                    friend_count: 28,
+                    created_at: new Date('2023-03-22'),
+                    last_seen: new Date(Date.now() - 1800000) // 30 minutes ago
+                },
+                {
+                    id: 3,
+                    username: 'alex_dev',
+                    full_name: 'Alex Developer',
+                    native_language: 'en',
+                    is_verified: true,
+                    is_admin: true,
+                    status: 'busy',
+                    status_message: 'In a meeting',
+                    is_friend: false,
+                    friend_request_sent: true,
+                    friend_count: 156,
+                    created_at: new Date('2022-11-08'),
+                    last_seen: new Date(Date.now() - 300000) // 5 minutes ago
+                }
+            ];
+        }
+        
+        // API Testing Functions
+        async function testSearchAPI() {
+            const responseContainer = document.getElementById('apiResponseDemo');
+            responseContainer.innerHTML = '<div class="api-response">Loading...</div>';
+            
+            try {
+                const response = await fetch('/api/users/search?q=john&limit=5');
+                const data = await response.json();
+                
+                responseContainer.innerHTML = `
+                    <div class="api-response">${JSON.stringify(data, null, 2)}</div>
+                `;
+            } catch (error) {
+                responseContainer.innerHTML = `
+                    <div class="api-response">Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function testPreferencesAPI() {
+            const responseContainer = document.getElementById('apiResponseDemo');
+            responseContainer.innerHTML = '<div class="api-response">Loading...</div>';
+            
+            try {
+                const response = await fetch('/api/user/preferences');
+                const data = await response.json();
+                
+                responseContainer.innerHTML = `
+                    <div class="api-response">${JSON.stringify(data, null, 2)}</div>
+                `;
+            } catch (error) {
+                responseContainer.innerHTML = `
+                    <div class="api-response">Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function testLanguagesAPI() {
+            const responseContainer = document.getElementById('apiResponseDemo');
+            responseContainer.innerHTML = '<div class="api-response">Loading...</div>';
+            
+            try {
+                const response = await fetch('/api/languages');
+                const data = await response.json();
+                
+                responseContainer.innerHTML = `
+                    <div class="api-response">${JSON.stringify(data, null, 2)}</div>
+                `;
+            } catch (error) {
+                responseContainer.innerHTML = `
+                    <div class="api-response">Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // Add keyboard shortcuts for demo navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case '1':
+                        e.preventDefault();
+                        document.querySelector('[data-section="search"]').click();
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        document.querySelector('[data-section="profiles"]').click();
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        document.querySelector('[data-section="status"]').click();
+                        break;
+                    case '4':
+                        e.preventDefault();
+                        document.querySelector('[data-section="settings"]').click();
+                        break;
+                    case '5':
+                        e.preventDefault();
+                        document.querySelector('[data-section="api"]').click();
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

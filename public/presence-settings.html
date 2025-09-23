@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presence Settings - Mivton</title>
+    <link rel="stylesheet" href="/css/enhanced-presence.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            margin: 0;
+            padding: 2rem;
+            color: #1e293b;
+        }
+        
+        .settings-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .settings-header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .settings-header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .settings-header p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .settings-content {
+            padding: 2rem;
+        }
+        
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .back-button:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .settings-header {
+                padding: 1.5rem;
+            }
+            
+            .settings-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .settings-content {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <div class="settings-header">
+            <h1>🔒 Presence & Privacy Settings</h1>
+            <p>Control who can see your online status and activity</p>
+        </div>
+        
+        <div class="settings-content">
+            <a href="javascript:history.back()" class="back-button">
+                ← Back to Dashboard
+            </a>
+            
+            <!-- Enhanced Presence Control Component -->
+            <div data-component="enhanced-presence"></div>
+        </div>
+    </div>
+
+    <script src="/js/enhanced-presence-control.js"></script>
+</body>
+</html>

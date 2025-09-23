@@ -1,0 +1,624 @@
+/**
+ * ==============================================
+ * MIVTON - BASE COMPONENT STYLES
+ * Phase 2.3 - User Interface Polish
+ * Base styles for all Mivton components
+ * ==============================================
+ */
+
+/* CSS Variables for theming */
+:root {
+    /* Colors */
+    --primary: #6366f1;
+    --primary-hover: #5855eb;
+    --primary-light: rgba(99, 102, 241, 0.1);
+    --secondary: #8b5cf6;
+    --accent: #06b6d4;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --info: #3b82f6;
+    
+    /* Status colors */
+    --status-online: #10b981;
+    --status-away: #f59e0b;
+    --status-busy: #ef4444;
+    --status-offline: #64748b;
+    
+    /* Background colors */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --bg-surface: rgba(30, 41, 59, 0.5);
+    --bg-overlay: rgba(15, 23, 42, 0.8);
+    
+    /* Text colors */
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-disabled: #64748b;
+    
+    /* Border colors */
+    --border-primary: rgba(51, 65, 85, 0.5);
+    --border-secondary: rgba(71, 85, 105, 0.3);
+    --border-focus: var(--primary);
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    
+    /* Border radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-full: 9999px;
+    
+    /* Transitions */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.2s ease;
+    --transition-slow: 0.3s ease;
+    
+    /* Z-index layers */
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+    --z-toast: 1080;
+}
+
+/* Base component class */
+.mivton-component {
+    position: relative;
+    box-sizing: border-box;
+}
+
+.mivton-component *,
+.mivton-component *::before,
+.mivton-component *::after {
+    box-sizing: border-box;
+}
+
+/* Component states */
+.mivton-component.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.mivton-component.disabled {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.mivton-component.hidden {
+    display: none !important;
+}
+
+/* Loading spinner */
+.mivton-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid var(--primary);
+    border-radius: 50%;
+    animation: mivton-spin 1s linear infinite;
+}
+
+@keyframes mivton-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Button base styles */
+.mivton-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+}
+
+.mivton-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.mivton-btn.loading {
+    color: transparent;
+}
+
+.mivton-btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: mivton-spin 1s linear infinite;
+}
+
+/* Button variants */
+.mivton-btn.primary {
+    background: var(--primary);
+    color: white;
+}
+
+.mivton-btn.primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.mivton-btn.secondary {
+    background: transparent;
+    border-color: var(--border-primary);
+    color: var(--text-secondary);
+}
+
+.mivton-btn.secondary:hover:not(:disabled) {
+    background: var(--bg-tertiary);
+    border-color: var(--text-secondary);
+}
+
+.mivton-btn.success {
+    background: var(--success);
+    color: white;
+}
+
+.mivton-btn.warning {
+    background: var(--warning);
+    color: white;
+}
+
+.mivton-btn.error {
+    background: var(--error);
+    color: white;
+}
+
+.mivton-btn.ghost {
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.mivton-btn.ghost:hover:not(:disabled) {
+    background: var(--bg-surface);
+}
+
+/* Button sizes */
+.mivton-btn.small {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.75rem;
+}
+
+.mivton-btn.large {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: 1rem;
+}
+
+/* Input base styles */
+.mivton-input {
+    display: block;
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    line-height: 1.25;
+    transition: all var(--transition-normal);
+}
+
+.mivton-input::placeholder {
+    color: var(--text-muted);
+}
+
+.mivton-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.mivton-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.mivton-input.error {
+    border-color: var(--error);
+}
+
+.mivton-input.error:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Select base styles */
+.mivton-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+.mivton-select:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236366f1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Card base styles */
+.mivton-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    backdrop-filter: blur(10px);
+    transition: all var(--transition-normal);
+}
+
+.mivton-card:hover {
+    border-color: var(--border-secondary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Badge styles */
+.mivton-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1;
+}
+
+.mivton-badge.primary {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.mivton-badge.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.mivton-badge.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.mivton-badge.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+/* Status indicator */
+.mivton-status {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    position: relative;
+}
+
+.mivton-status.online {
+    background: var(--status-online);
+}
+
+.mivton-status.away {
+    background: var(--status-away);
+}
+
+.mivton-status.busy {
+    background: var(--status-busy);
+}
+
+.mivton-status.offline {
+    background: var(--status-offline);
+}
+
+.mivton-status.pulse::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    border-radius: 50%;
+    background: inherit;
+    opacity: 0.7;
+    animation: mivton-pulse 2s infinite;
+}
+
+@keyframes mivton-pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+    70% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Avatar styles */
+.mivton-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    overflow: hidden;
+    position: relative;
+    font-weight: 600;
+    user-select: none;
+}
+
+.mivton-avatar.small {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+}
+
+.mivton-avatar.medium {
+    width: 40px;
+    height: 40px;
+    font-size: 0.875rem;
+}
+
+.mivton-avatar.large {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+}
+
+.mivton-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.mivton-avatar .status-indicator {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    border: 2px solid var(--bg-primary);
+}
+
+/* Tooltip styles */
+.mivton-tooltip {
+    position: relative;
+}
+
+.mivton-tooltip::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all var(--transition-normal);
+    z-index: var(--z-tooltip);
+    margin-bottom: var(--spacing-xs);
+}
+
+.mivton-tooltip::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: var(--bg-primary);
+    opacity: 0;
+    pointer-events: none;
+    transition: all var(--transition-normal);
+}
+
+.mivton-tooltip:hover::before,
+.mivton-tooltip:hover::after {
+    opacity: 1;
+}
+
+/* Empty state styles */
+.mivton-empty-state {
+    text-align: center;
+    padding: var(--spacing-2xl);
+    color: var(--text-muted);
+}
+
+.mivton-empty-state .icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.5;
+}
+
+.mivton-empty-state .title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.mivton-empty-state .description {
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Loading state styles */
+.mivton-loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-2xl);
+    color: var(--text-muted);
+}
+
+.mivton-loading-state .spinner {
+    margin-bottom: var(--spacing-md);
+}
+
+/* Animation utilities */
+.mivton-fade-in {
+    animation: mivton-fade-in 0.3s ease;
+}
+
+@keyframes mivton-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.mivton-slide-up {
+    animation: mivton-slide-up 0.3s ease;
+}
+
+@keyframes mivton-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.mivton-scale-in {
+    animation: mivton-scale-in 0.2s ease;
+}
+
+@keyframes mivton-scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+    .mivton-btn {
+        padding: var(--spacing-sm);
+        font-size: 0.8rem;
+    }
+    
+    .mivton-card {
+        padding: var(--spacing-md);
+    }
+    
+    .mivton-empty-state {
+        padding: var(--spacing-lg);
+    }
+    
+    .mivton-empty-state .icon {
+        font-size: 2rem;
+    }
+}
+
+/* Focus management for accessibility */
+.mivton-focus-trap {
+    position: relative;
+}
+
+.mivton-focus-trap:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Screen reader only text */
+.mivton-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --border-primary: #ffffff;
+        --border-secondary: #ffffff;
+        --text-muted: #ffffff;
+    }
+    
+    .mivton-btn.secondary {
+        border-color: currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .mivton-status.pulse::after {
+        animation: none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .mivton-component {
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+    }
+    
+    .mivton-btn {
+        background: white !important;
+        color: black !important;
+        border: 1px solid black !important;
+    }
+}

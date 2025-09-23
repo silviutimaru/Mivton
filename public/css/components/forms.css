@@ -1,0 +1,569 @@
+/* ==============================================
+   MIVTON - FORM COMPONENT STYLES
+   Phase 2.2 - Modern UI Components
+   Enhanced form styling with validation
+   ============================================== */
+
+/* Base form styles */
+.mivton-form {
+  width: 100%;
+}
+
+.mivton-form-group {
+  margin-bottom: var(--spacing-lg);
+  position: relative;
+}
+
+.mivton-form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* Labels */
+.mivton-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: var(--spacing-sm);
+  transition: color 0.2s var(--ease-smooth);
+}
+
+.mivton-label.required::after {
+  content: ' *';
+  color: var(--error);
+}
+
+/* Input base styles */
+.mivton-input {
+  width: 100%;
+  height: var(--component-height-md);
+  padding: 0 var(--spacing-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.875rem;
+  transition: all 0.2s var(--ease-smooth);
+  position: relative;
+}
+
+.mivton-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.mivton-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Input sizes */
+.mivton-input.input-sm {
+  height: var(--component-height-sm);
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+}
+
+.mivton-input.input-lg {
+  height: var(--component-height-lg);
+  padding: 0 var(--spacing-lg);
+  font-size: 1rem;
+}
+
+.mivton-input.input-xl {
+  height: var(--component-height-xl);
+  padding: 0 var(--spacing-xl);
+  font-size: 1.125rem;
+}
+
+/* Textarea */
+.mivton-textarea {
+  min-height: 100px;
+  padding: var(--spacing-md);
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.mivton-textarea.textarea-sm {
+  min-height: 80px;
+  padding: 0.75rem;
+}
+
+.mivton-textarea.textarea-lg {
+  min-height: 120px;
+  padding: var(--spacing-lg);
+}
+
+/* Select */
+.mivton-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+/* Input with icon */
+.mivton-input-group {
+  position: relative;
+}
+
+.mivton-input-group .mivton-input {
+  padding-left: 2.5rem;
+}
+
+.mivton-input-group .input-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 1rem;
+  pointer-events: none;
+  transition: color 0.2s var(--ease-smooth);
+}
+
+.mivton-input-group .mivton-input:focus + .input-icon,
+.mivton-input-group:focus-within .input-icon {
+  color: var(--primary);
+}
+
+/* Input with suffix */
+.mivton-input-group.group-suffix .mivton-input {
+  padding-right: 2.5rem;
+  padding-left: var(--spacing-md);
+}
+
+.mivton-input-group.group-suffix .input-icon {
+  left: auto;
+  right: 0.75rem;
+}
+
+/* Checkbox */
+.mivton-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mivton-checkbox input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s var(--ease-smooth);
+}
+
+.mivton-checkbox input[type="checkbox"]:checked {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.mivton-checkbox input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 6px;
+  height: 10px;
+  border: 2px solid white;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.mivton-checkbox input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Radio */
+.mivton-radio {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mivton-radio input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s var(--ease-smooth);
+}
+
+.mivton-radio input[type="radio"]:checked {
+  border-color: var(--primary);
+}
+
+.mivton-radio input[type="radio"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.mivton-radio input[type="radio"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Toggle switch */
+.mivton-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mivton-toggle input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 3rem;
+  height: 1.5rem;
+  background: var(--border);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s var(--ease-smooth);
+}
+
+.mivton-toggle input[type="checkbox"]:checked {
+  background: var(--primary);
+}
+
+.mivton-toggle input[type="checkbox"]::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.25rem;
+  height: 1.25rem;
+  background: white;
+  border-radius: 50%;
+  transition: all 0.3s var(--ease-bounce);
+  box-shadow: var(--shadow-sm);
+}
+
+.mivton-toggle input[type="checkbox"]:checked::after {
+  transform: translateX(1.5rem);
+}
+
+.mivton-toggle input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Validation states */
+.mivton-form-group.valid .mivton-input,
+.mivton-form-group.valid .mivton-textarea,
+.mivton-form-group.valid .mivton-select {
+  border-color: var(--success);
+}
+
+.mivton-form-group.valid .mivton-input:focus,
+.mivton-form-group.valid .mivton-textarea:focus,
+.mivton-form-group.valid .mivton-select:focus {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.mivton-form-group.error .mivton-input,
+.mivton-form-group.error .mivton-textarea,
+.mivton-form-group.error .mivton-select {
+  border-color: var(--error);
+}
+
+.mivton-form-group.error .mivton-input:focus,
+.mivton-form-group.error .mivton-textarea:focus,
+.mivton-form-group.error .mivton-select:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.mivton-form-group.warning .mivton-input,
+.mivton-form-group.warning .mivton-textarea,
+.mivton-form-group.warning .mivton-select {
+  border-color: var(--warning);
+}
+
+.mivton-form-group.warning .mivton-input:focus,
+.mivton-form-group.warning .mivton-textarea:focus,
+.mivton-form-group.warning .mivton-select:focus {
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+/* Help text and validation messages */
+.mivton-form-help {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: var(--spacing-xs);
+  display: block;
+}
+
+.mivton-form-error {
+  font-size: 0.75rem;
+  color: var(--error);
+  margin-top: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.mivton-form-success {
+  font-size: 0.75rem;
+  color: var(--success);
+  margin-top: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.mivton-form-warning {
+  font-size: 0.75rem;
+  color: var(--warning);
+  margin-top: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* Floating labels */
+.mivton-form-floating {
+  position: relative;
+}
+
+.mivton-form-floating .mivton-input,
+.mivton-form-floating .mivton-textarea {
+  padding-top: 1.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.mivton-form-floating .mivton-label {
+  position: absolute;
+  top: 1rem;
+  left: var(--spacing-md);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  transition: all 0.2s var(--ease-smooth);
+  pointer-events: none;
+  margin-bottom: 0;
+}
+
+.mivton-form-floating .mivton-input:focus ~ .mivton-label,
+.mivton-form-floating .mivton-input:not(:placeholder-shown) ~ .mivton-label,
+.mivton-form-floating .mivton-textarea:focus ~ .mivton-label,
+.mivton-form-floating .mivton-textarea:not(:placeholder-shown) ~ .mivton-label {
+  top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--primary);
+}
+
+/* File input */
+.mivton-file {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.mivton-file input[type="file"] {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.mivton-file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 0 var(--spacing-md);
+  height: var(--component-height-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-smooth);
+}
+
+.mivton-file:hover .mivton-file-label {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+/* Range slider */
+.mivton-range {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  cursor: pointer;
+}
+
+.mivton-range::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--primary);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s var(--ease-smooth);
+}
+
+.mivton-range::-webkit-slider-thumb:hover {
+  background: var(--primary-light);
+  transform: scale(1.1);
+}
+
+.mivton-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--primary);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Search input */
+.mivton-search {
+  position: relative;
+}
+
+.mivton-search .mivton-input {
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+}
+
+.mivton-search .search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.mivton-search .search-clear {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s var(--ease-smooth);
+}
+
+.mivton-search .mivton-input:not(:placeholder-shown) ~ .search-clear {
+  opacity: 1;
+}
+
+.mivton-search .search-clear:hover {
+  color: var(--error);
+}
+
+/* Form layouts */
+.mivton-form-horizontal {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--spacing-md);
+  align-items: start;
+}
+
+.mivton-form-horizontal .mivton-label {
+  margin-bottom: 0;
+  padding-top: 0.625rem;
+}
+
+.mivton-form-inline {
+  display: flex;
+  align-items: end;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.mivton-form-inline .mivton-form-group {
+  margin-bottom: 0;
+}
+
+/* Disabled state */
+.mivton-input:disabled,
+.mivton-textarea:disabled,
+.mivton-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .mivton-input,
+  .mivton-textarea,
+  .mivton-select {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .mivton-form-horizontal {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+  }
+  
+  .mivton-form-horizontal .mivton-label {
+    padding-top: 0;
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .mivton-form-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .mivton-input,
+  .mivton-textarea,
+  .mivton-select {
+    border-width: 2px;
+  }
+  
+  .mivton-checkbox input[type="checkbox"],
+  .mivton-radio input[type="radio"] {
+    border-width: 3px;
+  }
+}

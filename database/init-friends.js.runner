@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+
+/**
+ * 🚀 MIVTON PHASE 3.1 - FRIENDS SCHEMA INITIALIZER
+ * Run with: railway run npm run init:friends
+ */
+
+require('dotenv').config();
+
+const { initializeFriendsSchema } = require('./init-friends');
+
+async function main() {
+    try {
+        console.log('🚀 Initializing Friends Database Schema...');
+        console.log('📊 Environment:', process.env.NODE_ENV || 'development');
+        console.log('🔗 Database URL:', process.env.DATABASE_URL ? 'Connected' : 'Missing!');
+        
+        if (!process.env.DATABASE_URL) {
+            throw new Error('DATABASE_URL environment variable is required');
+        }
+        
+        await initializeFriendsSchema();
+        
+        console.log('✅ Friends schema initialization completed successfully!');
+        process.exit(0);
+        
+    } catch (error) {
+        console.error('❌ Friends schema initialization failed:', error.message);
+        process.exit(1);
+    }
+}
+
+main();

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Presence Control - Mivton Demo</title>
+    
+    <!-- CSS Dependencies -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/enhanced-presence.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .demo-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 2rem;
+        }
+        
+        .demo-header h1 {
+            font-size: 2.5rem;
+            margin: 0 0 0.5rem 0;
+            font-weight: 700;
+        }
+        
+        .demo-header p {
+            font-size: 1.125rem;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .demo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            margin-top: 1rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .feature-card h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.125rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .feature-card p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+        
+        .demo-controls {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin: 2rem 0;
+        }
+        
+        .demo-controls h3 {
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .control-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .demo-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+        
+        .demo-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .demo-header h1 {
+                font-size: 2rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <!-- Demo Header -->
+        <div class="demo-header">
+            <h1>🚀 Enhanced Presence Control</h1>
+            <p>Advanced presence management with granular visibility controls</p>
+            <div class="demo-badge">
+                <i class="fas fa-shield-alt"></i>
+                Privacy-First Design
+            </div>
+        </div>
+        
+        <!-- Features Overview -->
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>
+                    <i class="fas fa-eye"></i>
+                    Visibility Control
+                </h3>
+                <p>Choose exactly who can see your online status: everyone, friends only, active chats, selected contacts, or nobody.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>
+                    <i class="fas fa-moon"></i>
+                    Do Not Disturb
+                </h3>
+                <p>Advanced DND mode with exceptions for urgent messages, active conversations, and selected contacts.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>
+                    <i class="fas fa-robot"></i>
+                    Smart Automation
+                </h3>
+                <p>Auto-away detection, quiet hours scheduling, and intelligent status suggestions based on activity.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>
+                    <i class="fas fa-palette"></i>
+                    Custom Statuses
+                </h3>
+                <p>Express yourself with emoji and custom messages. Quick presets for common activities.</p>
+            </div>
+        </div>
+        
+        <!-- Demo Controls -->
+        <div class="demo-controls">
+            <h3>
+                <i class="fas fa-play"></i>
+                Interactive Demo
+            </h3>
+            <p style="margin-bottom: 1rem; opacity: 0.9;">Try different features and see how they work:</p>
+            <div class="control-buttons">
+                <button class="demo-btn" onclick="simulateStatusChange('online')">
+                    🟢 Go Online
+                </button>
+                <button class="demo-btn" onclick="simulateStatusChange('busy')">
+                    🔴 Do Not Disturb
+                </button>
+                <button class="demo-btn" onclick="simulateStatusChange('invisible')">
+                    ⚫ Go Invisible
+                </button>
+                <button class="demo-btn" onclick="openSettingsDemo()">
+                    ⚙️ Open Settings
+                </button>
+                <button class="demo-btn" onclick="addCustomStatus()">
+                    ➕ Custom Status
+                </button>
+                <button class="demo-btn" onclick="simulateNotification()">
+                    🔔 Test Notification
+                </button>
+            </div>
+        </div>
+        
+        <!-- Enhanced Presence Control Component -->
+        <div data-component="enhanced-presence"></div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/enhanced-presence-control.js"></script>
+    
+    <script>
+        // Demo functionality
+        let presenceComponent = null;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize the component
+            const element = document.querySelector('[data-component="enhanced-presence"]');
+            if (element) {
+                presenceComponent = new MivtonEnhancedPresenceControl(element, {
+                    // Demo mode options
+                    enableQuickActions: true,
+                    showFriendsPresence: true,
+                    enableCustomStatuses: true
+                });
+                
+                // Override API calls for demo
+                overrideApiForDemo();
+            }
+        });
+        
+        function overrideApiForDemo() {
+            if (!presenceComponent) return;
+            
+            // Mock current presence data
+            presenceComponent.state = {
+                ...presenceComponent.state,
+                currentStatus: 'online',
+                activityMessage: 'Working on Mivton',
+                privacyMode: 'friends',
+                friends: generateMockFriends()
+            };
+            
+            // Override the API methods with demo versions
+            const originalChangeStatus = presenceComponent.changeStatus;
+            presenceComponent.changeStatus = async function(status, message) {
+                console.log(`🎯 Demo: Changing status to ${status}${message ? ` with message: ${message}` : ''}`);
+                this.state.currentStatus = status;
+                if (message !== null) this.state.activityMessage = message;
+                this.updateAllDisplays();
+                this.showToast(`Status changed to ${this.getStatusLabel(status)}`, 'success');
+                return true;
+            };
+            
+            const originalLoadCurrentPresence = presenceComponent.loadCurrentPresence;
+            presenceComponent.loadCurrentPresence = async function() {
+                console.log('🎯 Demo: Loading current presence (mock data)');
+                this.updateAllDisplays();
+            };
+            
+            const originalLoadFriends = presenceComponent.loadFriends;
+            presenceComponent.loadFriends = async function() {
+                console.log('🎯 Demo: Loading friends (mock data)');
+                this.renderFriendsList();
+                this.updateFriendsStats({
+                    total: this.state.friends.length,
+                    online: this.state.friends.filter(f => f.visible_status === 'online').length,
+                    away: this.state.friends.filter(f => f.visible_status === 'away').length,
+                    busy: this.state.friends.filter(f => f.visible_status === 'busy').length,
+                    offline: this.state.friends.filter(f => f.visible_status === 'offline').length
+                });
+            };
+            
+            const originalSaveAllSettings = presenceComponent.saveAllSettings;
+            presenceComponent.saveAllSettings = async function() {
+                console.log('🎯 Demo: Saving settings (mock)');
+                const settingsData = this.gatherAllSettings();
+                Object.assign(this.state, settingsData);
+                this.closeSettingsModal();
+                this.updateAllDisplays();
+                this.showToast('Settings saved successfully', 'success');
+            };
+            
+            // Initialize with mock data
+            presenceComponent.updateAllDisplays();
+            presenceComponent.renderFriendsList();
+        }
+        
+        function generateMockFriends() {
+            return [
+                {
+                    friend_id: 1,
+                    friend_username: 'alex_dev',
+                    friend_full_name: 'Alex Johnson',
+                    friend_verified: true,
+                    visible_status: 'online',
+                    visible_activity_message: '💻 Coding',
+                    last_seen: new Date(),
+                    has_active_chat: true,
+                    contact_permissions: { can_message: true, can_call: true }
+                },
+                {
+                    friend_id: 2,
+                    friend_username: 'sarah_designer',
+                    friend_full_name: 'Sarah Chen',
+                    friend_verified: false,
+                    visible_status: 'away',
+                    visible_activity_message: '☕ Coffee break',
+                    last_seen: new Date(Date.now() - 300000),
+                    has_active_chat: false,
+                    contact_permissions: { can_message: true, can_call: false }
+                },
+                {
+                    friend_id: 3,
+                    friend_username: 'mike_pm',
+                    friend_full_name: 'Mike Rodriguez',
+                    friend_verified: true,
+                    visible_status: 'busy',
+                    visible_activity_message: '📞 In a meeting',
+                    last_seen: new Date(),
+                    has_active_chat: false,
+                    contact_permissions: { can_message: false, can_call: false }
+                },
+                {
+                    friend_id: 4,
+                    friend_username: 'emma_writer',
+                    friend_full_name: 'Emma Thompson',
+                    friend_verified: false,
+                    visible_status: 'offline',
+                    visible_activity_message: null,
+                    last_seen: new Date(Date.now() - 3600000),
+                    has_active_chat: false,
+                    contact_permissions: { can_message: true, can_call: true }
+                },
+                {
+                    friend_id: 5,
+                    friend_username: 'david_tech',
+                    friend_full_name: 'David Kim',
+                    friend_verified: true,
+                    visible_status: 'online',
+                    visible_activity_message: '🎮 Gaming',
+                    last_seen: new Date(),
+                    has_active_chat: false,
+                    contact_permissions: { can_message: true, can_call: true }
+                }
+            ];
+        }
+        
+        // Demo control functions
+        function simulateStatusChange(status) {
+            if (presenceComponent) {
+                presenceComponent.changeStatus(status);
+            }
+        }
+        
+        function openSettingsDemo() {
+            if (presenceComponent) {
+                presenceComponent.openSettingsModal();
+            }
+        }
+        
+        function addCustomStatus() {
+            if (presenceComponent) {
+                presenceComponent.openStatusModal();
+                // Auto-fill with a sample custom status
+                setTimeout(() => {
+                    const input = document.querySelector('[data-activity-input]');
+                    const emoji = document.querySelector('[data-emoji-selector]');
+                    if (input && emoji) {
+                        emoji.value = '🚀';
+                        input.value = 'Building awesome features';
+                        presenceComponent.updateActivityCounter(input.value.length);
+                    }
+                }, 100);
+            }
+        }
+        
+        function simulateNotification() {
+            if (presenceComponent) {
+                presenceComponent.showToast('Alex Johnson came online', 'info', 4000);
+                
+                setTimeout(() => {
+                    presenceComponent.showToast('New message from Sarah Chen', 'success', 4000);
+                }, 1000);
+            }
+        }
+        
+        // Add some demo interactivity
+        document.addEventListener('click', (e) => {
+            if (e.target.matches('[data-message-friend]')) {
+                const friendId = e.target.getAttribute('data-message-friend');
+                const friendName = e.target.closest('.friend-item').querySelector('.friend-name').textContent.trim();
+                if (presenceComponent) {
+                    presenceComponent.showToast(`Opening chat with ${friendName}`, 'info');
+                }
+            }
+        });
+        
+        // Auto-demo sequence
+        setTimeout(() => {
+            if (presenceComponent) {
+                presenceComponent.showToast('👋 Welcome to the Enhanced Presence Control demo!', 'info', 5000);
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

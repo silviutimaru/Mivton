@@ -1,0 +1,9 @@
+# Node.js 18 configuration for Railway
+[phases.install]
+nixPkgs = ['nodejs_18']
+
+[phases.build] 
+cmds = ['npm install']
+
+[start]
+cmd = 'npm start'

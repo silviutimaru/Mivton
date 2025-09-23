@@ -1,0 +1,51 @@
+/**
+ * 🧪 TEST REAL-TIME FRIEND STATUS UPDATES
+ * Quick test script to verify that friend status updates work in real-time
+ */
+
+const testRealTimeFriendStatus = () => {
+    console.log('🧪 Testing real-time friend status updates...');
+    
+    // Check if enhanced socket client is available
+    if (typeof window !== 'undefined' && window.enhancedSocketClient) {
+        console.log('✅ Enhanced socket client found');
+        
+        // Test methods
+        const client = window.enhancedSocketClient;
+        
+        // Test presence update
+        if (client.updateFriendPresence) {
+            console.log('✅ updateFriendPresence method available');
+        } else {
+            console.log('❌ updateFriendPresence method missing');
+        }
+        
+        // Test friends manager integration
+        if (client.friendsManager) {
+            console.log('✅ Friends manager integrated');
+        } else {
+            console.log('⚠️ Friends manager not yet integrated');
+        }
+        
+        // Test socket connection
+        if (client.socket && client.socket.connected) {
+            console.log('✅ Socket connected');
+        } else {
+            console.log('❌ Socket not connected');
+        }
+        
+        console.log('🎯 Real-time friend status system ready!');
+        
+    } else {
+        console.log('❌ Enhanced socket client not found');
+    }
+};
+
+// Run test when page loads
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(testRealTimeFriendStatus, 2000); // Wait 2 seconds for everything to load
+    });
+}
+
+console.log('🧪 Real-time friend status test script loaded');

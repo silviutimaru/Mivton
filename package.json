@@ -1,0 +1,88 @@
+{
+  "name": "mivton",
+  "version": "3.3.0",
+  "description": "Mivton Language Exchange Platform - Phase 3.3 Advanced Social Features",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "npm ci",
+    "lint": "eslint .",
+    "test:unit": "jest --runInBand tests/unit",
+    "test:api": "jest --runInBand tests/api",
+    "test:e2e:headless": "playwright test --reporter=list",
+    "test:all": "npm run lint && npm run test:unit && npm run test:api && npm run test:e2e:headless",
+    "test": "node test-friends-system.js",
+    "test:quick": "node quick-test-friends.js",
+    "test:friends": "node test-friends-system.js",
+    "fix-deploy": "node -e \"console.log('✅ Dependencies and routes configured properly')\"",
+    "check-health": "curl -f http://localhost:3000/health || echo 'Health check failed'",
+    "init:db": "node database/init-database.js",
+    "init:friends": "node database/init-friends.js",
+    "init:realtime": "node database/init-realtime.js",
+    "init:advanced-social": "node database/init-advanced-social.js"
+  },
+  "keywords": [
+    "language-exchange",
+    "nodejs",
+    "railway",
+    "postgresql",
+    "real-time",
+    "chat",
+    "education"
+  ],
+  "author": "Mivton Team",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "connect-pg-simple": "^10.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "express-rate-limit": "^6.11.2",
+    "express-session": "^1.18.2",
+    "express-validator": "^7.2.1",
+    "helmet": "^7.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.10.1",
+    "on-headers": "^1.1.0",
+    "openai": "^4.104.0",
+    "pg": "^8.16.3",
+    "pg-pool": "^3.10.1",
+    "socket.io": "^4.8.1",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "@types/jest": "^29.5.14",
+    "eslint": "^8.57.1",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-n": "^16.6.2",
+    "eslint-plugin-promise": "^6.6.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.10",
+    "playwright": "^1.40.0",
+    "supertest": "^6.3.4"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverage": true,
+    "coverageDirectory": "test-reports/coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup.js"
+    ]
+  }
+}

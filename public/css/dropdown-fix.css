@@ -1,0 +1,111 @@
+/**
+ * ==============================================
+ * MIVTON - Z-INDEX FIX FOR DROPDOWNS
+ * Fixes language dropdown disappearing behind modals
+ * ==============================================
+ */
+
+/* Fix for language dropdowns being hidden behind profile modal */
+select[id*="language"],
+select[name*="language"],
+select[class*="language"],
+.language-select,
+.native-language-select,
+#languageFilter,
+#nativeLanguageSelect,
+select[id*="Language"],
+select[name*="Language"],
+select[class*="Language"] {
+    position: relative !important;
+    z-index: 99999 !important; /* Higher than any modal */
+}
+
+/* Specific targeting for common language selectors */
+select[name="native_language"],
+select[id="nativeLanguageSelect"],
+select[id="languageFilter"],
+.form-group select[id*="language"],
+.form-group select[name*="language"] {
+    position: relative !important;
+    z-index: 99999 !important;
+}
+
+/* Fix for select dropdown options */
+select[id*="language"] option,
+select[name*="language"] option,
+select[class*="language"] option,
+.language-select option,
+.native-language-select option,
+#languageFilter option,
+#nativeLanguageSelect option {
+    background: var(--card-background, #ffffff) !important;
+    color: var(--text-primary, #000000) !important;
+    padding: 8px 12px !important;
+    z-index: 99999 !important;
+}
+
+/* Fallback for browsers that don't support CSS variables */
+@media (prefers-color-scheme: dark) {
+    select[id*="language"] option,
+    select[name*="language"] option,
+    select[class*="language"] option,
+    .language-select option,
+    .native-language-select option,
+    #languageFilter option,
+    #nativeLanguageSelect option {
+        background: #1f2937 !important;
+        color: #f9fafb !important;
+    }
+}
+
+/* Force higher stacking context for language selectors */
+.language-selector,
+.form-group:has(select[id*="language"]),
+.form-group:has(select[name*="language"]),
+div:has(#nativeLanguageSelect),
+div:has(#languageFilter) {
+    z-index: 99998 !important;
+    position: relative !important;
+}
+
+/* Profile modal should not interfere with selects */
+.mivton-profile-modal {
+    z-index: 9999 !important; /* Lower than language selectors */
+}
+
+/* Additional specificity for stubborn dropdowns */
+body select[id*="language"],
+body select[name*="language"],
+body .language-select,
+body #nativeLanguageSelect,
+body #languageFilter {
+    z-index: 99999 !important;
+    position: relative !important;
+}
+
+/* Ensure parent containers don't create new stacking contexts */
+.profile-form,
+.settings-card,
+.form-group {
+    position: static !important;
+}
+
+/* Special handling for mobile browsers */
+@media (max-width: 768px) {
+    select[id*="language"],
+    select[name*="language"],
+    .language-select,
+    #nativeLanguageSelect,
+    #languageFilter {
+        z-index: 999999 !important;
+        transform: translateZ(0) !important; /* Force hardware acceleration */
+    }
+}
+
+/* Debug outline (remove in production) */
+/*
+select[id*="language"],
+select[name*="language"] {
+    outline: 3px solid red !important;
+}
+*/

@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Mivton - Futuristic Chat</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/friends-system.css">
+    <link rel="stylesheet" href="/css/multilingual-chat.css">
+    <link rel="stylesheet" href="/css/friend-requests.css">
+    <link rel="stylesheet" href="/css/search-results.css">
+    <link rel="stylesheet" href="/css/notifications.css">
+    <link rel="stylesheet" href="/css/profile-modal.css">
+    <link rel="stylesheet" href="/css/dropdown-fix.css">
+    <link rel="stylesheet" href="/css/dashboard-language-selector.css">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">MIVTON</div>
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Initializing dashboard...</div>
+        </div>
+    </div>
+
+    <div class="dashboard-wrapper" id="dashboardWrapper">
+        <!-- Mobile Header -->
+        <header class="mobile-header">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="mobile-logo">MIVTON</div>
+            <div class="mobile-user-avatar" id="mobileUserAvatar">?</div>
+        </header>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <h1>MIVTON</h1>
+                    <span class="version">v2.1</span>
+                </div>
+                <button class="sidebar-close" id="sidebarClose">×</button>
+            </div>
+
+            <div class="sidebar-user">
+                <div class="user-avatar" id="userAvatar">?</div>
+                <div class="user-details">
+                    <div class="user-name" id="userName">Loading...</div>
+                    <div class="user-status">
+                        <div class="status-indicator online"></div>
+                        <span>Online</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Chat</div>
+                    <a href="#" class="nav-item active" data-section="overview">
+                        <div class="nav-icon">🏠</div>
+                        <span>Overview</span>
+                    </a>
+                    <a href="#" class="nav-item" data-section="friends">
+                        <div class="nav-icon">🫂</div>
+                        <span>Friends</span>
+                        <div class="nav-badge" id="friendsCount">0</div>
+                    </a>
+                    <a href="#" class="nav-item" data-section="requests">
+                        <div class="nav-icon">📨</div>
+                        <span>Requests</span>
+                        <div class="nav-badge notification" id="requestsCount">0</div>
+                    </a>
+                    <a href="#" class="nav-item" data-section="find">
+                        <div class="nav-icon">🔍</div>
+                        <span>Find Users</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Settings</div>
+                    <a href="#" class="nav-item" data-section="blocked">
+                        <div class="nav-icon">🚫</div>
+                        <span>Blocked Users</span>
+                        <div class="nav-badge" id="blockedCount">0</div>
+                    </a>
+                    <a href="#" class="nav-item" data-section="profile">
+                        <div class="nav-icon">⚙️</div>
+                        <span>Profile & Settings</span>
+                    </a>
+                    <a href="#" class="nav-item admin-nav-item" data-section="admin" id="adminNavItem" style="display: block;">
+                        <div class="nav-icon">👑</div>
+                        <span>Admin</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="logout-btn" id="logoutBtn">
+                    <div class="nav-icon">🚪</div>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header Bar -->
+            <header class="main-header">
+                <div class="header-left">
+                    <h1 class="section-title" id="sectionTitle">Overview</h1>
+                    <div class="breadcrumb" id="breadcrumb">
+                        <span>Dashboard</span>
+                        <span class="separator">›</span>
+                        <span id="currentSection">Overview</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="onlineCount">1</div>
+                            <div class="stat-label">Online</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalFriends">0</div>
+                            <div class="stat-label">Friends</div>
+                        </div>
+                    </div>
+                    <div class="notifications-btn" id="notificationsBtn">
+                        <div class="bell-icon">🔔</div>
+                        <div class="notification-badge" id="notificationBadge">0</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Sections -->
+            <div class="content-container">
+                <!-- Overview Section -->
+                <section class="content-section active" id="overview-section">
+                    <div class="welcome-banner">
+                        <div class="welcome-content">
+                            <h2>Welcome back, <span id="welcomeUserName">User</span>!</h2>
+                            <p>Ready to connect with friends across the globe? Your multilingual chat experience awaits.</p>
+                        </div>
+                        <div class="welcome-animation">
+                            <div class="floating-emoji">🌍</div>
+                            <div class="floating-emoji delay-1">💬</div>
+                            <div class="floating-emoji delay-2">🚀</div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h3>Quick Stats</h3>
+                                <div class="card-icon">📊</div>
+                            </div>
+                            <div class="stats-grid">
+                                <div class="stat">
+                                    <div class="stat-number" id="statMessages">0</div>
+                                    <div class="stat-label">Messages Today</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-number" id="statLanguages">0</div>
+                                    <div class="stat-label">Languages Used</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-number" id="statFriends">0</div>
+                                    <div class="stat-label">Active Friends</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-number" id="statHours">0</div>
+                                    <div class="stat-label">Hours Chatting</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h3>Recent Activity</h3>
+                                <div class="card-icon">📈</div>
+                            </div>
+                            <div class="activity-list" id="recentActivity">
+                                <div class="activity-item">
+                                    <div class="activity-icon">🎉</div>
+                                    <div class="activity-content">
+                                        <div class="activity-title">Welcome to Mivton!</div>
+                                        <div class="activity-time">Just now</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h3>Language Preferences</h3>
+                                <div class="card-icon">🌐</div>
+                            </div>
+                            <div class="language-info">
+                                <div class="language-item">
+                                    <div class="language-flag">🇺🇸</div>
+                                    <div class="language-details">
+                                        <div class="language-name" id="userLanguage">English</div>
+                                        <div class="language-code">Native Language</div>
+                                    </div>
+                                </div>
+                                <button class="change-language-btn" onclick="showSection('profile')">
+                                    Change Language
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h3>Quick Actions</h3>
+                                <div class="card-icon">⚡</div>
+                            </div>
+                            <div class="quick-actions">
+                                <button class="action-btn primary" onclick="showSection('find')">
+                                    <div class="btn-icon">🔍</div>
+                                    <span>Find Friends</span>
+                                </button>
+                                <button class="action-btn secondary" onclick="showSection('profile')">
+                                    <div class="btn-icon">⚙️</div>
+                                    <span>Settings</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Friends Section -->
+                <section class="content-section" id="friends-section">
+                    <div class="friends-container">
+                        <!-- Phase 3.1 Friends Manager Component will be initialized here -->
+                        <div data-component="friends-manager" id="friendsManager"></div>
+                    </div>
+                </section>
+
+                <!-- Requests Section -->
+                <section class="content-section" id="requests-section">
+                    <div class="section-header">
+                        <h2>Friend Requests</h2>
+                        <div class="requests-tabs">
+                            <button class="tab-btn active" data-tab="received">Received</button>
+                            <button class="tab-btn" data-tab="sent">Sent</button>
+                        </div>
+                    </div>
+
+                    <div class="requests-container">
+                        <div class="tab-content active" id="received-requests">
+                            <div class="empty-state">
+                                <div class="empty-icon">📨</div>
+                                <h3>No friend requests</h3>
+                                <p>You're all caught up! No pending friend requests.</p>
+                            </div>
+                        </div>
+
+                        <div class="tab-content" id="sent-requests">
+                            <div class="empty-state">
+                                <div class="empty-icon">📤</div>
+                                <h3>No sent requests</h3>
+                                <p>Start connecting by sending friend requests!</p>
+                                <button class="empty-action-btn" onclick="showSection('find')">
+                                    Find Friends
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Find Users Section -->
+                <section class="content-section" id="find-section">
+                    <div class="section-header">
+                        <h2>Find Friends</h2>
+                        <div class="search-stats">
+                            <span id="searchResultsCount">0 users found</span>
+                        </div>
+                    </div>
+
+                    <div class="find-container">
+                        <div class="search-box">
+                            <input type="text" id="userSearchInput" placeholder="Search by username or email..." />
+                            <button class="search-btn" id="searchBtn">
+                                <div class="search-icon">🔍</div>
+                            </button>
+                        </div>
+
+                        <div class="search-filters">
+                            <select id="languageFilter">
+                                <option value="">All Languages</option>
+                                <!-- Enhanced language selector will populate this -->
+                            </select>
+                        </div>
+
+                        <div class="search-results" id="searchResults">
+                            <div class="empty-state">
+                                <div class="empty-icon">🔍</div>
+                                <h3>Start searching</h3>
+                                <p>Use the search box above to find friends by username or email.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Blocked Users Section -->
+                <section class="content-section" id="blocked-section">
+                    <div class="section-header">
+                        <h2>Blocked Users</h2>
+                        <div class="blocked-count">
+                            <span id="blockedUsersCount">0 blocked users</span>
+                        </div>
+                    </div>
+
+                    <div class="blocked-container">
+                        <div class="empty-state" id="blockedEmptyState">
+                            <div class="empty-icon">🚫</div>
+                            <h3>No blocked users</h3>
+                            <p>You haven't blocked anyone yet. Keeping it positive!</p>
+                        </div>
+
+                        <div class="blocked-list" id="blockedList">
+                            <!-- Blocked users will be populated here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Profile & Settings Section -->
+                <section class="content-section" id="profile-section">
+                    <div class="section-header">
+                        <h2>Profile & Settings</h2>
+                        <button class="save-btn" id="saveProfileBtn">
+                            <span>💾</span>
+                            Save Changes
+                        </button>
+                    </div>
+
+                    <div class="profile-container">
+                        <div class="profile-card">
+                            <div class="profile-header">
+                                <div class="profile-avatar" id="profileAvatar">?</div>
+                                <div class="profile-info">
+                                    <h3 id="profileName">Loading...</h3>
+                                    <div class="profile-username" id="profileUsername">@username</div>
+                                    <div class="profile-joined">
+                                        Member since <span id="joinedDate">2025</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="profile-form">
+                                <div class="form-group">
+                                    <label>Full Name</label>
+                                    <input type="text" id="fullNameInput" placeholder="Enter your full name" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" id="emailInput" placeholder="Enter your email" readonly />
+                                    <small>Email cannot be changed</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Native Language</label>
+                                    <select id="nativeLanguageSelect">
+                                        <option value="">Select your native language...</option>
+                                        <!-- Enhanced language selector will populate this -->
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Gender</label>
+                                    <select id="genderSelect" disabled readonly>
+                                        <option value="">Prefer not to say</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                    <small>Gender cannot be changed for legal compliance</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Account Status</label>
+                                    <div class="status-display">
+                                        <div class="status-indicator online"></div>
+                                        <span>Active Account</span>
+                                        <div class="verified-badge" id="verifiedBadge" style="display: none;">
+                                            ✓ Verified
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-card">
+                            <h3>Privacy & Security</h3>
+                            <div class="settings-grid">
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <div class="setting-title">Profile Visibility</div>
+                                        <div class="setting-description">Who can find you in search</div>
+                                    </div>
+                                    <select id="profileVisibility">
+                                        <option value="public">Everyone</option>
+                                        <option value="friends">Friends only</option>
+                                        <option value="private">Private</option>
+                                    </select>
+                                </div>
+
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <div class="setting-title">Language Display</div>
+                                        <div class="setting-description">Show native language to others</div>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="showLanguage" checked />
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <div class="setting-title">Online Status</div>
+                                        <div class="setting-description">Show when you're online</div>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="showOnlineStatus" checked />
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Modal for confirmations -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Confirm Action</h3>
+            <p id="modalMessage">Are you sure?</p>
+            <div class="modal-actions">
+                <button class="btn secondary" id="modalCancel">Cancel</button>
+                <button class="btn primary" id="modalConfirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Section -->
+    <section class="content-section" id="admin-section">
+        <div class="admin-container">
+            <div class="section-header">
+                <h2>👑 Admin Dashboard</h2>
+                <p>System administration and management</p>
+            </div>
+            
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-tab="overview">Overview</button>
+                <button class="admin-tab" data-tab="users">Users</button>
+                <button class="admin-tab" data-tab="monitoring">Monitoring</button>
+                <button class="admin-tab" data-tab="analytics">Analytics</button>
+                <button class="admin-tab" data-tab="settings">Settings</button>
+            </div>
+            
+            <div class="admin-content">
+                <!-- Overview Tab -->
+                <div class="admin-tab-content active" id="admin-overview">
+                    <div class="admin-stats-grid">
+                        <div class="admin-stat-card">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-info">
+                                <div class="stat-number">4</div>
+                                <div class="stat-label">Total Users</div>
+                            </div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="stat-icon">👑</div>
+                            <div class="stat-info">
+                                <div class="stat-number">1</div>
+                                <div class="stat-label">Admin Users</div>
+                            </div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="stat-icon">🟢</div>
+                            <div class="stat-info">
+                                <div class="stat-number">2</div>
+                                <div class="stat-label">Online Users</div>
+                            </div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="stat-icon">📈</div>
+                            <div class="stat-info">
+                                <div class="stat-number">0</div>
+                                <div class="stat-label">New Today</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-quick-actions">
+                        <h3>Quick Actions</h3>
+                        <div class="action-buttons">
+                            <button class="admin-action-btn" onclick="showAdminTab('users')">
+                                <span>👥</span> Manage Users
+                            </button>
+                            <button class="admin-action-btn" onclick="showAdminTab('monitoring')">
+                                <span>📈</span> System Monitor
+                            </button>
+                            <button class="admin-action-btn" onclick="showAdminTab('analytics')">
+                                <span>📊</span> View Analytics
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Users Tab -->
+                <div class="admin-tab-content" id="admin-users">
+                    <div class="users-management">
+                        <h3>User Management</h3>
+                        <div class="users-controls">
+                            <input type="text" placeholder="Search users..." class="user-search">
+                            <select class="status-filter">
+                                <option value="">All Status</option>
+                                <option value="online">Online</option>
+                                <option value="offline">Offline</option>
+                            </select>
+                        </div>
+                        
+                        <div class="users-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Role</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div class="user-info">
+                                                <div class="user-avatar">S</div>
+                                                <div class="user-details">
+                                                    <div class="user-name">silviu</div>
+                                                    <div class="user-fullname">Silviu Timaru</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>silviu@mivton.com</td>
+                                        <td><span class="status-badge online">online</span></td>
+                                        <td><span class="role-badge admin">Admin</span></td>
+                                        <td>
+                                            <button class="btn-sm btn-danger" onclick="alert('Block user')">Block</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="user-info">
+                                                <div class="user-avatar">T</div>
+                                                <div class="user-details">
+                                                    <div class="user-name">testuser1</div>
+                                                    <div class="user-fullname">Test User 1</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>test1@example.com</td>
+                                        <td><span class="status-badge offline">offline</span></td>
+                                        <td><span class="role-badge user">User</span></td>
+                                        <td>
+                                            <button class="btn-sm btn-primary" onclick="alert('Promote user')">Promote</button>
+                                            <button class="btn-sm btn-danger" onclick="alert('Block user')">Block</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Monitoring Tab -->
+                <div class="admin-tab-content" id="admin-monitoring">
+                    <div class="monitoring-dashboard">
+                        <h3>System Monitoring</h3>
+                        <div class="monitoring-grid">
+                            <div class="monitoring-card">
+                                <h4>System Health</h4>
+                                <div class="health-status">
+                                    <div class="health-indicator healthy"></div>
+                                    <span>Healthy</span>
+                                </div>
+                                <div class="health-details">
+                                    <div class="health-item">
+                                        <span>Uptime:</span>
+                                        <span>1h 30m</span>
+                                    </div>
+                                    <div class="health-item">
+                                        <span>Memory:</span>
+                                        <span>50 MB</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="monitoring-card">
+                                <h4>Database</h4>
+                                <div class="health-status">
+                                    <div class="health-indicator healthy"></div>
+                                    <span>Connected</span>
+                                </div>
+                                <div class="health-details">
+                                    <div class="health-item">
+                                        <span>Status:</span>
+                                        <span>Active</span>
+                                    </div>
+                                    <div class="health-item">
+                                        <span>Response:</span>
+                                        <span>Fast</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Analytics Tab -->
+                <div class="admin-tab-content" id="admin-analytics">
+                    <div class="analytics-dashboard">
+                        <h3>System Analytics</h3>
+                        <div class="analytics-grid">
+                            <div class="analytics-card">
+                                <h4>User Growth</h4>
+                                <div class="metric">
+                                    <div class="metric-value">4</div>
+                                    <div class="metric-label">Total Users</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value">0</div>
+                                    <div class="metric-label">New Today</div>
+                                </div>
+                            </div>
+                            <div class="analytics-card">
+                                <h4>System Performance</h4>
+                                <div class="metric">
+                                    <div class="metric-value">1h 30m</div>
+                                    <div class="metric-label">Uptime</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value">50 MB</div>
+                                    <div class="metric-label">Memory Used</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Settings Tab -->
+                <div class="admin-tab-content" id="admin-settings">
+                    <div class="admin-settings">
+                        <h3>Admin Settings</h3>
+                        <div class="settings-grid">
+                            <div class="settings-section">
+                                <h4>User Management</h4>
+                                <div class="setting-item">
+                                    <label>Promote User to Admin</label>
+                                    <div class="setting-control">
+                                        <input type="text" id="promoteUsername" placeholder="Username or Email">
+                                        <button class="btn btn-primary" onclick="completeAdminDashboard.promoteUser()">Promote</button>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <label>Demote Admin to User</label>
+                                    <div class="setting-control">
+                                        <input type="text" id="demoteUsername" placeholder="Username or Email">
+                                        <button class="btn btn-warning" onclick="completeAdminDashboard.demoteUser()">Demote</button>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <label>Block User</label>
+                                    <div class="setting-control">
+                                        <input type="text" id="blockUsername" placeholder="Username or Email">
+                                        <button class="btn btn-danger" onclick="completeAdminDashboard.blockUser()">Block</button>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <label>Unblock User</label>
+                                    <div class="setting-control">
+                                        <input type="text" id="unblockUsername" placeholder="Username or Email">
+                                        <button class="btn btn-success" onclick="completeAdminDashboard.unblockUser()">Unblock</button>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <label>🗑️ Delete User (PERMANENT)</label>
+                                    <div class="setting-control">
+                                        <input type="text" id="deleteUsername" placeholder="Username or Email">
+                                        <button class="btn btn-danger" onclick="completeAdminDashboard.deleteUser()" style="background-color: #dc2626; border-color: #dc2626;">Delete</button>
+                                    </div>
+                                    <small style="color: #ef4444; font-size: 0.8rem; margin-top: 0.5rem; display: block;">
+                                        ⚠️ This will permanently delete the user from the entire system!
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="settings-section">
+                                <h4>System Maintenance</h4>
+                                <div class="setting-item">
+                                    <label>Database Backup</label>
+                                    <div class="setting-control">
+                                        <button class="btn btn-secondary" onclick="alert('Create backup')">Create Backup</button>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <label>Clear Cache</label>
+                                    <div class="setting-control">
+                                        <button class="btn btn-secondary" onclick="alert('Cache cleared!')">Clear Cache</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Profile Modal Container -->
+    <div data-component="profile-modal" id="profileModal"></div>
+
+    <!-- Admin Dashboard Modal -->
+    <div id="adminDashboard" class="admin-dashboard-modal" style="display: none;">
+        <div class="admin-overlay"></div>
+        <div class="admin-panel">
+            <div class="admin-header">
+                <div class="admin-title">
+                    <span class="admin-icon">👑</span>
+                    <h2>Admin Dashboard</h2>
+                </div>
+                <button class="admin-close" id="adminClose">
+                    <span>×</span>
+                </button>
+            </div>
+            
+            <div class="admin-content">
+                <div class="admin-sidebar">
+                    <nav class="admin-nav">
+                        <button class="admin-nav-item active" data-view="overview">
+                            <span class="nav-icon">📊</span>
+                            <span class="nav-text">Overview</span>
+                        </button>
+                        <button class="admin-nav-item" data-view="users">
+                            <span class="nav-icon">👥</span>
+                            <span class="nav-text">Users</span>
+                        </button>
+                        <button class="admin-nav-item" data-view="monitoring">
+                            <span class="nav-icon">📈</span>
+                            <span class="nav-text">Monitoring</span>
+                        </button>
+                        <button class="admin-nav-item" data-view="analytics">
+                            <span class="nav-icon">📊</span>
+                            <span class="nav-text">Analytics</span>
+                        </button>
+                        <button class="admin-nav-item" data-view="settings">
+                            <span class="nav-icon">⚙️</span>
+                            <span class="nav-text">Settings</span>
+                        </button>
+                    </nav>
+                </div>
+                
+                <div class="admin-main">
+                    <div class="admin-view" id="adminView">
+                        <!-- Dynamic content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts - ENHANCED LOADING ORDER -->
+    <!-- 1. Core debugging and component system FIRST -->
+    <script src="/js/component-debug.js"></script>
+    
+    <!-- 2. Socket.IO and core networking -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/chat.js"></script>
+    <script src="/js/socket-client.js"></script>
+    <script src="/js/enhanced-socket-client.js"></script>
+    
+    <!-- 3. Authentication and core utilities -->
+    <script src="/js/auth.js"></script>
+    <script src="/js/notifications.js"></script>
+    
+    <!-- 4. Base component system (CRITICAL: Must load before other components) -->
+    <script src="/js/mivton-base-component.js"></script>
+    
+    <!-- 5. Main components -->
+    <script src="/js/components.js"></script>
+    <script src="/js/profile-modal.js"></script>
+    <script src="/js/friends-manager.js"></script>
+    <script src="/js/simple-chat.js"></script>
+    <script src="/js/multilingual-chat.js"></script>
+    <script src="/js/friend-requests.js"></script>
+    
+    <!-- 6. Language system -->
+    <script src="/js/languages.js"></script>
+    <script src="/js/dashboard-language-selector.js"></script>
+    
+    <!-- 7. Compatibility and legacy support -->
+    <script src="/js/friends-compatibility.js"></script>
+    
+    <!-- 8. Complete functional admin dashboard -->
+    <script src="/js/admin-complete.js"></script>
+    
+    <!-- 9. Main dashboard logic (LAST) -->
+    <script src="/js/dashboard.js"></script>
+    
+    <!-- 9. Debug utilities (for development) -->
+    <script src="/js/modal-debug.js"></script>
+    <script src="/js/simple-modal-test.js"></script>
+    
+    
+    <!-- Friends System Initialization -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize friends system with error handling
+        try {
+            const friendsContainer = document.getElementById('friendsManager');
+            if (friendsContainer && window.MivtonComponents && window.MivtonComponents.FriendsManager) {
+                // Friends manager will auto-initialize via data-component attribute
+                console.log('✅ Friends system ready for initialization');
+            } else {
+                console.warn('⚠️ Friends system components not available');
+                // Fallback to basic friends display
+                if (friendsContainer) {
+                    friendsContainer.innerHTML = `
+                        <div class="friends-fallback">
+                            <div class="section-header">
+                                <h2>Friends</h2>
+                                <button class="add-friend-btn" onclick="showSection('find')">
+                                    <span>+</span> Add Friend
+                                </button>
+                            </div>
+                            <div class="empty-state">
+                                <div class="empty-icon">🫂</div>
+                                <h3>Friends system loading...</h3>
+                                <p>Please refresh the page if this persists.</p>
+                                <button class="empty-action-btn" onclick="location.reload()">
+                                    Refresh Page
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        } catch (error) {
+            console.error('❌ Friends system initialization error:', error);
+        }
+    });
+    </script>
+</body>
+</html>

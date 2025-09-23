@@ -1,0 +1,354 @@
+/**
+ * ==============================================
+ * MIVTON NOTIFICATION POPUPS STYLES
+ * Beautiful real-time notification system
+ * ==============================================
+ */
+
+/* Notification Container */
+.notification-popup-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+}
+
+/* Notification Popup */
+.notification-popup {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    padding: 16px;
+    min-width: 320px;
+    max-width: 400px;
+    color: white;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    pointer-events: all;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+/* Notification Types */
+.notification-friend_request {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-left: 4px solid #4facfe;
+}
+
+.notification-friend_accepted {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    border-left: 4px solid #00f260;
+}
+
+.notification-general {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-left: 4px solid #667eea;
+}
+
+/* Notification Content */
+.notification-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.notification-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    position: relative;
+}
+
+.notification-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: white;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.notification-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 4px;
+    color: white;
+    line-height: 1.3;
+}
+
+.notification-message {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.notification-offline-indicator {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.notification-close {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-weight: bold;
+}
+
+.notification-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* Notification Actions */
+.notification-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.notification-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.notification-btn.accept {
+    background: rgba(76, 175, 80, 0.9);
+    color: white;
+}
+
+.notification-btn.accept:hover {
+    background: rgba(76, 175, 80, 1);
+    transform: translateY(-1px);
+}
+
+.notification-btn.decline {
+    background: rgba(244, 67, 54, 0.9);
+    color: white;
+}
+
+.notification-btn.decline:hover {
+    background: rgba(244, 67, 54, 1);
+    transform: translateY(-1px);
+}
+
+.notification-btn.dismiss {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.notification-btn.dismiss:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Animation States */
+.notification-popup.entering {
+    transform: translateX(0);
+}
+
+.notification-popup.leaving {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .notification-popup-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+    }
+    
+    .notification-popup {
+        min-width: auto;
+        max-width: none;
+        width: 100%;
+    }
+    
+    .notification-actions {
+        flex-direction: column;
+    }
+    
+    .notification-btn {
+        flex: none;
+    }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+    .notification-popup {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* Accessibility */
+.notification-popup:focus-within {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+}
+
+.notification-btn:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.7);
+    outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .notification-popup {
+        transition: opacity 0.2s ease;
+    }
+    
+    .notification-popup.entering {
+        opacity: 1;
+    }
+    
+    .notification-popup.leaving {
+        opacity: 0;
+    }
+    
+    .notification-btn:hover {
+        transform: none;
+    }
+    
+    .notification-close:hover {
+        transform: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .notification-popup {
+        border: 2px solid white;
+    }
+    
+    .notification-btn {
+        border: 1px solid white;
+    }
+}
+
+/* Success notification style for accepted requests */
+.notification-popup.notification-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    border-left: 4px solid #00f260;
+}
+
+/* Error notification style */
+.notification-popup.notification-error {
+    background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+    border-left: 4px solid #ff4b2b;
+}
+
+/* Warning notification style */
+.notification-popup.notification-warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border-left: 4px solid #f5576c;
+}
+
+/* Info notification style */
+.notification-popup.notification-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    border-left: 4px solid #00f2fe;
+}
+
+/* Notification sound indicator */
+.notification-popup::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background: #00ff00;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    opacity: 0;
+}
+
+.notification-popup.with-sound::before {
+    opacity: 1;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.5);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Multiple notifications stacking */
+.notification-popup:nth-child(n+4) {
+    opacity: 0.8;
+    transform: translateX(100%) scale(0.95);
+}
+
+.notification-popup:nth-child(n+6) {
+    display: none;
+}
+
+/* Notification priority system */
+.notification-popup.priority-high {
+    z-index: 10001;
+    border: 2px solid #ff4444;
+    box-shadow: 0 0 20px rgba(255, 68, 68, 0.3);
+}
+
+.notification-popup.priority-urgent {
+    z-index: 10002;
+    border: 2px solid #ff0000;
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}

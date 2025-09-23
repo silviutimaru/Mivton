@@ -1,0 +1,115 @@
+/**
+ * ==============================================
+ * MIVTON - LANGUAGE SELECTOR STYLES (CONTINUED)
+ * Phase 2.3 - User Interface Polish
+ * Complete language selection interface with flags
+ * ==============================================
+ */
+
+.language-item {
+    animation: fadeInUp 0.3s var(--ease-smooth);
+}
+
+.language-item:nth-child(odd) {
+    animation-delay: 0.1s;
+}
+
+.language-item:nth-child(even) {
+    animation-delay: 0.2s;
+}
+
+/* ====================== ACCESSIBILITY ====================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .language-item,
+    .popular-language-item,
+    .language-loading-spinner {
+        animation: none !important;
+    }
+    
+    .language-item,
+    .popular-language-item,
+    .language-action-btn {
+        transition: none !important;
+    }
+}
+
+/* Focus styles for keyboard navigation */
+.language-item:focus,
+.popular-language-item:focus,
+.language-search-input:focus,
+.language-action-btn:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .language-item,
+    .popular-language-item {
+        border-width: 2px;
+    }
+    
+    .language-flag {
+        border: 1px solid var(--text-primary);
+    }
+}
+
+/* ====================== DARK/LIGHT THEME SUPPORT ====================== */
+
+[data-theme="light"] {
+    --surface-glass: rgba(255, 255, 255, 0.8);
+    --surface-light: #f8fafc;
+    --surface-dark: #ffffff;
+    --border-light: rgba(0, 0, 0, 0.1);
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-tertiary: #94a3b8;
+}
+
+[data-theme="light"] .language-item:hover,
+[data-theme="light"] .popular-language-item:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* ====================== FLAG EMOJI FALLBACKS ====================== */
+
+.language-flag.no-emoji {
+    background: var(--primary);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* Specific language styling */
+.language-item[data-code="zh"] .language-native-name {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.language-item[data-code="ja"] .language-native-name {
+    font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+
+.language-item[data-code="ko"] .language-native-name {
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+}
+
+.language-item[data-code="ar"] .language-native-name {
+    font-family: "Tahoma", "Arial Unicode MS", sans-serif;
+    direction: rtl;
+}
+
+.language-item[data-code="he"] .language-native-name {
+    font-family: "Tahoma", "Arial Unicode MS", sans-serif;
+    direction: rtl;
+}
+
+.language-item[data-code="th"] .language-native-name {
+    font-family: "Thonburi", "Tahoma", sans-serif;
+}
+
+.language-item[data-code="hi"] .language-native-name,
+.language-item[data-code="bn"] .language-native-name {
+    font-family: "Devanagari Sangam MN", "Noto Sans Devanagari", sans-serif;
+}

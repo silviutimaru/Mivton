@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 4.2 - Room per User Testing | Mivton</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+        .container {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #4fc3f7;
+            margin-bottom: 10px;
+        }
+        h2 {
+            color: #81c784;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        .status.info {
+            background: #1e3a8a;
+            border-left: 4px solid #3b82f6;
+        }
+        .status.success {
+            background: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        .status.warning {
+            background: #7c2d12;
+            border-left: 4px solid #f59e0b;
+        }
+        .code {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .step {
+            background: #1e293b;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #8b5cf6;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #a78bfa;
+        }
+        .button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #2563eb;
+        }
+        .button.secondary {
+            background: #6b7280;
+        }
+        .button.secondary:hover {
+            background: #4b5563;
+        }
+        #notifications {
+            min-height: 100px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #e2e8f0;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            background: #1e293b;
+            color: #ffffff;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Task 4.2 - Room per User Testing</h1>
+        <p>This page demonstrates the temporary stub ID functionality with room-based notifications.</p>
+
+        <div class="status info">
+            <strong>Current Status:</strong> <span id="connectionStatus">Initializing...</span>
+        </div>
+
+        <div class="status info">
+            <strong>Your User ID:</strong> <span id="currentUserId">Loading...</span>
+        </div>
+
+        <h2>📋 Testing Instructions</h2>
+
+        <div class="step">
+            <h3>Step 1: Open Multiple Tabs</h3>
+            <p>Open this page in two browser tabs (Tab A and Tab B) to test cross-tab communication.</p>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Set User IDs</h3>
+            <p>In each tab's browser console, run:</p>
+            <div class="code">// Tab A console:
+localStorage.setItem('userId','alice'); location.reload();
+
+// Tab B console:
+localStorage.setItem('userId','bob'); location.reload();</div>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Send Notification</h3>
+            <p>In Tab A console, send a message to Tab B:</p>
+            <div class="code">socket.emit('server:notify', { to: 'user:bob', msg: 'hi bob' })</div>
+            <p>Or use the form below:</p>
+            
+            <div class="input-group">
+                <label for="targetUser">Target User ID:</label>
+                <input type="text" id="targetUser" placeholder="e.g., bob" value="bob">
+            </div>
+            
+            <div class="input-group">
+                <label for="messageText">Message:</label>
+                <input type="text" id="messageText" placeholder="Enter your message" value="Hello from the test page!">
+            </div>
+            
+            <button class="button" onclick="sendTestMessage()">Send Message</button>
+            <button class="button secondary" onclick="clearNotifications()">Clear Log</button>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Verify Reception</h3>
+            <p>Check that Tab B console shows the received message.</p>
+        </div>
+
+        <h2>📡 Real-time Notifications</h2>
+        <div id="notifications">Waiting for notifications...</div>
+
+        <h2>🛠 Debugging Tools</h2>
+        <button class="button" onclick="checkCurrentUser()">Check Current User</button>
+        <button class="button" onclick="testPing()">Test Ping</button>
+        <button class="button" onclick="showSocketInfo()">Show Socket Info</button>
+        <button class="button secondary" onclick="generateNewUserId()">Generate New User ID</button>
+        
+        <h2>📊 Connection Info</h2>
+        <div class="code" id="connectionInfo">Loading connection information...</div>
+    </div>
+
+    <!-- Socket.IO Client -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/socket-client.js"></script>
+    <script src="/js/enhanced-socket-client.js"></script>
+
+    <script>
+        let notificationLog = [];
+
+        // Wait for socket to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Task 4.2 test page loaded');
+            
+            // Wait for socket initialization
+            setTimeout(() => {
+                updateUI();
+                setupSocketListeners();
+            }, 1000);
+        });
+
+        function updateUI() {
+            // Update current user ID display
+            const userId = localStorage.getItem('userId');
+            document.getElementById('currentUserId').textContent = userId || 'Not set';
+            
+            // Update connection status
+            if (window.socket && window.socket.connected) {
+                document.getElementById('connectionStatus').textContent = 'Connected ✅';
+                document.getElementById('connectionStatus').style.color = '#10b981';
+            } else {
+                document.getElementById('connectionStatus').textContent = 'Disconnected ❌';
+                document.getElementById('connectionStatus').style.color = '#ef4444';
+            }
+            
+            updateConnectionInfo();
+        }
+
+        function setupSocketListeners() {
+            if (window.socket) {
+                // Listen for notify events
+                window.socket.on('notify', (payload) => {
+                    const timestamp = new Date().toLocaleTimeString();
+                    const message = `[${timestamp}] 🔔 Received notify: ${JSON.stringify(payload)}`;
+                    
+                    notificationLog.push(message);
+                    updateNotificationDisplay();
+                    
+                    console.log('🔔 Notify received:', payload);
+                });
+
+                // Listen for join confirmations
+                window.socket.on('joined', (data) => {
+                    const timestamp = new Date().toLocaleTimeString();
+                    const message = `[${timestamp}] 🚀 Joined room: ${data.room}`;
+                    
+                    notificationLog.push(message);
+                    updateNotificationDisplay();
+                    
+                    console.log('🚀 Joined room:', data);
+                });
+
+                // Listen for connection events
+                window.socket.on('connect', () => {
+                    updateUI();
+                    const timestamp = new Date().toLocaleTimeString();
+                    const message = `[${timestamp}] 🔌 Socket connected`;
+                    notificationLog.push(message);
+                    updateNotificationDisplay();
+                });
+
+                window.socket.on('disconnect', () => {
+                    updateUI();
+                    const timestamp = new Date().toLocaleTimeString();
+                    const message = `[${timestamp}] 🔴 Socket disconnected`;
+                    notificationLog.push(message);
+                    updateNotificationDisplay();
+                });
+
+                console.log('✅ Socket listeners set up');
+            } else {
+                console.log('⚠️ Socket not available yet, retrying...');
+                setTimeout(setupSocketListeners, 1000);
+            }
+        }
+
+        function updateNotificationDisplay() {
+            const container = document.getElementById('notifications');
+            if (notificationLog.length === 0) {
+                container.textContent = 'Waiting for notifications...';
+            } else {
+                container.textContent = notificationLog.slice(-10).join('\n'); // Show last 10 messages
+            }
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendTestMessage() {
+            const targetUser = document.getElementById('targetUser').value.trim();
+            const messageText = document.getElementById('messageText').value.trim();
+            
+            if (!targetUser || !messageText) {
+                alert('Please enter both target user and message');
+                return;
+            }
+            
+            if (window.socket && window.socket.connected) {
+                const targetRoom = targetUser.startsWith('user:') ? targetUser : `user:${targetUser}`;
+                window.socket.emit('server:notify', {
+                    to: targetRoom,
+                    msg: messageText
+                });
+                
+                const timestamp = new Date().toLocaleTimeString();
+                const message = `[${timestamp}] 📤 Sent to ${targetRoom}: ${messageText}`;
+                notificationLog.push(message);
+                updateNotificationDisplay();
+                
+                console.log(`📤 Sent message to ${targetRoom}:`, messageText);
+            } else {
+                alert('Socket not connected. Please wait or refresh the page.');
+            }
+        }
+
+        function clearNotifications() {
+            notificationLog = [];
+            updateNotificationDisplay();
+        }
+
+        function checkCurrentUser() {
+            const userId = localStorage.getItem('userId');
+            const message = `Current User ID: ${userId || 'Not set'}`;
+            alert(message);
+            console.log(message);
+        }
+
+        function testPing() {
+            if (window.socket && window.socket.connected) {
+                window.socket.emit('ping', { timestamp: Date.now() });
+                console.log('🏓 Ping sent');
+                
+                const timestamp = new Date().toLocaleTimeString();
+                const message = `[${timestamp}] 🏓 Ping sent`;
+                notificationLog.push(message);
+                updateNotificationDisplay();
+            } else {
+                alert('Socket not connected');
+            }
+        }
+
+        function showSocketInfo() {
+            if (window.socket) {
+                const info = {
+                    connected: window.socket.connected,
+                    id: window.socket.id,
+                    userId: localStorage.getItem('userId')
+                };
+                console.log('Socket Info:', info);
+                alert(`Socket Info:\nConnected: ${info.connected}\nSocket ID: ${info.id}\nUser ID: ${info.userId}`);
+            } else {
+                alert('Socket not available');
+            }
+        }
+
+        function generateNewUserId() {
+            const newUserId = 'temp_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('userId', newUserId);
+            alert(`Generated new User ID: ${newUserId}\n\nPage will reload to apply changes.`);
+            location.reload();
+        }
+
+        function updateConnectionInfo() {
+            const info = document.getElementById('connectionInfo');
+            const userId = localStorage.getItem('userId');
+            const socketStatus = window.socket ? (window.socket.connected ? 'Connected' : 'Disconnected') : 'Not initialized';
+            const socketId = window.socket ? window.socket.id : 'N/A';
+            
+            info.textContent = `User ID: ${userId || 'Not set'}
+Socket Status: ${socketStatus}
+Socket ID: ${socketId}
+Room: user:${userId || 'unknown'}`;
+        }
+
+        // Update UI periodically
+        setInterval(updateUI, 2000);
+    </script>
+</body>
+</html>

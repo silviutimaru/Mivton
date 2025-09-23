@@ -1,0 +1,53 @@
+<!-- Add this to your dashboard.html in the <head> section after the existing CSS links -->
+<link rel="stylesheet" href="/css/enhanced-presence.css">
+
+<!-- Add this new dashboard card in the overview section - insert this after the "Language Preferences" card -->
+<div class="dashboard-card presence-card">
+    <div class="card-header">
+        <h3>Your Presence</h3>
+        <div class="card-icon">👁️</div>
+    </div>
+    <div class="presence-container">
+        <!-- Enhanced Presence Control Component -->
+        <div data-component="enhanced-presence"></div>
+    </div>
+</div>
+
+<!-- Add this before the closing </body> tag after the other script tags -->
+<script src="/js/enhanced-presence-control.js"></script>
+
+<!-- Also add this CSS to make it fit nicely in the dashboard -->
+<style>
+.presence-card {
+    grid-column: span 2; /* Takes up 2 columns in the grid */
+}
+
+.presence-container {
+    padding: 0; /* Remove extra padding since the component has its own */
+}
+
+/* Compact the component for dashboard use */
+.dashboard-card .enhanced-presence-control {
+    box-shadow: none;
+    border-radius: 0;
+    margin: 0;
+}
+
+.dashboard-card .presence-header {
+    display: none; /* Hide the header since the card already has one */
+}
+
+.dashboard-card .quick-actions-panel {
+    margin: 0.5rem 0; /* Reduce margins for dashboard */
+}
+
+.dashboard-card .friends-presence-section {
+    margin: 0.5rem 0;
+}
+
+/* Make it more compact */
+.dashboard-card .current-status-card.enhanced {
+    margin: 0.5rem 0;
+    padding: 1rem;
+}
+</style>

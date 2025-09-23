@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mivton Admin Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Mivton Server Status Test</h1>
+    
+    <div class="test-section">
+        <h2>📊 Server Status</h2>
+        <div id="server-status">Testing...</div>
+        <button onclick="testServer()">Test Server</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>👑 Admin Login Test</h2>
+        <div id="admin-status">Not tested yet</div>
+        <button onclick="testAdminLogin()">Test Admin Login</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎨 Text Contrast Test</h2>
+        <div style="background: white; padding: 20px; border-radius: 8px; color: #333;">
+            <h3>Silviu Timaru</h3>
+            <p>@SilviuT</p>
+            <div style="color: #1f2937; font-weight: 600; font-size: 1.1rem;">48</div>
+            <div style="color: #374151; font-weight: 500; font-size: 0.75rem; text-transform: uppercase;">FRIENDS</div>
+            <div style="color: #1f2937; font-weight: 600; font-size: 1.1rem;">Jul 2025</div>
+            <div style="color: #374151; font-weight: 500; font-size: 0.75rem; text-transform: uppercase;">JOINED</div>
+        </div>
+        <p class="success">✅ Text contrast should be clearly readable above</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔗 Quick Links</h2>
+        <p><a href="https://www.mivton.com/login.html" style="color: #4CAF50;">🔐 Login Page</a></p>
+        <p><a href="https://www.mivton.com/dashboard.html" style="color: #4CAF50;">📊 Dashboard</a></p>
+        <p><a href="https://www.mivton.com/admin-test.html" style="color: #4CAF50;">🧪 Admin Test</a></p>
+    </div>
+
+    <script>
+        function testServer() {
+            const statusDiv = document.getElementById('server-status');
+            statusDiv.innerHTML = 'Testing server...';
+            
+            fetch('https://www.mivton.com/api/auth/me')
+            .then(response => {
+                if (response.status === 401) {
+                    statusDiv.innerHTML = '<span class="success">✅ Server is working (401 = Not authenticated, which is correct)</span>';
+                } else {
+                    statusDiv.innerHTML = `<span class="warning">⚠️ Server responded with status: ${response.status}</span>`;
+                }
+            })
+            .catch(error => {
+                statusDiv.innerHTML = `<span class="error">❌ Server error: ${error.message}</span>`;
+            });
+        }
+        
+        function testAdminLogin() {
+            const statusDiv = document.getElementById('admin-status');
+            statusDiv.innerHTML = 'Testing admin login...';
+            
+            // Test login with admin credentials
+            fetch('https://www.mivton.com/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: 'admin@mivton.com',
+                    password: 'AdminPass123!'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusDiv.innerHTML = '<span class="success">✅ Admin login successful!</span>';
+                } else {
+                    statusDiv.innerHTML = `<span class="error">❌ Admin login failed: ${data.error}</span>`;
+                }
+            })
+            .catch(error => {
+                statusDiv.innerHTML = `<span class="error">❌ Login error: ${error.message}</span>`;
+            });
+        }
+        
+        // Auto-test server on load
+        window.onload = function() {
+            testServer();
+        };
+    </script>
+</body>
+</html>

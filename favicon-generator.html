@@ -1,0 +1,58 @@
+<!-- Simple HTML favicon for Mivton -->
+<html>
+<head>
+    <title>Mivton Favicon Generator</title>
+    <style>
+        canvas { border: 1px solid #ccc; }
+        .info { font-family: Arial; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h3>Mivton Favicon Generator</h3>
+        <p>This will generate a simple favicon for Mivton</p>
+    </div>
+    <canvas id="favicon" width="32" height="32"></canvas>
+    
+    <script>
+        const canvas = document.getElementById('favicon');
+        const ctx = canvas.getContext('2d');
+        
+        // Create gradient background
+        const gradient = ctx.createLinearGradient(0, 0, 32, 32);
+        gradient.addColorStop(0, '#007bff');
+        gradient.addColorStop(1, '#0056b3');
+        
+        // Draw circle background
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(16, 16, 14, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Add white border
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Add 'M' letter
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('M', 16, 16);
+        
+        // Convert to data URL and create download link
+        const dataURL = canvas.toDataURL('image/png');
+        console.log('Favicon generated:', dataURL);
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.download = 'favicon.ico';
+        link.href = dataURL;
+        link.textContent = 'Download Favicon';
+        link.style.display = 'block';
+        link.style.margin = '20px 0';
+        document.body.appendChild(link);
+    </script>
+</body>
+</html>

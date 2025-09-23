@@ -1,0 +1,16 @@
+<!-- 
+🚀 OPTIONAL: Add this single line to your dashboard.html to show the presence widget
+Add anywhere in the <body> section, preferably before the closing </body> tag
+-->
+
+<script src="/js/presence-widget.js"></script>
+
+<!-- 
+That's it! The widget will automatically appear in the top-right corner.
+If you want it in a specific location instead, first add a container:
+
+<div id="presence-widget-container"></div>
+<script src="/js/presence-widget.js"></script>
+
+The widget will appear in the container instead of floating.
+-->

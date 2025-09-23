@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mivton Admin Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .stat-value {
+            color: #1f2937;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .stat-label {
+            color: #374151;
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+        .user-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 10px 0;
+            color: #333;
+        }
+        .admin-badge {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Mivton Admin & Contrast Test</h1>
+    
+    <div class="test-section">
+        <h2>📊 Text Contrast Test</h2>
+        <p>This tests the improved text contrast for user cards:</p>
+        
+        <div class="user-card">
+            <h3>Silviu Timaru</h3>
+            <p>@SilviuT</p>
+            <div class="stat-value">37</div>
+            <div class="stat-label">FRIENDS</div>
+            <div class="stat-value">Jul 2025</div>
+            <div class="stat-label">JOINED</div>
+        </div>
+        
+        <div class="user-card">
+            <h3>Silviu Irinel Timaru</h3>
+            <p>@IrinelT</p>
+            <div class="stat-value">14</div>
+            <div class="stat-label">FRIENDS</div>
+            <div class="stat-value">Jul 2025</div>
+            <div class="stat-label">JOINED</div>
+        </div>
+        
+        <p><strong>✅ The numbers and labels above should now be clearly readable!</strong></p>
+    </div>
+    
+    <div class="test-section">
+        <h2>👑 Admin Dashboard Test</h2>
+        <p>This tests if admin features are working:</p>
+        
+        <div id="admin-status">Checking admin status...</div>
+        <div id="admin-badge-container"></div>
+        
+        <script>
+            // Test admin status
+            fetch('/api/auth/me', {
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                const user = data.user || data;
+                const statusDiv = document.getElementById('admin-status');
+                const badgeContainer = document.getElementById('admin-badge-container');
+                
+                if (user.is_admin) {
+                    statusDiv.innerHTML = '✅ <strong>Admin Status: CONFIRMED</strong><br>Username: ' + user.username + '<br>Admin Level: ' + (user.admin_level || 1);
+                    badgeContainer.innerHTML = '<div class="admin-badge">👑 Admin</div>';
+                } else {
+                    statusDiv.innerHTML = '❌ <strong>Not Admin</strong><br>Username: ' + user.username;
+                }
+            })
+            .catch(error => {
+                document.getElementById('admin-status').innerHTML = '❌ Error checking admin status: ' + error.message;
+            });
+        </script>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔍 Debug Information</h2>
+        <p>Check the browser console (F12) for detailed debug information about:</p>
+        <ul>
+            <li>Admin dashboard initialization</li>
+            <li>User authentication status</li>
+            <li>CSS changes applied</li>
+            <li>Any errors or issues</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎯 Next Steps</h2>
+        <p>1. <strong>Refresh your main dashboard page</strong> (https://www.mivton.com/dashboard.html)</p>
+        <p>2. <strong>Check browser console</strong> for debug messages</p>
+        <p>3. <strong>Look for admin features</strong> in the sidebar and dashboard</p>
+        <p>4. <strong>Test user search</strong> to see improved text contrast</p>
+    </div>
+</body>
+</html>

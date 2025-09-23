@@ -1,0 +1,295 @@
+/**
+ * ==============================================
+ * MIVTON - USER SEARCH API ROUTES
+ * Phase 2.3 - User Interface Polish
+ * API endpoints for user search functionality
+ * ==============================================
+ */
+
+const express = require('express');
+const { query } = require('../database/connection');
+const router = express.Router();
+
+/**
+ * GET /api/users/search
+ * Live user search with filters and pagination
+ */
+router.get('/search', async (req, res) => {
+    try {
+        const { q, limit = 20, page = 1, language, status, userType } = req.query;
+        
+        // Validate search query
+        if (!q || q.trim().length < 2) {
+            return res.status(400).json({
+                success: false,
+                error: 'Search query must be at least 2 characters long'
+            });
+        }
+        
+        const searchQuery = q.trim();
+        const pageSize = Math.min(parseInt(limit), 50); // Max 50 results
+        const offset = (parseInt(page) - 1) * pageSize;
+        
+        // Build WHERE conditions
+        let whereConditions = [
+            '(u.full_name ILIKE $1 OR u.username ILIKE $1 OR u.email ILIKE $1)'
+        ];
+        let queryParams = [`%${searchQuery}%`];
+        let paramCounter = 2;
+        
+        // Add language filter
+        if (language) {
+            whereConditions.push(`u.native_language = ${paramCounter}`);
+            queryParams.push(language);
+            paramCounter++;
+        }
+        
+        // Add user type filter
+        if (userType) {
+            switch (userType) {
+                case 'verified':
+                    whereConditions.push('u.is_verified = true');
+                    break;
+                case 'new':
+                    whereConditions.push(`u.created_at >= NOW() - INTERVAL '30 days'`);
+                    break;
+            }
+        }
+        
+        // Build main query (simplified for existing schema)
+        const mainQuery = `
+            SELECT 
+                u.id,
+                u.username,
+                u.full_name,
+                u.email,
+                u.native_language,
+                u.is_verified,
+                u.is_admin,
+                u.created_at,
+                -- Mock status and counts for demo
+                'online' as status,
+                NOW() as last_seen,
+                NULL as status_message,
+                false as is_friend,
+                false as friend_request_sent,
+                42 as friend_count
+            FROM users u
+            WHERE ${whereConditions.join(' AND ')}
+            ORDER BY 
+                u.is_verified DESC,
+                CASE 
+                    WHEN u.username ILIKE $1 THEN 1
+                    WHEN u.full_name ILIKE $1 THEN 2
+                    ELSE 3
+                END,
+                u.created_at DESC
+            LIMIT ${paramCounter} OFFSET ${paramCounter + 1}
+        `;
+        
+        queryParams.push(pageSize, offset);
+        
+        // Execute search query
+        const searchResult = await query(mainQuery, queryParams);
+        
+        // Get total count for pagination
+        const countQuery = `
+            SELECT COUNT(*) as total
+            FROM users u
+            WHERE ${whereConditions.join(' AND ')}
+        `;
+        const countParams = queryParams.slice(0, paramCounter - 1);
+        const countResult = await query(countQuery, countParams);
+        const totalCount = parseInt(countResult.rows[0].total);
+        
+        // Process results
+        const users = searchResult.rows.map(user => ({
+            id: user.id,
+            username: user.username,
+            full_name: user.full_name,
+            native_language: user.native_language,
+            is_verified: user.is_verified,
+            is_admin: user.is_admin,
+            status: user.status || 'offline',
+            last_seen: user.last_seen,
+            status_message: user.status_message,
+            is_friend: user.is_friend,
+            friend_request_sent: user.friend_request_sent,
+            friend_count: parseInt(user.friend_count) || 0,
+            created_at: user.created_at,
+            member_since: user.created_at
+        }));
+        
+        res.json({
+            success: true,
+            users,
+            pagination: {
+                page: parseInt(page),
+                limit: pageSize,
+                total: totalCount,
+                totalPages: Math.ceil(totalCount / pageSize),
+                hasMore: offset + pageSize < totalCount
+            },
+            search: {
+                query: searchQuery,
+                filters: { language, status, userType }
+            }
+        });
+        
+    } catch (error) {
+        console.error('User search error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Search temporarily unavailable'
+        });
+    }
+});
+
+/**
+ * GET /api/users/profiles
+ * Get user profiles for profile cards display
+ */
+router.get('/profiles', async (req, res) => {
+    try {
+        const { limit = 20, sort = 'recent', filter } = req.query;
+        const pageSize = Math.min(parseInt(limit), 50);
+        
+        // Build ORDER BY clause
+        let orderBy = '';
+        switch (sort) {
+            case 'name':
+                orderBy = 'COALESCE(u.full_name, u.username) ASC';
+                break;
+            case 'joined':
+                orderBy = 'u.created_at DESC';
+                break;
+            case 'recent':
+            default:
+                orderBy = 'u.created_at DESC';
+                break;
+        }
+        
+        const profileQuery = `
+            SELECT 
+                u.id,
+                u.username,
+                u.full_name,
+                u.native_language,
+                u.is_verified,
+                u.is_admin,
+                u.created_at,
+                -- Mock status data
+                'online' as status,
+                NOW() as last_seen,
+                NULL as status_message,
+                false as is_friend,
+                false as friend_request_sent,
+                (SELECT COUNT(*) FROM users) % 100 as friend_count
+            FROM users u
+            ORDER BY ${orderBy}
+            LIMIT $1
+        `;
+        
+        const result = await query(profileQuery, [pageSize]);
+        
+        const users = result.rows.map(user => ({
+            id: user.id,
+            username: user.username,
+            full_name: user.full_name,
+            native_language: user.native_language,
+            is_verified: user.is_verified,
+            is_admin: user.is_admin,
+            status: user.status || 'offline',
+            last_seen: user.last_seen,
+            status_message: user.status_message,
+            is_friend: user.is_friend,
+            friend_request_sent: user.friend_request_sent,
+            friend_count: parseInt(user.friend_count) || 0,
+            created_at: user.created_at
+        }));
+        
+        res.json({
+            success: true,
+            users
+        });
+        
+    } catch (error) {
+        console.error('Get profiles error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to load user profiles'
+        });
+    }
+});
+
+/**
+ * GET /api/users/:id/profile
+ * Get detailed profile information for a specific user
+ */
+router.get('/:id/profile', async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        
+        if (!userId || isNaN(userId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid user ID'
+            });
+        }
+        
+        const profileQuery = `
+            SELECT 
+                u.id,
+                u.username,
+                u.full_name,
+                u.email,
+                u.native_language,
+                u.gender,
+                u.is_verified,
+                u.is_admin,
+                u.created_at
+            FROM users u
+            WHERE u.id = $1
+        `;
+        
+        const result = await query(profileQuery, [userId]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+        
+        const user = result.rows[0];
+        
+        const profileData = {
+            id: user.id,
+            username: user.username,
+            full_name: user.full_name,
+            is_verified: user.is_verified,
+            is_admin: user.is_admin,
+            created_at: user.created_at,
+            native_language: user.native_language,
+            status: 'online', // Mock status
+            last_seen: new Date(),
+            is_friend: false,
+            friend_request_sent: false,
+            friend_count: 42
+        };
+        
+        res.json({
+            success: true,
+            user: profileData
+        });
+        
+    } catch (error) {
+        console.error('Get user profile error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to load user profile'
+        });
+    }
+});
+
+module.exports = router;

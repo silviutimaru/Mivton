@@ -1,0 +1,700 @@
+/**
+ * ==============================================
+ * MIVTON - STATUS INDICATORS STYLES
+ * Phase 2.3 - User Interface Polish
+ * User status and presence indicators
+ * ==============================================
+ */
+
+/* ====================== STATUS INDICATORS ====================== */
+
+/* Base Status Indicator */
+.status-indicator {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--surface-dark);
+    transition: all var(--transition-smooth);
+}
+
+.status-indicator.large {
+    width: 16px;
+    height: 16px;
+    border-width: 3px;
+}
+
+.status-indicator.small {
+    width: 8px;
+    height: 8px;
+    border-width: 1px;
+}
+
+/* Status Colors */
+.status-indicator.online {
+    background: var(--status-online, #10b981);
+    box-shadow: 0 0 0 0 var(--status-online, #10b981);
+}
+
+.status-indicator.away {
+    background: var(--status-away, #f59e0b);
+    box-shadow: 0 0 0 0 var(--status-away, #f59e0b);
+}
+
+.status-indicator.busy {
+    background: var(--status-busy, #ef4444);
+    box-shadow: 0 0 0 0 var(--status-busy, #ef4444);
+}
+
+.status-indicator.offline {
+    background: var(--status-offline, #64748b);
+    box-shadow: none;
+}
+
+/* Animated Pulse Effect */
+.status-indicator.online.pulse {
+    animation: statusPulse 2s infinite;
+}
+
+.status-indicator.away.pulse {
+    animation: statusPulseAway 3s infinite;
+}
+
+.status-indicator.busy.pulse {
+    animation: statusPulseBusy 1.5s infinite;
+}
+
+/* Status Text Components */
+.status-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.status-text.online {
+    color: var(--status-online);
+}
+
+.status-text.away {
+    color: var(--status-away);
+}
+
+.status-text.busy {
+    color: var(--status-busy);
+}
+
+.status-text.offline {
+    color: var(--status-offline);
+}
+
+/* ====================== USER STATUS CARD ====================== */
+
+.user-status-card {
+    background: var(--surface-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition-smooth);
+}
+
+.user-status-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--gradient-primary);
+    opacity: 0;
+    transition: opacity var(--transition-smooth);
+}
+
+.user-status-card.online::before {
+    background: var(--status-online);
+    opacity: 1;
+}
+
+.user-status-card.away::before {
+    background: var(--status-away);
+    opacity: 1;
+}
+
+.user-status-card.busy::before {
+    background: var(--status-busy);
+    opacity: 1;
+}
+
+.user-status-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.user-status-avatar {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.user-status-avatar .status-indicator {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    border-color: var(--surface-dark);
+}
+
+.user-status-info {
+    flex: 1;
+}
+
+.user-status-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.user-status-time {
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.user-status-message {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--surface-light);
+    border-radius: 8px;
+    border-left: 3px solid var(--primary);
+}
+
+.user-status-message.empty {
+    display: none;
+}
+
+/* ====================== STATUS SELECTOR ====================== */
+
+.status-selector {
+    background: var(--surface-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 20px;
+    width: 280px;
+    box-shadow: 0 10px 40px var(--shadow-dark);
+}
+
+.status-selector-header {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all var(--transition-smooth);
+    margin-bottom: 8px;
+    border: 1px solid transparent;
+}
+
+.status-option:hover {
+    background: var(--surface-light);
+    border-color: var(--border-light);
+}
+
+.status-option.selected {
+    background: var(--primary-alpha);
+    border-color: var(--primary);
+}
+
+.status-option-indicator {
+    flex-shrink: 0;
+}
+
+.status-option-info {
+    flex: 1;
+}
+
+.status-option-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.status-option-description {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* Custom Status Message Input */
+.custom-status-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+}
+
+.custom-status-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.custom-status-input {
+    width: 100%;
+    background: var(--surface-dark);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all var(--transition-smooth);
+}
+
+.custom-status-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-alpha);
+}
+
+.custom-status-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.status-selector-actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+}
+
+.status-action-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-smooth);
+}
+
+.status-action-btn.primary {
+    background: var(--primary);
+    color: white;
+}
+
+.status-action-btn.primary:hover {
+    background: var(--primary-dark);
+}
+
+.status-action-btn.secondary {
+    background: var(--surface-light);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+}
+
+.status-action-btn.secondary:hover {
+    background: var(--surface-dark);
+}
+
+/* ====================== ONLINE USERS LIST ====================== */
+
+.online-users-container {
+    background: var(--surface-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.online-users-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.online-users-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.online-users-count {
+    background: var(--success-alpha);
+    color: var(--success);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.online-users-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.online-user-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all var(--transition-smooth);
+    cursor: pointer;
+}
+
+.online-user-item:hover {
+    background: var(--surface-light);
+}
+
+.online-user-avatar {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.online-user-avatar .status-indicator {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    border-color: var(--surface-dark);
+    width: 10px;
+    height: 10px;
+}
+
+.online-user-info {
+    flex: 1;
+}
+
+.online-user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.online-user-activity {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.online-user-time {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-align: right;
+}
+
+/* ====================== STATUS HISTORY ====================== */
+
+.status-history {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+}
+
+.status-history-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.status-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.status-history-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: var(--surface-light);
+    font-size: 12px;
+}
+
+.status-history-indicator {
+    flex-shrink: 0;
+}
+
+.status-history-text {
+    flex: 1;
+    color: var(--text-secondary);
+}
+
+.status-history-time {
+    color: var(--text-tertiary);
+}
+
+/* ====================== RESPONSIVE DESIGN ====================== */
+
+@media (max-width: 768px) {
+    .status-selector {
+        width: 100%;
+        max-width: 320px;
+    }
+    
+    .user-status-card {
+        padding: 12px;
+    }
+    
+    .user-status-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    .online-users-container {
+        padding: 16px;
+    }
+    
+    .online-user-item {
+        padding: 6px;
+    }
+    
+    .online-user-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .status-text {
+        font-size: 12px;
+    }
+    
+    .status-option {
+        padding: 10px;
+    }
+    
+    .status-option-title {
+        font-size: 13px;
+    }
+    
+    .status-option-description {
+        font-size: 11px;
+    }
+    
+    .custom-status-input {
+        padding: 8px 10px;
+        font-size: 14px; /* Prevent zoom on iOS */
+    }
+}
+
+/* ====================== ANIMATIONS ====================== */
+
+@keyframes statusPulse {
+    0% {
+        box-shadow: 0 0 0 0 var(--status-online);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+@keyframes statusPulseAway {
+    0% {
+        box-shadow: 0 0 0 0 var(--status-away);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    }
+}
+
+@keyframes statusPulseBusy {
+    0% {
+        box-shadow: 0 0 0 0 var(--status-busy);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
+@keyframes fadeInSlide {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.online-user-item {
+    animation: fadeInSlide 0.3s var(--ease-smooth);
+}
+
+.online-user-item:nth-child(even) {
+    animation-delay: 0.1s;
+}
+
+.online-user-item:nth-child(odd) {
+    animation-delay: 0.2s;
+}
+
+/* ====================== ACCESSIBILITY ====================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .status-indicator.pulse,
+    .online-user-item {
+        animation: none !important;
+    }
+    
+    .status-option,
+    .online-user-item,
+    .status-action-btn {
+        transition: none !important;
+    }
+}
+
+/* Focus styles for keyboard navigation */
+.status-option:focus,
+.online-user-item:focus,
+.custom-status-input:focus,
+.status-action-btn:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .status-indicator {
+        border-width: 2px;
+        border-color: var(--text-primary) !important;
+    }
+    
+    .status-option,
+    .online-user-item {
+        border-width: 1px;
+    }
+}
+
+/* ====================== STATUS TOOLTIPS ====================== */
+
+.status-tooltip {
+    position: absolute;
+    background: var(--surface-dark);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px var(--shadow-dark);
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-smooth);
+}
+
+.status-tooltip.show {
+    opacity: 1;
+}
+
+.status-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: var(--surface-dark);
+}
+
+/* ====================== PRESENCE INDICATORS ====================== */
+
+.presence-indicator {
+    position: relative;
+    display: inline-block;
+}
+
+.presence-indicator .status-indicator {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    border: 2px solid var(--surface-dark);
+}
+
+.presence-indicator.avatar-large .status-indicator {
+    width: 16px;
+    height: 16px;
+    bottom: 2px;
+    right: 2px;
+}
+
+.presence-indicator.avatar-medium .status-indicator {
+    width: 12px;
+    height: 12px;
+    bottom: 1px;
+    right: 1px;
+}
+
+.presence-indicator.avatar-small .status-indicator {
+    width: 8px;
+    height: 8px;
+    bottom: 0;
+    right: 0;
+    border-width: 1px;
+}

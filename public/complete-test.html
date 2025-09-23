@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mivton Complete Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        .user-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 10px 0;
+            color: #333;
+        }
+        .stat-value {
+            color: #1f2937;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .stat-label {
+            color: #374151;
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Mivton Complete Fix Test</h1>
+    
+    <div class="test-section">
+        <h2>📊 Server Status</h2>
+        <div id="server-status">Testing...</div>
+        <button onclick="testServer()">Test Server</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>👑 Admin Login Test</h2>
+        <div id="admin-status">Not tested yet</div>
+        <button onclick="testAdminLogin()">Test Admin Login</button>
+        <button onclick="forceLogout()">Force Logout</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎨 Text Contrast Test</h2>
+        <div class="user-card">
+            <h3>Silviu Timaru</h3>
+            <p>@SilviuT</p>
+            <div class="stat-value">48</div>
+            <div class="stat-label">FRIENDS</div>
+            <div class="stat-value">Jul 2025</div>
+            <div class="stat-label">JOINED</div>
+        </div>
+        <p class="success">✅ Text contrast should be clearly readable above</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔗 Quick Actions</h2>
+        <button onclick="window.open('https://www.mivton.com/login.html', '_blank')">🔐 Open Login</button>
+        <button onclick="window.open('https://www.mivton.com/dashboard.html', '_blank')">📊 Open Dashboard</button>
+        <button onclick="window.open('https://www.mivton.com/server-test.html', '_blank')">🧪 Open Server Test</button>
+    </div>
+
+    <script>
+        function testServer() {
+            const statusDiv = document.getElementById('server-status');
+            statusDiv.innerHTML = 'Testing server...';
+            
+            fetch('https://www.mivton.com/api/auth/me')
+            .then(response => {
+                if (response.status === 401) {
+                    statusDiv.innerHTML = '<span class="success">✅ Server is working (401 = Not authenticated, which is correct)</span>';
+                } else {
+                    statusDiv.innerHTML = `<span class="warning">⚠️ Server responded with status: ${response.status}</span>`;
+                }
+            })
+            .catch(error => {
+                statusDiv.innerHTML = `<span class="error">❌ Server error: ${error.message}</span>`;
+            });
+        }
+        
+        function testAdminLogin() {
+            const statusDiv = document.getElementById('admin-status');
+            statusDiv.innerHTML = 'Testing admin login...';
+            
+            fetch('https://www.mivton.com/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: 'admin@mivton.com',
+                    password: 'AdminPass123!'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.user.is_admin) {
+                    statusDiv.innerHTML = '<span class="success">✅ Admin login successful! is_admin: true, admin_level: ' + data.user.admin_level + '</span>';
+                } else if (data.success) {
+                    statusDiv.innerHTML = '<span class="warning">⚠️ Login successful but not admin: is_admin: ' + data.user.is_admin + '</span>';
+                } else {
+                    statusDiv.innerHTML = `<span class="error">❌ Admin login failed: ${data.error}</span>`;
+                }
+            })
+            .catch(error => {
+                statusDiv.innerHTML = `<span class="error">❌ Login error: ${error.message}</span>`;
+            });
+        }
+        
+        function forceLogout() {
+            fetch('https://www.mivton.com/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Logout successful! Please login again to get admin features.');
+                window.open('https://www.mivton.com/login.html', '_blank');
+            })
+            .catch(error => {
+                alert('Logout error: ' + error.message);
+            });
+        }
+        
+        // Auto-test server on load
+        window.onload = function() {
+            testServer();
+        };
+    </script>
+</body>
+</html>
+

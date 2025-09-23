@@ -1,0 +1,174 @@
+const express = require('express');
+const path = require('path');
+const session = require('express-session');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
+
+const app = express();
+
+// Security middleware
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+            fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'"]
+        }
+    }
+}));
+
+// Compression middleware
+app.use(compression());
+
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: process.env.RATE_LIMIT_MAX || 100,
+    message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Session configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'mivton-phase-2-3-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Static files
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
+// Health check endpoint for Railway
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        version: '2.3.0',
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
+
+// Demo page route
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'demo-phase-2-3.html'));
+});
+
+app.get('/demo-phase-2-3.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'demo-phase-2-3.html'));
+});
+
+// API Routes (Phase 2.3)
+if (process.env.NODE_ENV !== 'demo') {
+    try {
+        const usersSearchRoutes = require('./routes/users-search');
+        const userPreferencesRoutes = require('./routes/user-preferences');
+        
+        app.use('/api/users', usersSearchRoutes);
+        app.use('/api/user', userPreferencesRoutes);
+    } catch (error) {
+        console.warn('API routes not available in demo mode:', error.message);
+    }
+}
+
+// Mock API routes for demo
+app.get('/api/users/search', (req, res) => {
+    const mockUsers = [
+        {
+            id: 1,
+            username: 'john_doe',
+            full_name: 'John Doe',
+            native_language: 'en',
+            is_verified: true,
+            status: 'online',
+            friend_count: 42
+        },
+        {
+            id: 2,
+            username: 'maria_garcia',
+            full_name: 'Maria Garcia',
+            native_language: 'es',
+            is_verified: false,
+            status: 'away',
+            friend_count: 28
+        }
+    ];
+    
+    res.json({
+        success: true,
+        users: mockUsers,
+        pagination: { page: 1, total: 2, hasMore: false }
+    });
+});
+
+app.get('/api/user/preferences', (req, res) => {
+    res.json({
+        success: true,
+        preferences: {
+            theme: 'dark',
+            language: 'en',
+            notifications: true
+        }
+    });
+});
+
+app.put('/api/user/preferences', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Preferences updated successfully'
+    });
+});
+
+app.put('/api/user/status', (req, res) => {
+    res.json({
+        success: true,
+        status: req.body
+    });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(500).json({
+        success: false,
+        error: process.env.NODE_ENV === 'production' 
+            ? 'Internal server error' 
+            : err.message
+    });
+});
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        error: 'Route not found'
+    });
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`🚂 Mivton Phase 2.3 server running on port ${PORT}`);
+    console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📊 Demo available at: http://localhost:${PORT}/demo-phase-2-3.html`);
+    
+    if (process.env.RAILWAY_ENVIRONMENT) {
+        console.log(`🎯 Railway deployment detected`);
+        console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+    }
+});
+
+module.exports = app;
