@@ -214,7 +214,7 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                             </div>
                             
                             <div class="friend-actions-list">
-                                <button class="action-btn chat" data-action="chat">
+                                <button class="action-btn chat" data-action="chat" onclick="startDirectChat(this.closest('[data-friend-id]').dataset.friendId, this.closest('[data-friend-id]').querySelector('.friend-name').textContent.trim())">
                                     <i class="fas fa-comments"></i>
                                     Start Chat
                                 </button>
@@ -436,7 +436,7 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                 </div>
                 
                 <div class="friend-actions">
-                    <button class="btn btn-sm btn-primary chat-button" data-friend-id="${friend.id}" onclick="startChat(${friend.id}, '${friend.full_name.replace(/'/g, "\\'")}')" title="Start Chat">
+                    <button class="btn btn-sm btn-primary chat-button" data-friend-id="${friend.id}" onclick="startDirectChat(${friend.id}, '${friend.full_name.replace(/'/g, "\\'")}')" title="Start Chat">
                         <i class="fas fa-comments"></i>
                         <span>Chat</span>
                     </button>

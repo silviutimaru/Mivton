@@ -902,6 +902,34 @@
                 alert(`Error starting chat with ${friendName}. Please try again.`);
             }
         }
+
+        // Direct chat function (bypasses friend actions modal)
+        function startDirectChat(friendId, friendName) {
+            try {
+                console.log(`🚀 Starting DIRECT chat with ${friendName} (${friendId})`);
+                
+                // Close any open modals first
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => {
+                    modal.style.display = 'none';
+                });
+                
+                // Try complete chat system first
+                if (window.completeChatSystem && window.completeChatSystem.isInitialized) {
+                    console.log('✅ Using Complete Chat System (Direct)');
+                    window.completeChatSystem.openConversation(friendId, friendName);
+                } else if (window.simpleChatFallback && window.simpleChatFallback.isInitialized) {
+                    console.log('✅ Using Simple Chat Fallback (Direct)');
+                    window.simpleChatFallback.openConversation(friendId, friendName);
+                } else {
+                    console.warn('⚠️ No chat system available, showing alert');
+                    alert(`Chat with ${friendName}\n\nChat system is still loading. Please try again in a few seconds.`);
+                }
+            } catch (error) {
+                console.error('❌ Error starting direct chat:', error);
+                alert(`Error starting chat with ${friendName}. Please try again.`);
+            }
+        }
     </script>
 </body>
 </html>
