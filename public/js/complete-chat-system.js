@@ -62,11 +62,22 @@ class CompleteChatSystem {
                 this.currentUser = data.user;
                 console.log('✅ Current user loaded:', this.currentUser.fullName);
             } else {
-                throw new Error('Failed to load user information');
+                console.warn('⚠️ User API not available, using fallback');
+                // Create a fallback user object
+                this.currentUser = {
+                    id: 'anonymous',
+                    fullName: 'Anonymous User',
+                    username: 'anonymous'
+                };
             }
         } catch (error) {
-            console.error('❌ Error loading current user:', error);
-            throw error;
+            console.warn('⚠️ Error loading current user, using fallback:', error);
+            // Create a fallback user object
+            this.currentUser = {
+                id: 'anonymous',
+                fullName: 'Anonymous User',
+                username: 'anonymous'
+            };
         }
     }
 
@@ -852,5 +863,18 @@ class CompleteChatSystem {
     }
 }
 
-// Make it globally available
+// Make it globally available and auto-initialize
 window.CompleteChatSystem = CompleteChatSystem;
+
+// Auto-initialize the chat system when DOM is ready
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        console.log('🔄 Auto-initializing Complete Chat System...');
+        window.completeChatSystem = new CompleteChatSystem();
+        await window.completeChatSystem.init();
+        console.log('✅ Complete Chat System auto-initialized successfully');
+    } catch (error) {
+        console.error('❌ Failed to auto-initialize Complete Chat System:', error);
+        // Don't throw - let the system continue without chat
+    }
+});

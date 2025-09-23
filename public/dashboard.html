@@ -807,6 +807,7 @@
     <script src="/js/profile-modal.js"></script>
     <script src="/js/friends-manager.js"></script>
     <script src="/js/complete-chat-system.js"></script>
+    <script src="/js/simple-chat-fallback.js"></script>
     <script src="/js/friend-requests.js"></script>
     
     <!-- 6. Language system -->
@@ -878,7 +879,29 @@
                 console.error('❌ Chat system not loaded properly');
             }
         }, 3000);
-    });
+        });
+        
+        // Global chat function
+        function startChat(friendId, friendName) {
+            try {
+                console.log(`🚀 Starting chat with ${friendName} (${friendId})`);
+                
+                // Try complete chat system first
+                if (window.completeChatSystem && window.completeChatSystem.isInitialized) {
+                    console.log('✅ Using Complete Chat System');
+                    window.completeChatSystem.openConversation(friendId, friendName);
+                } else if (window.simpleChatFallback && window.simpleChatFallback.isInitialized) {
+                    console.log('✅ Using Simple Chat Fallback');
+                    window.simpleChatFallback.openConversation(friendId, friendName);
+                } else {
+                    console.warn('⚠️ No chat system available, showing alert');
+                    alert(`Chat with ${friendName}\n\nChat system is still loading. Please try again in a few seconds.`);
+                }
+            } catch (error) {
+                console.error('❌ Error starting chat:', error);
+                alert(`Error starting chat with ${friendName}. Please try again.`);
+            }
+        }
     </script>
 </body>
 </html>

@@ -1,7 +1,8 @@
 const { Pool } = require('pg');
 
 // Check if we're in local development mode
-const isLocalDev = !process.env.DATABASE_URL || process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+// Force PostgreSQL for Railway production
+const isLocalDev = (!process.env.DATABASE_URL || process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && !process.env.RAILWAY_ENVIRONMENT;
 
 if (isLocalDev) {
   // Use local SQLite for development
