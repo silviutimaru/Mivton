@@ -436,7 +436,7 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                 </div>
                 
                 <div class="friend-actions">
-                    <button class="btn btn-sm btn-primary chat-button" data-action="chat" data-friend-id="${friend.id}" title="Start Chat">
+                    <button class="btn btn-sm btn-primary chat-button" onclick="window.openChat && window.openChat(${friend.id}, '${friend.full_name.replace(/'/g, "\\'")}')" title="Start Chat">
                         <i class="fas fa-comments"></i>
                         <span>Chat</span>
                     </button>

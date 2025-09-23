@@ -863,6 +863,21 @@
         } catch (error) {
             console.error('❌ Friends system initialization error:', error);
         }
+        
+        // Chat system debug check
+        setTimeout(function() {
+            console.log('🔍 Chat System Debug Check:');
+            console.log('  - openChat function:', typeof window.openChat);
+            console.log('  - Friends Manager element:', document.getElementById('friendsManager'));
+            console.log('  - Chat buttons found:', document.querySelectorAll('.chat-button').length);
+            
+            // Test if chat function works
+            if (typeof window.openChat === 'function') {
+                console.log('✅ Chat system is ready!');
+            } else {
+                console.error('❌ Chat system not loaded properly');
+            }
+        }, 3000);
     });
     </script>
 </body>

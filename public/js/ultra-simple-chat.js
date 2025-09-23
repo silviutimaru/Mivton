@@ -246,3 +246,28 @@ window.sendMessage = function() {
 
 // Make functions globally available
 console.log('✅ Ultra Simple Chat functions loaded');
+
+// Add fallback event handler for chat buttons (safety net)
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.chat-button')) {
+        const chatBtn = e.target.closest('.chat-button');
+        const friendId = chatBtn.dataset.friendId;
+        const friendName = chatBtn.closest('[data-friend-id]')?.querySelector('.friend-name')?.textContent?.trim();
+        
+        if (friendId && friendName && window.openChat) {
+            console.log('🚀 Fallback chat handler triggered for friend:', friendName);
+            e.preventDefault();
+            e.stopPropagation();
+            window.openChat(friendId, friendName);
+        } else {
+            console.error('❌ Missing data for chat:', { 
+                friendId, 
+                friendName, 
+                openChat: typeof window.openChat,
+                chatBtn: chatBtn
+            });
+        }
+    }
+});
+
+console.log('✅ Fallback chat button handler added');
