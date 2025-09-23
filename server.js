@@ -66,7 +66,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Session middleware
 // Session configuration
-const isLocalDev = !process.env.DATABASE_URL || process.env.NODE_ENV === 'development';
+const isLocalDev = !process.env.DATABASE_URL || process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
 
 if (isLocalDev) {
   // Use memory store for local development to avoid SQLite compatibility issues
