@@ -822,7 +822,7 @@
     <script src="/js/complete-chat-system.js"></script>
     <script src="/js/simple-chat-fallback.js"></script>
     <script src="/js/bulletproof-chat.js"></script>
-    <script src="/js/working-chat.js?v=20250123"></script>
+    <script src="/js/minimal-chat.js?v=20250123"></script>
     <script src="/js/friend-requests.js"></script>
     
     <!-- 6. Language system -->
@@ -909,19 +909,19 @@
         }, 3000);
         });
         
-        // Global chat function - USE WORKING CHAT
+        // Global chat function - USE MINIMAL CHAT
         function startChat(friendId, friendName) {
-            console.log(`🚀 Starting WORKING chat with ${friendName} (${friendId})`);
-            window.startWorkingChat(friendId, friendName);
+            console.log(`🚀 Starting MINIMAL chat with ${friendName} (${friendId})`);
+            window.startMinimalChat(friendId, friendName);
         }
 
-        // Direct chat function - USE WORKING CHAT
+        // Direct chat function - USE MINIMAL CHAT
         function startDirectChat(friendId, friendName) {
-            console.log(`🚀 Starting DIRECT WORKING chat with ${friendName} (${friendId})`);
-            window.startWorkingChat(friendId, friendName);
+            console.log(`🚀 Starting DIRECT MINIMAL chat with ${friendName} (${friendId})`);
+            window.startMinimalChat(friendId, friendName);
         }
 
-        // Modal chat function - USE WORKING CHAT
+        // Modal chat function - USE MINIMAL CHAT
         function startDirectChatFromModal(button) {
             const friendId = button.dataset.friendId;
             const modal = button.closest('.modal');
@@ -929,8 +929,8 @@
             const friendName = friendNameEl ? friendNameEl.textContent.trim() : 'Friend';
             
             modal.style.display = 'none';
-            console.log(`🚀 Starting MODAL WORKING chat with ${friendName} (${friendId})`);
-            window.startWorkingChat(friendId, friendName);
+            console.log(`🚀 Starting MODAL MINIMAL chat with ${friendName} (${friendId})`);
+            window.startMinimalChat(friendId, friendName);
         }
     </script>
 </body>
