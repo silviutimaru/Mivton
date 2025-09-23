@@ -695,10 +695,42 @@ class PresenceManager {
      * Start chat with friend
      * @param {number} friendId - Friend ID
      */
-    startChat(friendId) {
-        // This would integrate with your chat system
-        console.log(`Starting chat with friend ${friendId}`);
-        this.showToast('Chat feature coming soon!', 'info');
+    async startChat(friendId) {
+        try {
+            console.log(`🚀 Starting chat with friend ${friendId}`);
+            
+            // Get friend info
+            const friend = this.friendsPresence.get(friendId);
+            if (!friend) {
+                this.showToast('Friend not found', 'error');
+                return;
+            }
+
+            // Initialize multilingual chat if not already done
+            if (!window.multilingualChat) {
+                console.log('🔄 Initializing multilingual chat...');
+                window.multilingualChat = new MultilingualChat();
+                await window.multilingualChat.init();
+                
+                // Add chat container to the page
+                document.body.appendChild(window.multilingualChat.container);
+            }
+            
+            // Open conversation with the friend
+            await window.multilingualChat.openConversation(friendId, friend.name || friend.username);
+            
+            // Show the chat interface
+            window.multilingualChat.container.style.display = 'block';
+            
+            // Scroll to chat
+            window.multilingualChat.container.scrollIntoView({ behavior: 'smooth' });
+            
+            console.log(`✅ Chat opened with ${friend.name || friend.username}`);
+            
+        } catch (error) {
+            console.error('❌ Error starting chat:', error);
+            this.showToast('Failed to start chat. Please try again.', 'error');
+        }
     }
 
     /**

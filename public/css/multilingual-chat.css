@@ -1,14 +1,23 @@
 /* Multilingual Chat Interface Styles */
 
 .multilingual-chat {
-    display: flex;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 800px;
+    height: 80vh;
+    max-height: 600px;
+    display: none; /* Hidden by default */
     flex-direction: column;
-    height: 100%;
-    background: #ffffff;
+    background: var(--bg-primary, #1a1a2e);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    min-height: 400px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color, #333);
+    z-index: 1000;
+    backdrop-filter: blur(10px);
 }
 
 .chat-container {
@@ -23,8 +32,9 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
+    background: var(--bg-secondary, #16213e);
+    border-bottom: 1px solid var(--border-color, #333);
+    color: var(--text-primary, #ffffff);
 }
 
 .chat-info {

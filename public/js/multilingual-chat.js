@@ -606,6 +606,9 @@ class MultilingualChat {
         this.currentFriend = null;
         this.messages = [];
         
+        // Hide the chat container
+        this.container.style.display = 'none';
+        
         // Reset UI
         this.container.querySelector('#friendName').textContent = 'Select a conversation';
         this.container.querySelector('#friendStatus').textContent = 'Choose a friend to start chatting';
