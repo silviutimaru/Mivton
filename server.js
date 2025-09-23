@@ -1106,21 +1106,7 @@ const registerChatRoutes = () => {
   try {
     console.log('🔧 DEBUG: Starting chat route registration...');
     
-    // Register simple test route first
-    app.get('/api/chat/test-direct', (req, res) => {
-      res.json({ success: true, message: 'Direct route test working!' });
-    });
-    console.log('🔧 DEBUG: Direct test route registered');
-    
-    // Load working chat routes only (simplified)
-    const workingChatRoutes = require('./routes/working-chat');
-    console.log('🔧 DEBUG: Working chat routes loaded');
-    
-    // Register working chat routes at /api/chat
-    app.use('/api/chat', workingChatRoutes);
-    console.log('🔧 DEBUG: Working chat routes registered at /api/chat');
-    
-    // Load user API routes
+    // Load user API routes only (chat routes are already defined directly)
     const userApiRoutes = require('./routes/user-api');
     app.use('/api/user', userApiRoutes);
     console.log('🔧 DEBUG: User API routes registered');
