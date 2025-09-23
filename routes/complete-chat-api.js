@@ -8,6 +8,7 @@ const router = express.Router();
 const { query, getDb } = require('../database/connection');
 const { requireAuth } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
+const { chatMonitor } = require('../utils/chat-monitor');
 
 // Rate limiting for chat operations
 const chatRateLimit = rateLimit({
@@ -68,6 +69,7 @@ router.post('/send', async (req, res) => {
         }
 
         console.log(`💬 Sending message: ${senderId} -> ${recipientId}`);
+        chatMonitor.logMessageSent(senderId, recipientId, message, Date.now());
 
         // Save complete message with status tracking
         const result = await query(
@@ -518,6 +520,109 @@ router.get('/status', async (req, res) => {
             success: false,
             error: 'Internal server error',
             status: 'error'
+        });
+    }
+});
+
+/**
+ * GET /api/chat/monitor/logs
+ * Get chat system logs for monitoring
+ */
+router.get('/monitor/logs', async (req, res) => {
+    try {
+        const { category, level, limit = 100 } = req.query;
+        
+        let logs;
+        if (category) {
+            logs = chatMonitor.getLogsByCategory(category, parseInt(limit));
+        } else if (level) {
+            logs = chatMonitor.getLogsByLevel(level, parseInt(limit));
+        } else {
+            logs = chatMonitor.getRecentLogs(parseInt(limit));
+        }
+
+        res.json({
+            success: true,
+            logs: logs,
+            count: logs.length,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('❌ Error getting monitor logs:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+});
+
+/**
+ * GET /api/chat/monitor/metrics
+ * Get chat system metrics for monitoring
+ */
+router.get('/monitor/metrics', async (req, res) => {
+    try {
+        const metrics = chatMonitor.getMetrics();
+        
+        res.json({
+            success: true,
+            metrics: metrics,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('❌ Error getting monitor metrics:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+});
+
+/**
+ * GET /api/chat/monitor/health
+ * Get chat system health status
+ */
+router.get('/monitor/health', async (req, res) => {
+    try {
+        const health = chatMonitor.getHealthStatus();
+        
+        res.json({
+            success: true,
+            health: health,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('❌ Error getting monitor health:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+});
+
+/**
+ * DELETE /api/chat/monitor/logs
+ * Clear chat system logs
+ */
+router.delete('/monitor/logs', async (req, res) => {
+    try {
+        const clearedCount = chatMonitor.clearLogs();
+        
+        res.json({
+            success: true,
+            message: `Cleared ${clearedCount} log entries`,
+            clearedCount: clearedCount,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('❌ Error clearing monitor logs:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
         });
     }
 });

@@ -6,6 +6,7 @@
 const { query } = require('../database/connection');
 const { notificationManager } = require('./notification-events');
 const { presenceManager } = require('./presence-events');
+const { chatMonitor } = require('../utils/chat-monitor');
 
 /**
  * Chat event configuration
@@ -40,6 +41,7 @@ function initializeCompleteChatEvents(io) {
         }
 
         console.log(`💬 Chat connection established: ${socket.id} (User: ${userId})`);
+        chatMonitor.logConnection(socket.id, userId, 'connected');
 
         // Join user to their personal room
         const userRoom = `user:${userId}`;
@@ -78,6 +80,7 @@ function initializeCompleteChatEvents(io) {
                 }
 
                 console.log(`📤 Socket message: ${userId} -> ${recipientId}`);
+                chatMonitor.logMessageSent(userId, recipientId, message, Date.now());
 
                 // Save message to database
                 const result = await query(
@@ -132,6 +135,9 @@ function initializeCompleteChatEvents(io) {
                 // Send message to recipient in real-time
                 const recipientRoom = `user:${recipientId}`;
                 io.to(recipientRoom).emit('new_message', messageData);
+                
+                // Log message delivery
+                chatMonitor.logMessageReceived(userId, recipientId, message, savedMessage.id);
 
                 // Send confirmation to sender
                 socket.emit('message_sent', {
@@ -195,6 +201,7 @@ function initializeCompleteChatEvents(io) {
                     });
 
                     console.log(`⌨️ Typing started: ${userId} -> ${targetUserId}`);
+                    chatMonitor.logTypingEvent(userId, targetUserId, true);
                 } else {
                     // Remove typing indicator
                     await query(
@@ -211,6 +218,7 @@ function initializeCompleteChatEvents(io) {
                     });
 
                     console.log(`⌨️ Typing stopped: ${userId} -> ${targetUserId}`);
+                    chatMonitor.logTypingEvent(userId, targetUserId, false);
                 }
 
                 // Set timeout to auto-stop typing indicator
@@ -274,6 +282,7 @@ function initializeCompleteChatEvents(io) {
                     });
 
                     console.log(`✅ Read receipt sent: ${userId} read ${updatedCount} messages from ${senderId}`);
+                    chatMonitor.logReadReceipt(userId, senderId, updatedCount);
                 }
 
             } catch (error) {
@@ -388,6 +397,7 @@ function initializeCompleteChatEvents(io) {
 
         socket.on('disconnect', async (reason) => {
             console.log(`💬 Chat socket disconnected: ${socket.id} (User: ${userId}, Reason: ${reason})`);
+            chatMonitor.logConnection(socket.id, userId, `disconnected (${reason})`);
 
             // Clean up typing indicators
             await query(

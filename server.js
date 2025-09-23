@@ -348,6 +348,11 @@ try {
   console.log('⚠️ Complete chat system routes not available:', error.message);
 }
 
+// Chat Monitoring Route (accessible without auth for monitoring)
+app.get('/chat-monitor', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'chat-monitor.html'));
+});
+
 // Dashboard routes
 const dashboardRoutes = require('./routes/dashboard');
 app.use('/api/dashboard', dashboardRoutes);
