@@ -808,6 +808,7 @@
     <script src="/js/friends-manager.js"></script>
     <script src="/js/complete-chat-system.js"></script>
     <script src="/js/simple-chat-fallback.js"></script>
+    <script src="/js/bulletproof-chat.js"></script>
     <script src="/js/friend-requests.js"></script>
     
     <!-- 6. Language system -->
@@ -886,15 +887,12 @@
             try {
                 console.log(`🚀 Starting chat with ${friendName} (${friendId})`);
                 
-                // Try complete chat system first
-                if (window.completeChatSystem && window.completeChatSystem.isInitialized) {
-                    console.log('✅ Using Complete Chat System');
-                    window.completeChatSystem.openConversation(friendId, friendName);
-                } else if (window.simpleChatFallback && window.simpleChatFallback.isInitialized) {
-                    console.log('✅ Using Simple Chat Fallback');
-                    window.simpleChatFallback.openConversation(friendId, friendName);
+                // Use bulletproof chat (always works)
+                if (window.bulletproofChat && window.bulletproofChat.isInitialized !== false) {
+                    console.log('🛡️ Using Bulletproof Chat');
+                    window.bulletproofChat.openConversation(friendId, friendName);
                 } else {
-                    console.warn('⚠️ No chat system available, showing alert');
+                    console.warn('⚠️ Bulletproof chat not available, showing alert');
                     alert(`Chat with ${friendName}\n\nChat system is still loading. Please try again in a few seconds.`);
                 }
             } catch (error) {
@@ -914,20 +912,54 @@
                     modal.style.display = 'none';
                 });
                 
-                // Try complete chat system first
-                if (window.completeChatSystem && window.completeChatSystem.isInitialized) {
-                    console.log('✅ Using Complete Chat System (Direct)');
-                    window.completeChatSystem.openConversation(friendId, friendName);
-                } else if (window.simpleChatFallback && window.simpleChatFallback.isInitialized) {
-                    console.log('✅ Using Simple Chat Fallback (Direct)');
-                    window.simpleChatFallback.openConversation(friendId, friendName);
+                // Use bulletproof chat (always works)
+                if (window.bulletproofChat && window.bulletproofChat.isInitialized !== false) {
+                    console.log('🛡️ Using Bulletproof Chat (Direct)');
+                    window.bulletproofChat.openConversation(friendId, friendName);
                 } else {
-                    console.warn('⚠️ No chat system available, showing alert');
+                    console.warn('⚠️ Bulletproof chat not available, showing alert');
                     alert(`Chat with ${friendName}\n\nChat system is still loading. Please try again in a few seconds.`);
                 }
             } catch (error) {
                 console.error('❌ Error starting direct chat:', error);
                 alert(`Error starting chat with ${friendName}. Please try again.`);
+            }
+        }
+
+        // Modal chat function (from friend actions modal)
+        function startDirectChatFromModal(button) {
+            try {
+                console.log('🚀 Starting chat from modal button');
+                
+                // Get friend ID from button
+                const friendId = button.dataset.friendId;
+                if (!friendId) {
+                    console.error('❌ No friend ID found on button');
+                    alert('Error: Could not find friend ID');
+                    return;
+                }
+                
+                // Get friend name from modal
+                const modal = button.closest('.modal');
+                const friendNameEl = modal.querySelector('[data-friend-name]');
+                const friendName = friendNameEl ? friendNameEl.textContent.trim() : 'Friend';
+                
+                console.log(`🚀 Starting chat with ${friendName} (${friendId})`);
+                
+                // Close the modal
+                modal.style.display = 'none';
+                
+                // Use bulletproof chat (always works)
+                if (window.bulletproofChat && window.bulletproofChat.isInitialized !== false) {
+                    console.log('🛡️ Using Bulletproof Chat (Modal)');
+                    window.bulletproofChat.openConversation(friendId, friendName);
+                } else {
+                    console.warn('⚠️ Bulletproof chat not available, showing alert');
+                    alert(`Chat with ${friendName}\n\nChat system is still loading. Please try again in a few seconds.`);
+                }
+            } catch (error) {
+                console.error('❌ Error starting modal chat:', error);
+                alert('Error starting chat. Please try again.');
             }
         }
     </script>
