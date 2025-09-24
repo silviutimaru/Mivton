@@ -523,14 +523,14 @@ app.get('/api/chat/conversation/:userId', async (req, res) => {
   console.log(`📨 FINAL WORKING CHAT conversation: ${currentUserId} <-> ${userId}`);
   
   try {
-    // Try to get messages from database first
+    // Try to get messages from database first - convert IDs to strings
     const db = require('./database/connection');
     const result = await db.query(`
       SELECT id, sender_id, recipient_id, body, created_at
       FROM messages 
       WHERE (sender_id = $1 AND recipient_id = $2) OR (sender_id = $2 AND recipient_id = $1)
       ORDER BY created_at ASC
-    `, [currentUserId, userId]);
+    `, [String(currentUserId), String(userId)]);
     
     const dbMessages = result.rows.map(msg => ({
       id: msg.id,
@@ -601,15 +601,15 @@ app.post('/api/chat/send', async (req, res) => {
   console.log(`💬 FINAL WORKING CHAT send: ${senderId} -> ${recipientId}: ${message}`);
   
   try {
-    // Save to database
+    // Save to database - convert all IDs to strings to match TEXT columns
     const db = require('./database/connection');
     const result = await db.query(`
       INSERT INTO messages (sender_id, recipient_id, body, original_text, translated_text, original_lang, translated_lang, created_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
       RETURNING id, sender_id, recipient_id, body, created_at
     `, [
-      senderId,
-      recipientId, 
+      String(senderId),
+      String(recipientId), 
       message.trim(),
       message.trim(),
       message.trim(),
