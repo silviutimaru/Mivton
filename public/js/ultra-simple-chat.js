@@ -1,5 +1,5 @@
 // ULTRA SIMPLE CHAT - GUARANTEED TO WORK
-function showSimpleChat() {
+function showSimpleChat(friendId = '12', friendName = 'Silviu') {
     // Remove any existing chat
     const existing = document.getElementById('simple-chat-window');
     if (existing) {
@@ -25,7 +25,7 @@ function showSimpleChat() {
         ">
             <div style="padding: 20px; color: white; height: 100%; display: flex; flex-direction: column;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px;">
-                    <h2 style="margin: 0;">Chat with Silviu</h2>
+                    <h2 style="margin: 0;">Chat with ${friendName}</h2>
                     <button onclick="this.closest('#simple-chat-window').remove()" style="background: #ff4757; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer;">✕</button>
                 </div>
                 
@@ -47,8 +47,43 @@ function showSimpleChat() {
     const sendBtn = document.getElementById('simple-send-btn');
     const input = document.getElementById('simple-message-input');
     const messagesDiv = document.getElementById('simple-messages');
+    const currentUserId = 'user-' + Date.now();
     
-    function sendMessage() {
+    // Load existing messages
+    async function loadMessages() {
+        try {
+            console.log('📚 Loading messages for friend:', friendId);
+            const response = await fetch(`/api/chat/conversation/${friendId}?userId=${currentUserId}`);
+            const data = await response.json();
+            
+            if (data.success && data.conversation && data.conversation.length > 0) {
+                const noMessages = document.getElementById('no-messages');
+                if (noMessages) {
+                    noMessages.style.display = 'none';
+                }
+                
+                data.conversation.forEach(msg => {
+                    const isFromMe = msg.is_sender;
+                    messagesDiv.innerHTML += `
+                        <div style="margin-bottom: 10px; display: flex; justify-content: ${isFromMe ? 'flex-end' : 'flex-start'};">
+                            <div style="max-width: 70%; padding: 8px 12px; background: ${isFromMe ? '#667eea' : '#2a2a3e'}; color: white; border-radius: 12px;">
+                                ${msg.body}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                console.log('✅ Messages loaded:', data.conversation.length);
+            } else {
+                console.log('📚 No existing messages found');
+            }
+        } catch (error) {
+            console.error('❌ Error loading messages:', error);
+        }
+    }
+    
+    async function sendMessage() {
         const message = input.value.trim();
         if (!message) return;
         
@@ -58,7 +93,7 @@ function showSimpleChat() {
             noMessages.style.display = 'none';
         }
         
-        // Add message to chat
+        // Add message to chat immediately
         messagesDiv.innerHTML += `
             <div style="margin-bottom: 10px; display: flex; justify-content: flex-end;">
                 <div style="max-width: 70%; padding: 8px 12px; background: #667eea; color: white; border-radius: 12px;">
@@ -71,7 +106,34 @@ function showSimpleChat() {
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         
         console.log('✅ MESSAGE SENT:', message);
+        
+        // Send to API
+        try {
+            const response = await fetch('/api/chat/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    recipientId: friendId,
+                    message: message,
+                    userId: currentUserId
+                })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                console.log('✅ Message saved to database');
+            } else {
+                console.error('❌ Failed to save message:', data.error);
+            }
+        } catch (error) {
+            console.error('❌ Error sending message to API:', error);
+        }
     }
+    
+    // Load messages when chat opens
+    loadMessages();
     
     sendBtn.onclick = sendMessage;
     input.onkeypress = (e) => {

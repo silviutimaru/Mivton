@@ -1004,7 +1004,7 @@
             }
             // Try ultra simple chat first
             if (typeof window.showSimpleChat === 'function') {
-                window.showSimpleChat();
+                window.showSimpleChat(friendId, friendName);
             } else {
                 window.startMinimalChat(friendId, friendName);
             }
