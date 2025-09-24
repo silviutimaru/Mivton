@@ -18,6 +18,13 @@ class MinimalChat {
     }
 
     createChatInterface() {
+        // Check if container already exists
+        if (document.getElementById('minimal-chat-container')) {
+            this.container = document.getElementById('minimal-chat-container');
+            console.log('✅ Chat container already exists');
+            return;
+        }
+
         // Create chat container
         this.container = document.createElement('div');
         this.container.id = 'minimal-chat-container';
@@ -67,11 +74,11 @@ class MinimalChat {
     }
 
     openChat(friendId, friendName) {
-        Debug.chat(`Opening chat with ${friendName} (${friendId})`);
+        console.log(`🚀 MINIMAL CHAT: Opening chat with ${friendName} (${friendId})`);
         
         // Validate friend ID
         if (!friendId || friendId === 'unknown' || friendId === 'null' || friendId === 'undefined') {
-            Debug.error('Invalid friend ID', { friendId, friendName });
+            console.error('❌ MINIMAL CHAT: Invalid friend ID:', friendId);
             alert('Error: Cannot start chat - invalid friend ID');
             return;
         }
@@ -81,16 +88,39 @@ class MinimalChat {
             friendName = 'Friend';
         }
         
-        this.currentFriend = { id: friendId, name: friendName };
-        document.getElementById('minimal-friend-name').textContent = friendName;
+        // Ensure container exists
+        if (!this.container) {
+            console.error('❌ MINIMAL CHAT: Container not initialized');
+            this.createChatInterface();
+        }
         
+        // Ensure container is in DOM
+        if (!document.getElementById('minimal-chat-container')) {
+            console.error('❌ MINIMAL CHAT: Container not in DOM, adding it');
+            document.body.appendChild(this.container);
+        }
+        
+        this.currentFriend = { id: friendId, name: friendName };
+        
+        // Update friend name in UI
+        const friendNameEl = document.getElementById('minimal-friend-name');
+        if (friendNameEl) {
+            friendNameEl.textContent = friendName;
+        }
+        
+        console.log('✅ MINIMAL CHAT: Loading messages and showing chat');
         this.loadMessages();
         this.container.style.display = 'flex';
         this.isOpen = true;
         
+        console.log('✅ MINIMAL CHAT: Chat should now be visible');
+        
         // Focus input
         setTimeout(() => {
-            document.getElementById('minimal-message-input').focus();
+            const input = document.getElementById('minimal-message-input');
+            if (input) {
+                input.focus();
+            }
         }, 100);
     }
 
@@ -102,22 +132,22 @@ class MinimalChat {
 
     async loadMessages() {
         try {
-            Debug.chat(`Loading messages for ${this.currentFriend.id}`);
-            Debug.api(`GET /api/chat/conversation/${this.currentFriend.id}?userId=${this.userId}`);
+            console.log(`📚 MINIMAL CHAT: Loading messages for ${this.currentFriend.id}`);
             
             // Use the working API endpoint
             const response = await fetch(`/api/chat/conversation/${this.currentFriend.id}?userId=${this.userId}`);
             const data = await response.json();
-            Debug.api('Conversation API response', { status: response.status, data });
+            
+            console.log('📚 MINIMAL CHAT: API response:', { status: response.status, data });
             
             if (data.success) {
-                Debug.success('Messages loaded successfully', { count: (data.conversation || []).length });
+                console.log('✅ MINIMAL CHAT: Messages loaded successfully', { count: (data.conversation || []).length });
                 this.displayMessages(data.conversation || []);
             } else {
-                Debug.error('Failed to load messages', data.error);
+                console.error('❌ MINIMAL CHAT: Failed to load messages:', data.error);
             }
         } catch (error) {
-            Debug.error('Error loading messages', error);
+            console.error('❌ MINIMAL CHAT: Error loading messages:', error);
         }
     }
 
@@ -152,7 +182,7 @@ class MinimalChat {
         if (!message) return;
         
         try {
-            Debug.chat(`Sending message: ${message}`);
+            console.log(`📤 MINIMAL CHAT: Sending message: ${message}`);
             
             // Add message to UI immediately
             const messagesContainer = document.getElementById('minimal-messages');
@@ -169,7 +199,7 @@ class MinimalChat {
             input.value = '';
             
             // Send to API
-            Debug.api('POST /api/chat/send', {
+            console.log('📤 MINIMAL CHAT: Sending to API:', {
                 recipientId: this.currentFriend.id,
                 message: message,
                 userId: this.userId
@@ -188,16 +218,16 @@ class MinimalChat {
             });
             
             const data = await response.json();
-            Debug.api('Send message API response', { status: response.status, data });
+            console.log('📤 MINIMAL CHAT: API response:', { status: response.status, data });
             
             if (data.success) {
-                Debug.success('Message sent successfully');
+                console.log('✅ MINIMAL CHAT: Message sent successfully');
             } else {
-                Debug.error('Failed to send message', data.error);
+                console.error('❌ MINIMAL CHAT: Failed to send message:', data.error);
             }
             
         } catch (error) {
-            Debug.error('Error sending message', error);
+            console.error('❌ MINIMAL CHAT: Error sending message:', error);
         }
     }
 }
