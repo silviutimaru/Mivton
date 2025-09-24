@@ -639,6 +639,13 @@ class MivtonFriendsManager extends MivtonBaseComponent {
         const friendName = modal?.querySelector('[data-friend-name]');
         const friendUsername = modal?.querySelector('[data-friend-username]');
         const friendStatus = modal?.querySelector('[data-friend-status]');
+        
+        // FIXED: Update the chat button's data-friend-id dynamically
+        const chatButton = modal?.querySelector('[data-action="chat"]');
+        if (chatButton) {
+            chatButton.setAttribute('data-friend-id', friendId);
+            console.log('🔍 DEBUG: Updated chat button data-friend-id to:', friendId);
+        }
 
         if (friendName) friendName.textContent = friend.full_name;
         if (friendUsername) friendUsername.textContent = `@${friend.username}`;
