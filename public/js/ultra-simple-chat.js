@@ -30,7 +30,7 @@ function showSimpleChat() {
                 </div>
                 
                 <div id="simple-messages" style="flex: 1; overflow-y: auto; margin-bottom: 20px; padding: 10px; background: #16213e; border-radius: 8px;">
-                    <div style="text-align: center; color: #666;">No messages yet. Start the conversation!</div>
+                    <div id="no-messages" style="text-align: center; color: #666;">No messages yet. Start the conversation!</div>
                 </div>
                 
                 <div style="display: flex; gap: 10px;">
@@ -52,6 +52,12 @@ function showSimpleChat() {
         const message = input.value.trim();
         if (!message) return;
         
+        // Hide "no messages" text if it exists
+        const noMessages = document.getElementById('no-messages');
+        if (noMessages) {
+            noMessages.style.display = 'none';
+        }
+        
         // Add message to chat
         messagesDiv.innerHTML += `
             <div style="margin-bottom: 10px; display: flex; justify-content: flex-end;">
@@ -65,6 +71,18 @@ function showSimpleChat() {
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         
         console.log('✅ MESSAGE SENT:', message);
+        
+        // Simulate receiving a response (for testing)
+        setTimeout(() => {
+            messagesDiv.innerHTML += `
+                <div style="margin-bottom: 10px; display: flex; justify-content: flex-start;">
+                    <div style="max-width: 70%; padding: 8px 12px; background: #2a2a3e; color: white; border-radius: 12px;">
+                        Thanks for your message: "${message}"
+                    </div>
+                </div>
+            `;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }, 1000);
     }
     
     sendBtn.onclick = sendMessage;
