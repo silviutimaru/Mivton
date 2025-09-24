@@ -819,6 +819,7 @@
     <script src="/js/components.js"></script>
     <script src="/js/profile-modal.js"></script>
     <script src="/js/friends-manager.js?v=20250124"></script>
+    <script src="/js/ultra-simple-chat.js"></script>
     <script src="/js/minimal-chat.js?v=20250124"></script>
     <script src="/js/friend-requests.js"></script>
     
@@ -993,15 +994,20 @@
             window.startMinimalChat(friendId, friendName);
         }
 
-        // Direct chat function - USE MINIMAL CHAT
+        // Direct chat function - USE ULTRA SIMPLE CHAT
         function startDirectChat(friendId, friendName) {
-            console.log(`🔘 SIMPLE DEBUG: Starting DIRECT MINIMAL chat with ${friendName} (${friendId})`);
+            console.log(`🔘 SIMPLE DEBUG: Starting ULTRA SIMPLE chat with ${friendName} (${friendId})`);
             console.log('💬 SIMPLE DEBUG: startDirectChat called', { friendId, friendName });
             if (typeof Debug !== 'undefined') {
-                Debug.button(`Starting DIRECT MINIMAL chat with ${friendName} (${friendId})`);
+                Debug.button(`Starting ULTRA SIMPLE chat with ${friendName} (${friendId})`);
                 Debug.chat('startDirectChat called', { friendId, friendName });
             }
-            window.startMinimalChat(friendId, friendName);
+            // Try ultra simple chat first
+            if (typeof window.showSimpleChat === 'function') {
+                window.showSimpleChat();
+            } else {
+                window.startMinimalChat(friendId, friendName);
+            }
         }
 
         // Modal chat function - USE MINIMAL CHAT
