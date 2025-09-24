@@ -29,19 +29,19 @@ class MinimalChat {
         this.container = document.createElement('div');
         this.container.id = 'minimal-chat-container';
         this.container.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 400px;
-            height: 500px;
-            background: #1a1a2e;
-            border: 1px solid #333;
-            border-radius: 12px;
-            display: none;
-            flex-direction: column;
-            z-index: 10000;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            width: 400px !important;
+            height: 500px !important;
+            background: #1a1a2e !important;
+            border: 2px solid #ff0000 !important;
+            border-radius: 12px !important;
+            display: none !important;
+            flex-direction: column !important;
+            z-index: 99999 !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
         `;
 
         this.container.innerHTML = `
@@ -110,10 +110,24 @@ class MinimalChat {
         
         console.log('✅ MINIMAL CHAT: Loading messages and showing chat');
         this.loadMessages();
-        this.container.style.display = 'flex';
+        
+        // Force the chat to be visible with multiple approaches
+        this.container.style.display = 'flex !important';
+        this.container.style.visibility = 'visible';
+        this.container.style.opacity = '1';
         this.isOpen = true;
         
         console.log('✅ MINIMAL CHAT: Chat should now be visible');
+        console.log('🔍 MINIMAL CHAT: Container display:', this.container.style.display);
+        console.log('🔍 MINIMAL CHAT: Container visibility:', this.container.style.visibility);
+        console.log('🔍 MINIMAL CHAT: Container z-index:', this.container.style.zIndex);
+        console.log('🔍 MINIMAL CHAT: Container position:', this.container.style.position);
+        
+        // Also try to make it visible after a short delay
+        setTimeout(() => {
+            this.container.style.display = 'flex !important';
+            console.log('🔍 MINIMAL CHAT: Forced display after timeout');
+        }, 100);
         
         // Focus input
         setTimeout(() => {
