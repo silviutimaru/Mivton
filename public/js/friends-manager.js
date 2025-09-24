@@ -449,7 +449,7 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                 </div>
                 
                 <div class="friend-actions">
-                    <button class="btn btn-sm btn-primary chat-button" data-friend-id="${friend.id || friend.user_id || friend.friend_id || 'unknown'}" onclick="startDirectChat('${friend.id || friend.user_id || friend.friend_id || 'unknown'}', '${friend.full_name.replace(/'/g, "\\'")}')" title="Start Chat">
+                    <button class="btn btn-sm btn-primary chat-button" data-action="direct-chat" data-friend-id="${friend.id || friend.user_id || friend.friend_id || 'unknown'}" onclick="startDirectChat('${friend.id || friend.user_id || friend.friend_id || 'unknown'}', '${friend.full_name.replace(/'/g, "\\'")}')" title="Start Chat">
                         <i class="fas fa-comments"></i>
                         <span>Chat</span>
                     </button>
