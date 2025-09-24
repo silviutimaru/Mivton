@@ -67,11 +67,11 @@ class MinimalChat {
     }
 
     openChat(friendId, friendName) {
-        console.log(`🚀 MINIMAL CHAT: Opening chat with ${friendName} (${friendId})`);
+        Debug.chat(`Opening chat with ${friendName} (${friendId})`);
         
         // Validate friend ID
         if (!friendId || friendId === 'unknown' || friendId === 'null' || friendId === 'undefined') {
-            console.error('❌ MINIMAL CHAT: Invalid friend ID:', friendId);
+            Debug.error('Invalid friend ID', { friendId, friendName });
             alert('Error: Cannot start chat - invalid friend ID');
             return;
         }
@@ -102,19 +102,22 @@ class MinimalChat {
 
     async loadMessages() {
         try {
-            console.log(`📚 MINIMAL CHAT: Loading messages for ${this.currentFriend.id}`);
+            Debug.chat(`Loading messages for ${this.currentFriend.id}`);
+            Debug.api(`GET /api/chat/conversation/${this.currentFriend.id}?userId=${this.userId}`);
             
             // Use the working API endpoint
             const response = await fetch(`/api/chat/conversation/${this.currentFriend.id}?userId=${this.userId}`);
             const data = await response.json();
+            Debug.api('Conversation API response', { status: response.status, data });
             
             if (data.success) {
+                Debug.success('Messages loaded successfully', { count: (data.conversation || []).length });
                 this.displayMessages(data.conversation || []);
             } else {
-                console.error('❌ Failed to load messages:', data.error);
+                Debug.error('Failed to load messages', data.error);
             }
         } catch (error) {
-            console.error('❌ Error loading messages:', error);
+            Debug.error('Error loading messages', error);
         }
     }
 
@@ -149,7 +152,7 @@ class MinimalChat {
         if (!message) return;
         
         try {
-            console.log(`📤 MINIMAL CHAT: Sending message: ${message}`);
+            Debug.chat(`Sending message: ${message}`);
             
             // Add message to UI immediately
             const messagesContainer = document.getElementById('minimal-messages');
@@ -166,6 +169,12 @@ class MinimalChat {
             input.value = '';
             
             // Send to API
+            Debug.api('POST /api/chat/send', {
+                recipientId: this.currentFriend.id,
+                message: message,
+                userId: this.userId
+            });
+            
             const response = await fetch('/api/chat/send', {
                 method: 'POST',
                 headers: {
@@ -179,15 +188,16 @@ class MinimalChat {
             });
             
             const data = await response.json();
+            Debug.api('Send message API response', { status: response.status, data });
             
             if (data.success) {
-                console.log('✅ MINIMAL CHAT: Message sent successfully');
+                Debug.success('Message sent successfully');
             } else {
-                console.error('❌ Failed to send message:', data.error);
+                Debug.error('Failed to send message', data.error);
             }
             
         } catch (error) {
-            console.error('❌ Error sending message:', error);
+            Debug.error('Error sending message', error);
         }
     }
 }

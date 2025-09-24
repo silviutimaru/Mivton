@@ -801,6 +801,7 @@
     <!-- Scripts - ENHANCED LOADING ORDER -->
     <!-- 1. Core debugging and component system FIRST -->
     <script src="/js/component-debug.js"></script>
+    <script src="/js/debug-system.js"></script>
     
     <!-- 2. Socket.IO and core networking -->
     <script src="/socket.io/socket.io.js"></script>
@@ -889,49 +890,96 @@
             console.error('❌ Friends system initialization error:', error);
         }
         
-        // Chat system debug check
+        // Comprehensive Chat System Debug Check
         setTimeout(function() {
-            console.log('🔍 Chat System Debug Check:');
-            console.log('  - openChat function:', typeof window.openChat);
-            console.log('  - Friends Manager element:', document.getElementById('friendsManager'));
-            console.log('  - Chat buttons found:', document.querySelectorAll('.chat-button').length);
+            Debug.system('Starting comprehensive chat system debug check');
             
-            // Test if chat function works
-            if (typeof window.openChat === 'function') {
-                console.log('✅ Chat system is ready!');
+            // Check all chat-related functions
+            const chatFunctions = {
+                'window.openChat': typeof window.openChat,
+                'window.startMinimalChat': typeof window.startMinimalChat,
+                'window.minimalChat': typeof window.minimalChat,
+                'startChat': typeof startChat,
+                'startDirectChat': typeof startDirectChat,
+                'startDirectChatFromModal': typeof startDirectChatFromModal
+            };
+            
+            Debug.system('Chat functions status', chatFunctions);
+            
+            // Check DOM elements
+            const domElements = {
+                'friendsManager': !!document.getElementById('friendsManager'),
+                'chat buttons': document.querySelectorAll('.chat-button').length,
+                'modal chat buttons': document.querySelectorAll('[data-action="chat"]').length,
+                'direct chat buttons': document.querySelectorAll('[data-action="direct-chat"]').length
+            };
+            
+            Debug.system('DOM elements status', domElements);
+            
+            // Check if minimal chat is initialized
+            if (window.minimalChat) {
+                Debug.success('Minimal chat system is initialized');
+                Debug.chat('Minimal chat container exists', {
+                    container: !!window.minimalChat.container,
+                    isOpen: window.minimalChat.isOpen,
+                    currentFriend: window.minimalChat.currentFriend
+                });
             } else {
-                console.error('❌ Chat system not loaded properly');
+                Debug.error('Minimal chat system not initialized');
             }
+            
+            // Test chat function availability
+            if (typeof window.startMinimalChat === 'function') {
+                Debug.success('Chat system is ready!');
+            } else {
+                Debug.error('Chat system not loaded properly');
+                Debug.error('Missing window.startMinimalChat function');
+            }
+            
+            // Check for any JavaScript errors
+            window.addEventListener('error', function(e) {
+                Debug.error('JavaScript error detected', {
+                    message: e.message,
+                    filename: e.filename,
+                    lineno: e.lineno,
+                    colno: e.colno,
+                    error: e.error
+                });
+            });
+            
         }, 3000);
         });
         
         // Global chat function - USE MINIMAL CHAT
         function startChat(friendId, friendName) {
-            console.log(`🚀 Starting MINIMAL chat with ${friendName} (${friendId})`);
+            Debug.button(`Starting MINIMAL chat with ${friendName} (${friendId})`);
+            Debug.chat('startChat called', { friendId, friendName });
             window.startMinimalChat(friendId, friendName);
         }
 
         // Direct chat function - USE MINIMAL CHAT
         function startDirectChat(friendId, friendName) {
-            console.log(`🚀 Starting DIRECT MINIMAL chat with ${friendName} (${friendId})`);
+            Debug.button(`Starting DIRECT MINIMAL chat with ${friendName} (${friendId})`);
+            Debug.chat('startDirectChat called', { friendId, friendName });
             window.startMinimalChat(friendId, friendName);
         }
 
         // Modal chat function - USE MINIMAL CHAT
         function startDirectChatFromModal(button) {
-            console.log('🔍 DEBUG: Button element:', button);
-            console.log('🔍 DEBUG: Button dataset:', button.dataset);
+            Debug.button('Modal chat button clicked', { button: button, dataset: button.dataset });
             
             const friendId = button.dataset.friendId;
             const modal = button.closest('.modal');
             const friendNameEl = modal.querySelector('[data-friend-name]');
             const friendName = friendNameEl ? friendNameEl.textContent.trim() : 'Friend';
             
-            console.log('🔍 DEBUG: Friend ID from dataset:', friendId);
-            console.log('🔍 DEBUG: Friend name:', friendName);
+            Debug.button('Friend data extracted', { friendId, friendName, modal: !!modal });
             
-            modal.style.display = 'none';
-            console.log(`🚀 Starting MODAL MINIMAL chat with ${friendName} (${friendId})`);
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            
+            Debug.chat('Starting MODAL MINIMAL chat', { friendId, friendName });
             window.startMinimalChat(friendId, friendName);
         }
     </script>
