@@ -69,6 +69,18 @@ class MinimalChat {
     openChat(friendId, friendName) {
         console.log(`🚀 MINIMAL CHAT: Opening chat with ${friendName} (${friendId})`);
         
+        // Validate friend ID
+        if (!friendId || friendId === 'unknown' || friendId === 'null' || friendId === 'undefined') {
+            console.error('❌ MINIMAL CHAT: Invalid friend ID:', friendId);
+            alert('Error: Cannot start chat - invalid friend ID');
+            return;
+        }
+        
+        // Validate friend name
+        if (!friendName || friendName.trim() === '') {
+            friendName = 'Friend';
+        }
+        
         this.currentFriend = { id: friendId, name: friendName };
         document.getElementById('minimal-friend-name').textContent = friendName;
         
@@ -189,6 +201,14 @@ window.minimalChat.init();
 // Global function for opening chat
 window.startMinimalChat = function(friendId, friendName) {
     console.log(`🚀 MINIMAL CHAT: Global function called with ${friendName} (${friendId})`);
+    
+    // Additional validation at global level
+    if (!window.minimalChat) {
+        console.error('❌ MINIMAL CHAT: System not initialized');
+        alert('Error: Chat system not ready. Please refresh the page.');
+        return;
+    }
+    
     window.minimalChat.openChat(friendId, friendName);
 };
 
