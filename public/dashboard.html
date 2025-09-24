@@ -919,10 +919,16 @@
 
         // Modal chat function - USE MINIMAL CHAT
         function startDirectChatFromModal(button) {
+            console.log('🔍 DEBUG: Button element:', button);
+            console.log('🔍 DEBUG: Button dataset:', button.dataset);
+            
             const friendId = button.dataset.friendId;
             const modal = button.closest('.modal');
             const friendNameEl = modal.querySelector('[data-friend-name]');
             const friendName = friendNameEl ? friendNameEl.textContent.trim() : 'Friend';
+            
+            console.log('🔍 DEBUG: Friend ID from dataset:', friendId);
+            console.log('🔍 DEBUG: Friend name:', friendName);
             
             modal.style.display = 'none';
             console.log(`🚀 Starting MODAL MINIMAL chat with ${friendName} (${friendId})`);

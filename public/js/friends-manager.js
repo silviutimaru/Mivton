@@ -400,6 +400,13 @@ class MivtonFriendsManager extends MivtonBaseComponent {
         
         // DEBUG: Log friend data to see what's available
         console.log('🔍 Friend data:', friend);
+        console.log('🔍 Friend ID options:', {
+            id: friend.id,
+            user_id: friend.user_id,
+            friend_id: friend.friend_id,
+            userId: friend.userId,
+            friendId: friend.friendId
+        });
         
         return `
             <div class="friend-card ${onlineStatusClass}" data-friend-id="${friend.id || friend.user_id || friend.friend_id || 'unknown'}">
