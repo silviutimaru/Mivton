@@ -892,7 +892,15 @@
         
         // Comprehensive Chat System Debug Check
         setTimeout(function() {
-            Debug.system('Starting comprehensive chat system debug check');
+            console.log('🔍 SIMPLE DEBUG: Starting comprehensive chat system debug check');
+            
+            // Check if Debug system is available
+            if (typeof Debug !== 'undefined') {
+                console.log('✅ Debug system is available');
+                Debug.system('Starting comprehensive chat system debug check');
+            } else {
+                console.log('❌ Debug system not available, using simple logging');
+            }
             
             // Check all chat-related functions
             const chatFunctions = {
@@ -904,7 +912,10 @@
                 'startDirectChatFromModal': typeof startDirectChatFromModal
             };
             
-            Debug.system('Chat functions status', chatFunctions);
+            console.log('🔍 SIMPLE DEBUG: Chat functions status', chatFunctions);
+            if (typeof Debug !== 'undefined') {
+                Debug.system('Chat functions status', chatFunctions);
+            }
             
             // Check DOM elements
             const domElements = {
@@ -914,26 +925,47 @@
                 'direct chat buttons': document.querySelectorAll('[data-action="direct-chat"]').length
             };
             
-            Debug.system('DOM elements status', domElements);
+            console.log('🔍 SIMPLE DEBUG: DOM elements status', domElements);
+            if (typeof Debug !== 'undefined') {
+                Debug.system('DOM elements status', domElements);
+            }
             
             // Check if minimal chat is initialized
             if (window.minimalChat) {
-                Debug.success('Minimal chat system is initialized');
-                Debug.chat('Minimal chat container exists', {
+                console.log('✅ SIMPLE DEBUG: Minimal chat system is initialized');
+                console.log('🔍 SIMPLE DEBUG: Minimal chat container exists', {
                     container: !!window.minimalChat.container,
                     isOpen: window.minimalChat.isOpen,
                     currentFriend: window.minimalChat.currentFriend
                 });
+                if (typeof Debug !== 'undefined') {
+                    Debug.success('Minimal chat system is initialized');
+                    Debug.chat('Minimal chat container exists', {
+                        container: !!window.minimalChat.container,
+                        isOpen: window.minimalChat.isOpen,
+                        currentFriend: window.minimalChat.currentFriend
+                    });
+                }
             } else {
-                Debug.error('Minimal chat system not initialized');
+                console.log('❌ SIMPLE DEBUG: Minimal chat system not initialized');
+                if (typeof Debug !== 'undefined') {
+                    Debug.error('Minimal chat system not initialized');
+                }
             }
             
             // Test chat function availability
             if (typeof window.startMinimalChat === 'function') {
-                Debug.success('Chat system is ready!');
+                console.log('✅ SIMPLE DEBUG: Chat system is ready!');
+                if (typeof Debug !== 'undefined') {
+                    Debug.success('Chat system is ready!');
+                }
             } else {
-                Debug.error('Chat system not loaded properly');
-                Debug.error('Missing window.startMinimalChat function');
+                console.log('❌ SIMPLE DEBUG: Chat system not loaded properly');
+                console.log('❌ SIMPLE DEBUG: Missing window.startMinimalChat function');
+                if (typeof Debug !== 'undefined') {
+                    Debug.error('Chat system not loaded properly');
+                    Debug.error('Missing window.startMinimalChat function');
+                }
             }
             
             // Check for any JavaScript errors
@@ -952,15 +984,23 @@
         
         // Global chat function - USE MINIMAL CHAT
         function startChat(friendId, friendName) {
-            Debug.button(`Starting MINIMAL chat with ${friendName} (${friendId})`);
-            Debug.chat('startChat called', { friendId, friendName });
+            console.log(`🔘 SIMPLE DEBUG: Starting MINIMAL chat with ${friendName} (${friendId})`);
+            console.log('💬 SIMPLE DEBUG: startChat called', { friendId, friendName });
+            if (typeof Debug !== 'undefined') {
+                Debug.button(`Starting MINIMAL chat with ${friendName} (${friendId})`);
+                Debug.chat('startChat called', { friendId, friendName });
+            }
             window.startMinimalChat(friendId, friendName);
         }
 
         // Direct chat function - USE MINIMAL CHAT
         function startDirectChat(friendId, friendName) {
-            Debug.button(`Starting DIRECT MINIMAL chat with ${friendName} (${friendId})`);
-            Debug.chat('startDirectChat called', { friendId, friendName });
+            console.log(`🔘 SIMPLE DEBUG: Starting DIRECT MINIMAL chat with ${friendName} (${friendId})`);
+            console.log('💬 SIMPLE DEBUG: startDirectChat called', { friendId, friendName });
+            if (typeof Debug !== 'undefined') {
+                Debug.button(`Starting DIRECT MINIMAL chat with ${friendName} (${friendId})`);
+                Debug.chat('startDirectChat called', { friendId, friendName });
+            }
             window.startMinimalChat(friendId, friendName);
         }
 
