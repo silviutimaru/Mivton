@@ -19,9 +19,18 @@ class DebugSystem {
     }
     
     createDebugPanel() {
-        // Create debug panel HTML
-        const debugPanel = document.createElement('div');
-        debugPanel.id = 'debug-panel';
+        try {
+            // Check if panel already exists
+            if (document.getElementById('debug-panel')) {
+                console.log('🔍 DEBUG SYSTEM: Panel already exists');
+                this.panel = document.getElementById('debug-panel');
+                this.content = document.getElementById('debug-content');
+                return;
+            }
+            
+            // Create debug panel HTML
+            const debugPanel = document.createElement('div');
+            debugPanel.id = 'debug-panel';
         debugPanel.innerHTML = `
             <div class="debug-header">
                 <h3>🔍 Debug System</h3>
@@ -102,6 +111,15 @@ class DebugSystem {
         
         this.panel = debugPanel;
         this.content = document.getElementById('debug-content');
+        
+        console.log('🔍 DEBUG SYSTEM: Panel created successfully');
+        
+        } catch (error) {
+            console.error('🔍 DEBUG SYSTEM: Failed to create panel:', error);
+            // Fallback: just log to console
+            this.panel = null;
+            this.content = null;
+        }
     }
     
     log(message, type = 'info', data = null) {
@@ -144,17 +162,24 @@ class DebugSystem {
     }
     
     addToPanel(logEntry) {
-        if (!this.content) return;
+        if (!this.content || !this.panel) {
+            // Panel not available, just log to console
+            return;
+        }
         
-        const logDiv = document.createElement('div');
-        logDiv.className = `debug-log ${logEntry.type}`;
-        logDiv.innerHTML = `
-            <strong>[${logEntry.timestamp}s]</strong> ${logEntry.message}
-            ${logEntry.data ? `<br><small>${JSON.stringify(logEntry.data, null, 2)}</small>` : ''}
-        `;
-        
-        this.content.appendChild(logDiv);
-        this.content.scrollTop = this.content.scrollHeight;
+        try {
+            const logDiv = document.createElement('div');
+            logDiv.className = `debug-log ${logEntry.type}`;
+            logDiv.innerHTML = `
+                <strong>[${logEntry.timestamp}s]</strong> ${logEntry.message}
+                ${logEntry.data ? `<br><small>${JSON.stringify(logEntry.data, null, 2)}</small>` : ''}
+            `;
+            
+            this.content.appendChild(logDiv);
+            this.content.scrollTop = this.content.scrollHeight;
+        } catch (error) {
+            console.error('🔍 DEBUG SYSTEM: Failed to add log to panel:', error);
+        }
     }
     
     // Specific debug methods
@@ -230,32 +255,74 @@ class DebugSystem {
     static chat(message, data = null) {
         if (window.debugSystem) {
             window.debugSystem.chat(message, data);
+        } else {
+            console.log(`💬 ${message}`, data || '');
         }
     }
     
     static api(message, data = null) {
         if (window.debugSystem) {
             window.debugSystem.api(message, data);
+        } else {
+            console.log(`🌐 ${message}`, data || '');
         }
     }
     
     static button(message, data = null) {
         if (window.debugSystem) {
             window.debugSystem.button(message, data);
+        } else {
+            console.log(`🔘 ${message}`, data || '');
+        }
+    }
+    
+    static system(message, data = null) {
+        if (window.debugSystem) {
+            window.debugSystem.system(message, data);
+        } else {
+            console.log(`⚙️ ${message}`, data || '');
+        }
+    }
+    
+    static success(message, data = null) {
+        if (window.debugSystem) {
+            window.debugSystem.success(message, data);
+        } else {
+            console.log(`✅ ${message}`, data || '');
         }
     }
     
     static error(message, data = null) {
         if (window.debugSystem) {
             window.debugSystem.error(message, data);
+        } else {
+            console.log(`❌ ${message}`, data || '');
+        }
+    }
+    
+    static warning(message, data = null) {
+        if (window.debugSystem) {
+            window.debugSystem.warning(message, data);
+        } else {
+            console.log(`⚠️ ${message}`, data || '');
         }
     }
 }
 
-// Initialize debug system
-window.debugSystem = new DebugSystem();
+// Initialize debug system when DOM is ready
+function initializeDebugSystem() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            window.debugSystem = new DebugSystem();
+            window.Debug = DebugSystem;
+            console.log('🔍 DEBUG SYSTEM: Ready (after DOM loaded)');
+        });
+    } else {
+        window.debugSystem = new DebugSystem();
+        window.Debug = DebugSystem;
+        console.log('🔍 DEBUG SYSTEM: Ready (DOM already loaded)');
+    }
+}
 
-// Make static methods available globally
-window.Debug = DebugSystem;
-
-console.log('🔍 DEBUG SYSTEM: Ready');
+// Initialize immediately
+initializeDebugSystem();
