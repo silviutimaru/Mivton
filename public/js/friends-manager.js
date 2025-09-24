@@ -335,6 +335,9 @@ class MivtonFriendsManager extends MivtonBaseComponent {
             const data = await response.json();
 
             if (data.success) {
+                console.log('🔍 DEBUG: Friends API response:', data);
+                console.log('🔍 DEBUG: Friends array:', data.friends);
+                
                 this.setState({
                     friends: data.friends || [],
                     stats: data.stats || {},
@@ -620,9 +623,16 @@ class MivtonFriendsManager extends MivtonBaseComponent {
     }
 
     showFriendActions(friendId) {
-        const friend = this.state.friends.find(f => f.id === friendId);
-        if (!friend) return;
-
+        console.log('🔍 DEBUG: showFriendActions called with friendId:', friendId);
+        console.log('🔍 DEBUG: Available friends:', this.state.friends);
+        
+        const friend = this.state.friends.find(f => f.id === friendId || f.user_id === friendId || f.friend_id === friendId);
+        if (!friend) {
+            console.error('❌ Friend not found with ID:', friendId);
+            return;
+        }
+        
+        console.log('🔍 DEBUG: Found friend:', friend);
         this.selectedFriendId = friendId;
         
         const modal = this.element.querySelector('[data-friend-actions-modal]');
