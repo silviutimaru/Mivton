@@ -179,6 +179,54 @@ router.get('/recent', async (req, res) => {
 });
 
 /**
+ * GET /api/chat/conversations
+ * Get all conversations for current user
+ */
+router.get('/conversations', async (req, res) => {
+    try {
+        const currentUserId = req.session.userId;
+
+        console.log(`📬 Getting conversations for user: ${currentUserId}`);
+
+        // Get recent messages which represent conversations
+        const result = await multilingualMessagesService.getRecentMessages(
+            currentUserId,
+            50 // Get more conversations
+        );
+
+        if (!result.success) {
+            return res.status(500).json({
+                success: false,
+                error: result.error || 'Failed to retrieve conversations'
+            });
+        }
+
+        // Transform messages into conversations format
+        const conversations = result.messages.map(msg => ({
+            id: msg.conversation_partner,
+            userId: msg.conversation_partner,
+            fullName: msg.conversation_partner_name,
+            lastMessage: msg.display_text,
+            lastMessageTime: msg.created_at,
+            unreadCount: 0 // TODO: Implement unread count
+        }));
+
+        res.json({
+            success: true,
+            conversations: conversations,
+            count: conversations.length
+        });
+
+    } catch (error) {
+        console.error('❌ Error getting conversations:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+});
+
+/**
  * POST /api/chat/translate
  * Translate a message (utility endpoint)
  */
