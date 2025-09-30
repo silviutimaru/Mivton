@@ -515,6 +515,56 @@ app.post('/api/test/login', async (req, res) => {
 const workingMessages = [];
 let workingMessageId = 1;
 
+// Ensure multilingual columns exist in messages table
+async function ensureMultilingualColumns(db) {
+  try {
+    // Check if original_text column exists
+    const result = await db.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'messages' AND column_name = 'original_text'
+    `);
+    
+    if (result.rows.length === 0) {
+      console.log('🔧 Adding multilingual columns to messages table...');
+      
+      // Add multilingual columns
+      await db.query(`
+        ALTER TABLE messages 
+        ADD COLUMN IF NOT EXISTS original_text TEXT,
+        ADD COLUMN IF NOT EXISTS translated_text TEXT,
+        ADD COLUMN IF NOT EXISTS original_lang VARCHAR(10),
+        ADD COLUMN IF NOT EXISTS translated_lang VARCHAR(10)
+      `);
+      
+      // Update existing records
+      await db.query(`
+        UPDATE messages 
+        SET original_text = body, 
+            original_lang = 'en', 
+            translated_text = body, 
+            translated_lang = 'en'
+        WHERE original_text IS NULL
+      `);
+      
+      // Make columns NOT NULL
+      await db.query(`
+        ALTER TABLE messages ALTER COLUMN original_text SET NOT NULL;
+        ALTER TABLE messages ALTER COLUMN translated_text SET NOT NULL;
+        ALTER TABLE messages ALTER COLUMN original_lang SET NOT NULL;
+        ALTER TABLE messages ALTER COLUMN translated_lang SET NOT NULL;
+      `);
+      
+      console.log('✅ Multilingual columns added successfully');
+    } else {
+      console.log('✅ Multilingual columns already exist');
+    }
+  } catch (error) {
+    console.error('❌ Error ensuring multilingual columns:', error);
+    throw error;
+  }
+}
+
 // Direct chat endpoints (guaranteed to work)
 app.get('/api/chat/conversation/:userId', async (req, res) => {
   const { userId } = req.params;
@@ -603,6 +653,10 @@ app.post('/api/chat/send', async (req, res) => {
   try {
     // Save to database - convert all IDs to strings to match TEXT columns
     const db = require('./database/connection');
+    
+    // Check if multilingual columns exist, if not add them
+    await ensureMultilingualColumns(db);
+    
     const result = await db.query(`
       INSERT INTO messages (sender_id, recipient_id, body, original_text, translated_text, original_lang, translated_lang, created_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
