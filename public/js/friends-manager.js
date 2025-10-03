@@ -1246,44 +1246,15 @@ class MivtonMessagesManager extends MivtonBaseComponent {
             }
             
             this.showLoading();
-            console.log('📬 Loading conversations...');
+            console.log('📬 Chat conversations disabled - using empty state');
             
-            // Try to load from API first
-            try {
-                const response = await fetch('/api/chat/conversations', {
-                    method: 'GET',
-                    credentials: 'include'
-                });
+            // Chat functionality removed - set empty conversations
+            this.state.conversations = [];
+            this.errorCount = 0;
+            console.log('✅ Empty conversations state set (chat disabled)');
 
-                if (response.ok) {
-                    const data = await response.json();
-                    this.state.conversations = data.conversations || [];
-                    console.log('✅ Conversations loaded from API:', this.state.conversations.length);
-                    
-                    // Reset error count on success
-                    this.errorCount = 0;
-                } else {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-            } catch (apiError) {
-                console.warn('⚠️ API error, using fallback:', apiError);
-                
-                // FIXED: Increment error count and check circuit breaker
-                this.errorCount++;
-                this.lastErrorTime = Date.now();
-                
-                if (this.errorCount >= this.maxErrors) {
-                    this.isCircuitBreakerOpen = true;
-                    console.log('🚨 Circuit breaker opened due to repeated failures');
-                }
-                
-                this.state.conversations = await this.loadFallbackConversations();
-            }
-
-            // Calculate unread count
-            this.state.unreadCount = this.state.conversations.reduce((total, conv) => {
-                return total + (conv.unread_count || 0);
-            }, 0);
+            // Calculate unread count (always 0 since no conversations)
+            this.state.unreadCount = 0;
 
             this.renderConversations();
             this.updateUnreadBadge();

@@ -176,6 +176,55 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// Debug endpoint to check friends system
+app.get('/debug/friends', async (req, res) => {
+  try {
+    const isAuthenticated = !!(req.session && req.session.userId);
+    
+    let friendsRouteTest = 'unknown';
+    let authTest = 'unknown';
+    
+    // Test friends route availability
+    try {
+      const testRoute = require('./routes/simple-friends');
+      friendsRouteTest = 'loaded';
+    } catch (error) {
+      friendsRouteTest = `failed: ${error.message}`;
+    }
+    
+    // Test auth middleware
+    try {
+      const { requireAuth } = require('./middleware/auth');
+      authTest = 'loaded';
+    } catch (error) {
+      authTest = `failed: ${error.message}`;
+    }
+    
+    res.json({
+      timestamp: new Date().toISOString(),
+      authentication: {
+        isAuthenticated,
+        userId: req.session?.userId || null,
+        sessionExists: !!req.session
+      },
+      routes: {
+        friendsRoute: friendsRouteTest,
+        authMiddleware: authTest
+      },
+      session: {
+        hasSession: !!req.session,
+        hasUserId: !!(req.session && req.session.userId),
+        sessionData: req.session ? Object.keys(req.session) : null
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 
 // API status endpoint
 app.get('/api/status', async (req, res) => {
@@ -351,21 +400,19 @@ try {
 
 // Chat schema deployment removed per user request
 
-// Phase 3.3 Advanced Social Features Routes
+// Phase 3.3 Advanced Social Features Routes (conversation previews removed)
 try {
   const friendGroupsRoutes = require('./routes/friend-groups');
   const socialAnalyticsRoutes = require('./routes/social-analytics');
   const friendRecommendationsRoutes = require('./routes/friend-recommendations');
   const privacyControlsRoutes = require('./routes/privacy-controls');
-  const conversationPreviewsRoutes = require('./routes/conversation-previews');
   
   app.use('/api/friend-groups', friendGroupsRoutes);
   app.use('/api/social-analytics', socialAnalyticsRoutes);
   app.use('/api/friend-recommendations', friendRecommendationsRoutes);
   app.use('/api/privacy-controls', privacyControlsRoutes);
-  app.use('/api/conversation-previews', conversationPreviewsRoutes);
   
-  console.log('✅ Phase 3.3 advanced social features routes loaded');
+  console.log('✅ Phase 3.3 advanced social features routes loaded (conversation previews removed)');
 } catch (error) {
   console.log('⚠️ Phase 3.3 routes not available:', error.message);
 }
@@ -382,74 +429,7 @@ app.use('/api/dashboard', dashboardRoutes);
 const adminRoutes = require('./routes/admin');
 app.use('/api/admin', adminRoutes);
 
-// Task 4.3: Messages Dev Endpoints
-const { saveMessage, getRecentConversation } = require('./database/messages');
-
-// POST /dev/seed-message - Insert a test message
-app.post('/dev/seed-message', async (req, res) => {
-  try {
-    const { senderId = 'test_sender', recipientId = 'test_recipient', body = 'Hello, this is a test message!' } = req.body;
-    
-    const result = await saveMessage(senderId, recipientId, body);
-    
-    if (result.success) {
-      res.json({
-        success: true,
-        message: 'Test message inserted successfully',
-        data: result.message
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: 'Failed to insert test message',
-        error: result.error
-      });
-    }
-  } catch (error) {
-    console.error('❌ Dev seed message error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while inserting test message',
-      error: error.message
-    });
-  }
-});
-
-// GET /dev/last-messages - Get recent conversation between two users
-app.get('/dev/last-messages', async (req, res) => {
-  try {
-    const { userA, userB, limit = 50 } = req.query;
-    
-    if (!userA || !userB) {
-      return res.status(400).json({
-        success: false,
-        message: 'Both userA and userB query parameters are required'
-      });
-    }
-    
-    const result = await getRecentConversation(userA, userB, parseInt(limit));
-    
-    if (result.success) {
-      res.json({
-        success: true,
-        data: result
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: 'Failed to retrieve messages',
-        error: result.error
-      });
-    }
-  } catch (error) {
-    console.error('❌ Dev last messages error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while retrieving messages',
-      error: error.message
-    });
-  }
-});
+// Chat/messaging development endpoints removed per user request
 
 // User Profile routes
 const userProfileRoutes = require('./routes/user-profile');
@@ -670,8 +650,53 @@ try {
         }
       });
       
+      // Pure real-time messaging (no database)
+      socket.on('send_message', (data) => {
+        try {
+          const { recipient_id, message_text } = data;
+          
+          if (!recipient_id || !message_text || message_text.trim().length === 0) {
+            socket.emit('message_error', { error: 'Invalid message data' });
+            return;
+          }
+          
+          // Validate message length (optional)
+          if (message_text.length > 1000) {
+            socket.emit('message_error', { error: 'Message too long (max 1000 characters)' });
+            return;
+          }
+          
+          console.log(`💬 Message from user ${socket.sessionId || socket.id} to user ${recipient_id}: ${message_text.substring(0, 50)}...`);
+          
+          // Create message object
+          const message = {
+            id: Date.now() + Math.random(), // Simple unique ID
+            sender_id: socket.userId || socket.sessionId || 'anonymous',
+            sender_name: socket.userName || 'Unknown User',
+            message_text: message_text.trim(),
+            sent_at: new Date().toISOString()
+          };
+          
+          // Send to recipient immediately (if online)
+          const sent = io.to(`user-${recipient_id}`).emit('receive_message', message);
+          
+          // Confirm to sender
+          socket.emit('message_sent', { 
+            success: true, 
+            message_id: message.id,
+            sent_at: message.sent_at
+          });
+          
+          console.log(`✅ Message delivered to user-${recipient_id}`);
+          
+        } catch (error) {
+          console.error('❌ Error sending message:', error);
+          socket.emit('message_error', { error: 'Failed to send message' });
+        }
+      });
+      
       socket.on('message', (data) => {
-        console.log(`💬 Message from ${socket.id}: ${data}`);
+        console.log(`💬 Legacy message from ${socket.id}: ${data}`);
       });
     });
   }
@@ -967,7 +992,6 @@ const startServer = async () => {
       console.log('   - Social analytics and insights');
       console.log('   - AI-powered friend recommendations');
       console.log('   - Advanced privacy controls');
-      console.log('   - Conversation previews and management');
       console.log('   - Social interaction tracking');
       console.log('');
       console.log('📋 Available endpoints:');
@@ -1005,8 +1029,6 @@ const startServer = async () => {
       console.log('   • GET  /api/presence/friends - Friends presence status (Phase 3.2)');
       console.log('   • PUT  /api/presence/status - Update presence status (Phase 3.2)');
       console.log('   • GET  /api/realtime/activity/feed - Activity feed (Phase 3.2)');
-      console.log('   • POST /dev/seed-message - Insert test message (Task 4.3 dev)');
-      console.log('   • GET  /dev/last-messages?userA=a&userB=b - Get conversation (Task 4.3 dev)');
       console.log('');
       console.log('📱 Pages available:');
       console.log('   • GET  / - Landing page (redirects based on auth)');

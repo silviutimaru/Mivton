@@ -111,7 +111,6 @@ async function saveMessage() {
 async function getConversation() {
     throw new Error('Chat functionality has been removed');
 }
-}
 
 module.exports = {
     query,

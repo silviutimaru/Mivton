@@ -4,13 +4,11 @@
 -- This extends Phase 3.1 & 3.2 with advanced social capabilities
 -- Created: 2025-01-31
 -- Dependencies: friends-schema.sql, realtime-schema.sql
-
--- Enable UUID extension
+-- Conversation previews functions removed per user requestID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =============================================
--- FRIEND GROUPS TABLE
--- =============================================
+-- FRIEND GROUPS TABLE-- Conversation previews view removed per user request====================================
 -- Organize friends into custom groups (Close Friends, Work, Family, etc.)
 CREATE TABLE IF NOT EXISTS friend_groups (
     id SERIAL PRIMARY KEY,
@@ -119,7 +117,7 @@ CREATE TABLE IF NOT EXISTS user_privacy_settings (
     CONSTRAINT valid_setting_key CHECK (
         setting_key IN (
             'profile_visibility', 'activity_visibility', 'friend_list_visibility', 
-            'online_status_visibility', 'last_seen_visibility', 'conversation_previews',
+            'online_status_visibility', 'last_seen_visibility',
             'recommendation_preferences', 'notification_settings', 'activity_feed_visibility'
         )
     ),
@@ -243,10 +241,7 @@ CREATE INDEX IF NOT EXISTS idx_friend_recommendations_cleanup ON friend_recommen
 CREATE INDEX IF NOT EXISTS idx_privacy_settings_user ON user_privacy_settings(user_id, setting_key);
 CREATE INDEX IF NOT EXISTS idx_privacy_settings_group ON user_privacy_settings(applies_to_group_id) WHERE applies_to_group_id IS NOT NULL;
 
--- Conversation Previews indexes
-CREATE INDEX IF NOT EXISTS idx_conversation_previews_user ON conversation_previews(user_id, last_updated DESC);
-CREATE INDEX IF NOT EXISTS idx_conversation_previews_priority ON conversation_previews(user_id, is_priority DESC, last_updated DESC);
-CREATE INDEX IF NOT EXISTS idx_conversation_previews_unread ON conversation_previews(user_id, unread_count DESC) WHERE unread_count > 0;
+-- Conversation previews removed per user request
 
 -- Social Analytics Cache indexes
 CREATE INDEX IF NOT EXISTS idx_social_analytics_user_type ON social_analytics_cache(user_id, analytics_type, analytics_period DESC);
@@ -351,7 +346,7 @@ BEGIN
     (p_user_id, 'friend_list_visibility', 'friends', 1),
     (p_user_id, 'online_status_visibility', 'friends', 1),
     (p_user_id, 'last_seen_visibility', 'friends', 1),
-    (p_user_id, 'conversation_previews', 'enabled', 1),
+    -- conversation_previews setting removed
     (p_user_id, 'recommendation_preferences', 'enabled', 1),
     (p_user_id, 'activity_feed_visibility', 'friends', 1)
     ON CONFLICT (user_id, setting_key, applies_to_group_id) DO NOTHING;
@@ -504,7 +499,7 @@ COMMENT ON TABLE friend_group_members IS 'Many-to-many relationship between frie
 COMMENT ON TABLE social_interactions IS 'Comprehensive tracking of all social interactions for analytics';
 COMMENT ON TABLE friend_recommendations IS 'AI-powered friend suggestions with confidence scoring';
 COMMENT ON TABLE user_privacy_settings IS 'Granular privacy controls with group-based permissions';
-COMMENT ON TABLE conversation_previews IS 'Quick access to recent conversations with unread counts';
+-- Conversation previews table comment removed
 COMMENT ON TABLE social_analytics_cache IS 'Pre-computed analytics data for performance optimization';
 COMMENT ON TABLE friend_interaction_summary IS 'Aggregated interaction data for faster relationship queries';
 COMMENT ON TABLE social_goals IS 'User-defined social interaction goals and tracking';
@@ -522,8 +517,8 @@ COMMENT ON FUNCTION recalculate_friendship_strength(INTEGER, INTEGER) IS 'Calcul
 DO $$
 BEGIN
     RAISE NOTICE '✅ Phase 3.3 Advanced Social Features Schema created successfully!';
-    RAISE NOTICE '📊 Tables created: friend_groups, friend_group_members, social_interactions, friend_recommendations, user_privacy_settings, conversation_previews, social_analytics_cache, friend_interaction_summary, social_goals';
+    RAISE NOTICE '📊 Tables created: friend_groups, friend_group_members, social_interactions, friend_recommendations, user_privacy_settings, social_analytics_cache, friend_interaction_summary, social_goals';
     RAISE NOTICE '🔧 Functions created: Default privacy settings, friend groups, cleanup functions, friendship strength calculation';
-    RAISE NOTICE '📈 Views created: friend_groups_with_counts, active_friend_recommendations, conversation_previews_detailed';
+    RAISE NOTICE '📈 Views created: friend_groups_with_counts, active_friend_recommendations';
     RAISE NOTICE '⚡ Performance indexes and triggers configured';
 END $$;

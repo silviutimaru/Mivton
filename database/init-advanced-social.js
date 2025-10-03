@@ -15,15 +15,14 @@ async function isAdvancedSocialSchemaInitialized() {
     try {
         const db = getDb();
         
-        // Check for key advanced social tables
+        // Check for key advanced social tables (conversation_previews removed)
         const result = await db.query(`
             SELECT table_name 
             FROM information_schema.tables 
             WHERE table_schema = 'public' 
             AND table_name IN (
                 'friend_groups', 
-                'social_analytics', 
-                'conversation_previews'
+                'social_analytics'
             )
         `);
         
