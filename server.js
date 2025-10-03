@@ -17,6 +17,7 @@ const { testEmailConnection } = require('./utils/email');
 const authRoutes = require('./routes/auth');
 const { addUserToLocals } = require('./middleware/auth');
 const { waitlistUtils } = require('./utils/waitlist');
+const { autoRemoveChatTables } = require('./auto-chat-cleanup');
 
 const app = express();
 const server = http.createServer(app);
@@ -800,6 +801,13 @@ const startServer = async () => {
     try {
       await initializeDatabase();
       console.log('✅ Database connected successfully');
+      
+      // AUTO-CLEANUP: Remove any remaining chat tables from production
+      if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL) {
+        console.log('🧹 Running production chat cleanup...');
+        await autoRemoveChatTables();
+      }
+      
     } catch (dbError) {
       console.log('⚠️ Database connection failed, but server will continue:', dbError.message);
       console.log('ℹ️ Some features may not work, but basic functionality is available');
