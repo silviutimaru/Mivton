@@ -6,8 +6,8 @@ const { Pool } = require('pg');
 // OR if we're in production mode
 const isLocalDev = !process.env.DATABASE_URL && 
                    !process.env.FORCE_POSTGRESQL && 
-                   process.env.NODE_ENV !== 'production' && 
-                   (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test');
+                   process.env.NODE_ENV !== 'production' &&
+                   (!process.env.NODE_ENV || process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test');
 
 console.log('🔍 Database connection decision:', {
     DATABASE_URL: !!process.env.DATABASE_URL,

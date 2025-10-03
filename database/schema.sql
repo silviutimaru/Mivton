@@ -82,19 +82,8 @@ SELECT
     COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '30 days') as users_this_month
 FROM users;
 
--- Messages table for chat functionality
-CREATE TABLE IF NOT EXISTS messages (
-    id BIGSERIAL PRIMARY KEY,
-    sender_id TEXT NOT NULL,
-    recipient_id TEXT NOT NULL,
-    body TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Index for efficient message retrieval
-CREATE INDEX IF NOT EXISTS idx_messages_recipient_time ON messages(recipient_id, created_at DESC);
+-- Messages table removed per user request
 
 -- Grant necessary permissions
 GRANT USAGE ON SEQUENCE users_id_seq TO current_user;
 GRANT USAGE ON SEQUENCE user_stats_id_seq TO current_user;
-GRANT USAGE ON SEQUENCE messages_id_seq TO current_user;

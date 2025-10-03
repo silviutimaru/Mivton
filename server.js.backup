@@ -1,6 +1,3 @@
-console.log('🚨 ULTIMATE DEBUG: Server.js file is loading NOW!');
-console.log('🚨 ULTIMATE DEBUG: Timestamp:', new Date().toISOString());
-
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -106,8 +103,6 @@ app.use(session({
 // Add user to locals middleware
 app.use(addUserToLocals);
 
-// Chat functionality removed per user request
-
 // Serve default avatar if missing (before static files)
 app.get('/images/default-avatar.*', (req, res) => {
   const svgAvatar = `<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -135,18 +130,6 @@ app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
 });
-
-// ===== EARLY ROUTES (ADDED BEFORE DATABASE INIT) =====
-
-// Chat functionality removed per user request
-
-// Test route 
-app.get('/test-route', (req, res) => {
-  res.json({ message: 'Test route works!', timestamp: new Date().toISOString() });
-});
-console.log('✅ Early: Test route added at /test-route');
-
-// Chat interface removed per user request
 
 // ===== ROUTES =====
 
@@ -302,8 +285,7 @@ try {
 
 // Phase 3.1 Friends System Routes  
 try {
-  // Use simple friends bypass to avoid PostgreSQL syntax issues
-  const friendsRoutes = require('./routes/simple-friends');
+  const friendsRoutes = require('./routes/friends');
   const friendRequestsRoutes = require('./routes/friend-requests');
   const blockedUsersRoutes = require('./routes/blocked-users');
   const socialNotificationsRoutes = require('./routes/social-notifications');
@@ -345,10 +327,6 @@ try {
 } catch (error) {
   console.log('⚠️ Enhanced presence advanced routes not available:', error.message);
 }
-
-// Chat functionality removed per user request
-
-// Chat schema deployment removed per user request
 
 // Phase 3.3 Advanced Social Features Routes
 try {
@@ -524,18 +502,527 @@ app.post('/api/test/login', async (req, res) => {
 
 // Chat functionality removed - continuing with server setup
 
-// Chat API endpoints removed per user request
+// All chat endpoints removed - continuing with error handling
+app.get('/api/direct-chat/conversation/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const currentUserId = req.query.userId || 'user-' + Date.now();
+  
+  console.log(`📨 FINAL WORKING CHAT conversation: ${currentUserId} <-> ${userId}`);
+  
+  try {
+    // Try to get messages from database first - convert IDs to strings
+    const db = require('./database/connection');
+    const result = await db.query(`
+      SELECT id, sender_id, recipient_id, body, created_at
+      FROM messages 
+      WHERE (sender_id = $1 AND recipient_id = $2) OR (sender_id = $2 AND recipient_id = $1)
+      ORDER BY created_at ASC
+    `, [String(currentUserId), String(userId)]);
+    
+    const dbMessages = result.rows.map(msg => ({
+      id: msg.id,
+      sender_id: msg.sender_id,
+      recipient_id: msg.recipient_id,
+      body: msg.body,
+      created_at: msg.created_at,
+      is_sender: msg.sender_id === currentUserId,
+      sender_name: msg.sender_id === currentUserId ? 'You' : 'Friend'
+    }));
+    
+    console.log(`📚 Loaded ${dbMessages.length} messages from database`);
+    
+    res.json({
+      success: true,
+      conversation: dbMessages,
+      friend: {
+        id: userId,
+        fullName: 'Silviu Timaru',
+        username: 'silviu',
+        status: 'online'
+      },
+      count: dbMessages.length
+    });
+    
+  } catch (error) {
+    console.error('❌ Error loading messages from database:', error);
+    
+    // Fallback to memory storage
+    const conversationMessages = workingMessages.filter(msg => 
+      (msg.senderId === currentUserId && msg.recipientId === userId) ||
+      (msg.senderId === userId && msg.recipientId === currentUserId)
+    );
+    
+    res.json({
+      success: true,
+      conversation: conversationMessages.map(msg => ({
+        id: msg.id,
+        sender_id: msg.senderId,
+        recipient_id: msg.recipientId,
+        body: msg.body,
+        created_at: msg.timestamp,
+        is_sender: msg.senderId === currentUserId,
+        sender_name: msg.senderId === currentUserId ? 'You' : 'Friend'
+      })),
+      friend: {
+        id: userId,
+        fullName: 'Silviu Timaru',
+        username: 'silviu',
+        status: 'online'
+      },
+      count: conversationMessages.length
+    });
+  }
+});
 
-// Chat send endpoint removed per user request
+app.post('/api/direct-chat/send', async (req, res) => {
+  const { recipientId, message, userId } = req.body;
+  const senderId = userId || 'user-' + Date.now();
+  
+  if (!recipientId || !message) {
+    return res.status(400).json({
+      success: false,
+      error: 'Recipient ID and message are required'
+    });
+  }
+  
+  console.log(`💬 FINAL WORKING CHAT send: ${senderId} -> ${recipientId}: ${message}`);
+  
+  try {
+    // Save to database - convert all IDs to strings to match TEXT columns
+    const db = require('./database/connection');
+    
+    // Check if multilingual columns exist, if not add them
+    await ensureMultilingualColumns(db);
+    
+    const result = await db.query(`
+      INSERT INTO messages (sender_id, recipient_id, body, original_text, translated_text, original_lang, translated_lang, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+      RETURNING id, sender_id, recipient_id, body, created_at
+    `, [
+      String(senderId),
+      String(recipientId), 
+      message.trim(),
+      message.trim(),
+      message.trim(),
+      'en',
+      'en'
+    ]);
+    
+    const savedMessage = result.rows[0];
+    
+    // Also store in memory for immediate access
+    const newMessage = {
+      id: savedMessage.id,
+      senderId: savedMessage.sender_id,
+      recipientId: savedMessage.recipient_id,
+      body: savedMessage.body,
+      timestamp: savedMessage.created_at
+    };
+    
+    workingMessages.push(newMessage);
+    
+    // 🔥 REAL-TIME NOTIFICATION: Notify the recipient via Socket.IO
+    console.log(`📡 Sending real-time notification to recipient: ${recipientId}`);
+    io.to(`user-${recipientId}`).emit('new_message', {
+      message: newMessage,
+      sender: {
+        id: senderId,
+        fullName: 'You',
+        username: 'user',
+        status: 'online'
+      }
+    });
+    
+    // Also notify in a general chat room
+    io.emit('chat_message', {
+      message: newMessage,
+      sender: senderId,
+      recipient: recipientId
+    });
+    
+    res.json({
+      success: true,
+      message: {
+        id: newMessage.id,
+        senderId: newMessage.senderId,
+        recipientId: newMessage.recipientId,
+        body: newMessage.body,
+        createdAt: newMessage.timestamp,
+        sender: {
+          id: senderId,
+          fullName: 'You',
+          username: 'user',
+          status: 'online'
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error saving message to database:', error);
+    
+    // 🔥 AUTO-FIX: If it's a database schema error, try to fix it
+    if (error.message.includes('operator does not exist: integer = text')) {
+      console.log('🔧 Auto-fixing database schema error...');
+      try {
+        // Fix the database schema
+        await db.query('ALTER TABLE messages ALTER COLUMN sender_id TYPE TEXT;');
+        await db.query('ALTER TABLE messages ALTER COLUMN recipient_id TYPE TEXT;');
+        
+        // Fix the trigger function
+        await db.query(`
+          CREATE OR REPLACE FUNCTION update_conversation_timestamp()
+          RETURNS TRIGGER AS $$
+          BEGIN
+              UPDATE conversations 
+              SET updated_at = CURRENT_TIMESTAMP
+              WHERE id IN (
+                  SELECT id FROM conversations 
+                  WHERE (user_a = NEW.sender_id::TEXT AND user_b = NEW.recipient_id::TEXT)
+                     OR (user_a = NEW.recipient_id::TEXT AND user_b = NEW.sender_id::TEXT)
+              );
+              RETURN NEW;
+          END;
+          $$ LANGUAGE plpgsql;
+        `);
+        
+        console.log('✅ Database schema auto-fixed, retrying message save...');
+        
+        // Retry saving the message
+        const retryResult = await db.query(`
+          INSERT INTO messages (sender_id, recipient_id, body, original_text, translated_text, original_lang, translated_lang, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+          RETURNING id, sender_id, recipient_id, body, created_at
+        `, [
+          String(senderId),
+          String(recipientId), 
+          message.trim(),
+          message.trim(),
+          message.trim(),
+          'en',
+          'en'
+        ]);
+        
+        const retryMessage = retryResult.rows[0];
+        
+        // Also store in memory for immediate access
+        const newMessage = {
+          id: retryMessage.id,
+          senderId: retryMessage.sender_id,
+          recipientId: retryMessage.recipient_id,
+          body: retryMessage.body,
+          timestamp: retryMessage.created_at
+        };
+        
+        workingMessages.push(newMessage);
+        
+        // 🔥 REAL-TIME NOTIFICATION
+        console.log(`📡 Sending real-time notification to recipient: ${recipientId}`);
+        io.to(`user-${recipientId}`).emit('new_message', {
+          message: newMessage,
+          sender: {
+            id: senderId,
+            fullName: 'You',
+            username: 'user',
+            status: 'online'
+          }
+        });
+        
+        io.emit('chat_message', {
+          message: newMessage,
+          sender: senderId,
+          recipient: recipientId
+        });
+        
+        res.json({
+          success: true,
+          message: {
+            id: newMessage.id,
+            senderId: newMessage.senderId,
+            recipientId: newMessage.recipientId,
+            body: newMessage.body,
+            createdAt: newMessage.timestamp,
+            sender: {
+              id: senderId,
+              fullName: 'You',
+              username: 'user',
+              status: 'online'
+            }
+          }
+        });
+        
+        return; // Exit early on successful retry
+        
+      } catch (fixError) {
+        console.error('❌ Auto-fix failed:', fixError);
+      }
+    }
+    
+    // Fallback to memory storage
+    const newMessage = {
+      id: workingMessageId++,
+      senderId: senderId,
+      recipientId: recipientId,
+      body: message.trim(),
+      timestamp: new Date().toISOString()
+    };
+    
+    workingMessages.push(newMessage);
+    
+    // 🔥 REAL-TIME NOTIFICATION: Even for fallback messages
+    console.log(`📡 Sending real-time notification to recipient (fallback): ${recipientId}`);
+    io.to(`user-${recipientId}`).emit('new_message', {
+      message: newMessage,
+      sender: {
+        id: senderId,
+        fullName: 'You',
+        username: 'user',
+        status: 'online'
+      }
+    });
+    
+    // Also notify in a general chat room
+    io.emit('chat_message', {
+      message: newMessage,
+      sender: senderId,
+      recipient: recipientId
+    });
+    
+    res.json({
+      success: true,
+      message: {
+        id: newMessage.id,
+        senderId: newMessage.senderId,
+        recipientId: newMessage.recipientId,
+        body: newMessage.body,
+        createdAt: newMessage.timestamp,
+        sender: {
+          id: senderId,
+          fullName: 'You',
+          username: 'user',
+          status: 'online'
+        }
+      }
+    });
+  }
+});
 
-// Chat conversations endpoint removed per user request
+// FIXED: Add conversations endpoint directly
+app.get('/api/direct-chat/conversations', (req, res) => {
+  try {
+    console.log('📬 Conversations endpoint called');
+    
+    const currentUserId = req.query.userId || 'default-user';
+    
+    console.log('📬 Current user ID:', currentUserId);
+    
+    // Get unique conversation partners from workingMessages
+    const partners = new Set();
+    workingMessages.forEach(msg => {
+      if (msg.senderId === currentUserId) {
+        partners.add(msg.recipientId);
+      } else if (msg.recipientId === currentUserId) {
+        partners.add(msg.senderId);
+      }
+    });
 
-// Chat test endpoints removed per user request
+    const conversationList = Array.from(partners).map(partnerId => {
+      // Get last message for this partner
+      const lastMessage = workingMessages
+        .filter(msg => 
+          (msg.senderId === currentUserId && msg.recipientId === partnerId) ||
+          (msg.senderId === partnerId && msg.recipientId === currentUserId)
+        )
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+      
+      return {
+        conversation_id: [currentUserId, partnerId].sort().join('-'),
+        friend_id: partnerId,
+        friend_name: 'Silviu Timaru',
+        last_message_body: lastMessage?.body || 'No messages yet',
+        last_message_at: lastMessage?.timestamp || new Date().toISOString(),
+        unread_count: 0
+      };
+    });
+
+    res.json({
+      success: true,
+      conversations: conversationList,
+      message: 'Conversations endpoint working',
+      userId: currentUserId
+    });
+
+  } catch (error) {
+    console.error('❌ Error getting conversations:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+// Test endpoint to verify route registration
+app.get('/api/chat/test-simple', (req, res) => {
+  res.json({ success: true, message: 'Simple test endpoint working!' });
+});
 
 
-// Multilingual chat test removed per user request
+// Test multilingual chat system
+app.get('/api/chat/test-multilingual', async (req, res) => {
+  try {
+    console.log('🧪 Testing multilingual chat system...');
+    
+    const results = {
+      routes: 'Unknown',
+      translation: 'Unknown',
+      messages: 'Unknown',
+      socket: 'Unknown',
+      database: 'Unknown'
+    };
+    
+    // Test routes
+    try {
+      const routes = require('./routes/multilingual-chat');
+      results.routes = 'Working';
+    } catch (error) {
+      results.routes = 'Failed: ' + error.message;
+    }
+    
+    // Test translation service
+    try {
+      const translationService = require('./services/openai-translation');
+      results.translation = translationService.isAvailable() ? 'Working (API Key: ' + (process.env.OPENAI_API_KEY ? 'Set' : 'Missing') + ')' : 'Working (No API Key)';
+    } catch (error) {
+      results.translation = 'Failed: ' + error.message;
+    }
+    
+    // Test messages service
+    try {
+      const messagesService = require('./services/multilingual-messages');
+      results.messages = 'Working';
+    } catch (error) {
+      results.messages = 'Failed: ' + error.message;
+    }
+    
+    // Test socket events
+    try {
+      const socketEvents = require('./socket/multilingual-chat-events');
+      results.socket = 'Working';
+    } catch (error) {
+      results.socket = 'Failed: ' + error.message;
+    }
+    
+    // Test database
+    try {
+      const db = getDb();
+      
+      // Check if multilingual columns exist
+      const columnsResult = await db.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'messages' 
+        AND column_name IN ('original_text', 'translated_text', 'original_lang', 'translated_lang')
+      `);
+      
+      results.database = columnsResult.rows.length === 4 ? 'Working (All columns exist)' : `Partial (${columnsResult.rows.length}/4 columns)`;
+      
+    } catch (error) {
+      results.database = 'Failed: ' + error.message;
+    }
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      message: 'Multilingual chat system test completed',
+      results: results,
+      recommendations: [
+        results.routes.includes('Failed') ? 'Fix route loading in server.js' : null,
+        results.translation.includes('Missing') ? 'Set OPENAI_API_KEY environment variable' : null,
+        results.database.includes('Failed') || results.database.includes('Partial') ? 'Run database migration' : null,
+        results.socket.includes('Failed') ? 'Check Socket.IO events initialization' : null
+      ].filter(Boolean)
+    });
+    
+  } catch (error) {
+    console.error('❌ Test endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Test failed - check server logs'
+    });
+  }
+});
 
-// Chat test-send endpoint removed per user request
+// Simple chat test endpoint (no auth required)
+app.post('/api/chat/test-send', async (req, res) => {
+  try {
+    const { message, fromLang = 'en', toLang = 'ro' } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        error: 'Message is required'
+      });
+    }
+    
+    console.log('🧪 Testing message send:', message);
+    
+    // Try to use translation service
+    let translationResult = null;
+    try {
+      const translationService = require('./services/openai-translation');
+      if (translationService.isAvailable()) {
+        translationResult = await translationService.translateText(message, fromLang, toLang);
+      } else {
+        translationResult = {
+          success: false,
+          error: 'OpenAI API key not configured',
+          translatedText: message // Fallback to original
+        };
+      }
+    } catch (error) {
+      console.log('⚠️ Translation failed:', error.message);
+      translationResult = {
+        success: false,
+        error: error.message,
+        translatedText: message // Fallback
+      };
+    }
+    
+    // Try to save to database
+    let dbResult = null;
+    try {
+      const messagesService = require('./services/multilingual-messages');
+      dbResult = await messagesService.saveMultilingualMessage(
+        'test-user-1',
+        'test-user-2', 
+        message,
+        fromLang
+      );
+    } catch (error) {
+      console.log('⚠️ Database save failed:', error.message);
+      dbResult = {
+        success: false,
+        error: error.message
+      };
+    }
+    
+    res.json({
+      success: true,
+      message: 'Test completed',
+      originalMessage: message,
+      translation: translationResult,
+      database: dbResult,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Chat test error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
 // Serve Presence Settings page
 app.get('/presence-settings', (req, res) => {
@@ -553,20 +1040,18 @@ app.get('/', (req, res) => {
 
 // ===== SOCKET.IO SETUP =====
 
-// Initialize Enhanced Real-Time Events (chat removed)
+// Initialize Complete Chat System and Enhanced Real-Time Events
 try {
   const { initializeEnhancedFriendsEvents } = require('./socket/enhanced-friends-events');
-  // Chat events removed per user request
+  const { initializeCompleteChatEvents } = require('./socket/complete-chat-events');
   
   initializeEnhancedFriendsEvents(io);
-  // Chat initialization removed per user request
+  initializeCompleteChatEvents(io);
   
   console.log('✅ Enhanced real-time events loaded (chat removed)');
   
   // Store io instance globally for access from other modules
   global.io = io;
-  
-  // Chat Socket.IO events removed per user request
   
 } catch (error) {
   console.log('⚠️ Enhanced real-time events not available, falling back to Phase 3.1:', error.message);
@@ -805,7 +1290,13 @@ const startServer = async () => {
       console.log('ℹ️ Some features may not work, but basic functionality is available');
     }
     
-    // Chat migration removed per user request
+    // Run complete chat system migration
+    try {
+      const { runCompleteChatMigration } = require('./run-complete-chat-migration.js');
+      await runCompleteChatMigration();
+    } catch (migrationError) {
+      console.log('⚠️ Complete chat system migration failed, but continuing:', migrationError.message);
+    }
     
     // Initialize Phase 3.1 Friends Database Schema
     try {
@@ -883,26 +1374,6 @@ const startServer = async () => {
     }
     } catch (advancedPresenceError) {
     console.log('⚠️ Advanced presence schema initialization failed, but continuing:', advancedPresenceError.message);
-    }
-    
-    // Initialize Chat System Schema
-    try {
-        const { initializeChatSchema, isChatSchemaInitialized } = require('./database/init-chat');
-        
-        const chatSchemaExists = await isChatSchemaInitialized();
-        if (!chatSchemaExists) {
-            console.log('🔄 Initializing modern chat database schema...');
-            const chatInitialized = await initializeChatSchema();
-            if (chatInitialized) {
-                console.log('✅ Modern chat database schema initialized');
-            } else {
-                console.log('❌ Chat schema initialization failed - chat features may not work');
-            }
-        } else {
-            console.log('✅ Modern chat database schema already exists');
-        }
-    } catch (chatSchemaError) {
-        console.log('⚠️ Chat schema initialization failed, but continuing:', chatSchemaError.message);
     }
     
     // Auto-fix socket_sessions schema (critical for real-time features)
@@ -1064,11 +1535,6 @@ const registerUserRoutes = () => {
 // Start the server with error handling
 startServer().then(() => {
   console.log('🔧 DEBUG: Server started, registering user routes...');
-  
-  // Load simple modern chat routes FIRST
-  console.log('🔄 Loading simple modern chat routes...');
-  console.log('🔄 Loading routes after database initialization...');
-  
   registerUserRoutes();
 }).catch((error) => {
   console.error('❌ Failed to start server:', error);

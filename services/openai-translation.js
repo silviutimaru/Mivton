@@ -176,8 +176,8 @@ Text to translate: "${text}"`;
                     }
                 ],
                 max_tokens: 1000,
-                temperature: 0.3,
-                timeout: 20000
+                temperature: 0.3
+                // 🔥 FIXED: Removed invalid timeout parameter
             });
 
             const translatedText = response.choices[0]?.message?.content?.trim();
@@ -249,8 +249,8 @@ Text: "${text}"`;
                     }
                 ],
                 max_tokens: 10,
-                temperature: 0.1,
-                timeout: 10000
+                temperature: 0.1
+                // 🔥 FIXED: Removed invalid timeout parameter
             });
 
             const detectedLang = response.choices[0]?.message?.content?.trim().toLowerCase();

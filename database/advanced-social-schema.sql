@@ -129,35 +129,7 @@ CREATE TABLE IF NOT EXISTS user_privacy_settings (
     UNIQUE(user_id, setting_key, applies_to_group_id)
 );
 
--- =============================================
--- CONVERSATION PREVIEWS TABLE
--- =============================================
--- Quick access to recent conversations and unread counts
-CREATE TABLE IF NOT EXISTS conversation_previews (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    friend_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    last_message_preview TEXT, -- Truncated preview of last message
-    last_message_type VARCHAR(50) DEFAULT 'text', -- 'text', 'image', 'file', 'voice', 'video'
-    last_interaction_type VARCHAR(50) DEFAULT 'message', -- 'message', 'call', 'video_call'
-    unread_count INTEGER DEFAULT 0,
-    is_priority BOOLEAN DEFAULT FALSE, -- Marked as important conversation
-    is_muted BOOLEAN DEFAULT FALSE, -- User muted this conversation
-    last_activity_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Constraints
-    CONSTRAINT valid_message_type CHECK (
-        last_message_type IN ('text', 'image', 'file', 'voice', 'video', 'system')
-    ),
-    CONSTRAINT valid_interaction_type_conv CHECK (
-        last_interaction_type IN ('message', 'call', 'video_call', 'group_activity')
-    ),
-    CONSTRAINT valid_unread_count CHECK (unread_count >= 0),
-    
-    -- One preview per user-friend pair
-    UNIQUE(user_id, friend_id)
-);
+-- Conversation previews table removed per user request (chat functionality)
 
 -- =============================================
 -- SOCIAL ANALYTICS CACHE TABLE

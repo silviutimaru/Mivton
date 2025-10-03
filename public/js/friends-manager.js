@@ -1340,7 +1340,7 @@ class MivtonMessagesManager extends MivtonBaseComponent {
                     </div>
                     
                     <div class="conversation-preview">
-                        <p class="conversation-message">${conv.last_message_body || 'No messages yet'}</p>
+                        <p class="conversation-message">${conv.last_message || 'No messages yet'}</p>
                         ${conv.unread_count > 0 ? `<span class="unread-count">${conv.unread_count}</span>` : ''}
                     </div>
                 </div>

@@ -249,10 +249,19 @@ router.post('/login', authLimiter, loginValidation, async (req, res) => {
     };
 
     // Update last login and status
-    await query(
-      'UPDATE users SET last_login = CURRENT_TIMESTAMP, status = $1 WHERE id = $2',
-      ['online', user.id]
-    );
+    try {
+      // Try PostgreSQL syntax first
+      await query(
+        'UPDATE users SET status = $1 WHERE id = $2',
+        ['online', user.id]
+      );
+    } catch (error) {
+      // Fallback to SQLite syntax
+      await query(
+        "UPDATE users SET status = ? WHERE id = ?",
+        ['online', user.id]
+      );
+    }
 
     res.json({
       success: true,
@@ -297,10 +306,20 @@ router.get('/me', async (req, res) => {
   try {
     // Fetch fresh user data from database to ensure admin status is current
     const db = getDb();
-    const userResult = await db.query(
-      'SELECT id, username, email, full_name, gender, native_language, is_verified, is_admin, admin_level, status, last_login, created_at FROM users WHERE id = $1',
-      [req.session.userId]
-    );
+    let userResult;
+    try {
+      // Try PostgreSQL syntax first
+      userResult = await db.query(
+        'SELECT id, username, email, full_name, gender, native_language, is_verified, is_admin, admin_level, status, last_login, created_at FROM users WHERE id = $1',
+        [req.session.userId]
+      );
+    } catch (error) {
+      // Fallback to SQLite syntax without last_login column
+      userResult = await db.query(
+        'SELECT id, username, email, full_name, gender, native_language, is_verified, is_admin, admin_level, status, created_at FROM users WHERE id = ?',
+        [req.session.userId]
+      );
+    }
 
     if (userResult.rows.length === 0) {
       // User doesn't exist anymore, destroy session

@@ -73,20 +73,7 @@ async function initializeAdvancedSocial() {
             )
         `);
         
-        // Create conversation previews table
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS conversation_previews (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                friend_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                last_message_preview TEXT,
-                last_message_at TIMESTAMP,
-                unread_count INTEGER DEFAULT 0,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                
-                UNIQUE(user_id, friend_id)
-            )
-        `);
+        // Conversation previews table removed (chat functionality)
         
         console.log('✅ Advanced social schema created successfully');
         return true;
