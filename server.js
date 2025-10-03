@@ -352,8 +352,8 @@ try {
 
 // Phase 3.1 Friends System Routes  
 try {
-  // Use simple friends bypass to avoid PostgreSQL syntax issues
-  const friendsRoutes = require('./routes/simple-friends');
+  // Use real friends route with database integration
+  const friendsRoutes = require('./routes/friends');
   const friendRequestsRoutes = require('./routes/friend-requests');
   const blockedUsersRoutes = require('./routes/blocked-users');
   const socialNotificationsRoutes = require('./routes/social-notifications');

@@ -214,10 +214,7 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                             </div>
                             
                             <div class="friend-actions-list">
-                                <button class="action-btn chat" data-action="chat" data-friend-id="${this.selectedFriendId}" onclick="startDirectChatFromModal(this)">
-                                    <i class="fas fa-comments"></i>
-                                    Start Chat
-                                </button>
+                                <!-- Chat button removed - chat functionality no longer available -->
                                 
                                 <button class="action-btn profile" data-action="view-profile">
                                     <i class="fas fa-user"></i>
@@ -449,10 +446,7 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                 </div>
                 
                 <div class="friend-actions">
-                    <button class="btn btn-sm btn-primary chat-button" data-action="direct-chat" data-friend-id="${friend.id || friend.user_id || friend.friend_id || 'unknown'}" onclick="startDirectChat('${friend.id || friend.user_id || friend.friend_id || 'unknown'}', '${friend.full_name.replace(/'/g, "\\'")}')" title="Start Chat">
-                        <i class="fas fa-comments"></i>
-                        <span>Chat</span>
-                    </button>
+                    <!-- Chat button removed - chat functionality no longer available -->
                     
                     <button class="btn btn-sm btn-secondary" data-action="more" data-friend-id="${friend.id || friend.user_id || friend.friend_id || 'unknown'}" title="More Options">
                         <i class="fas fa-ellipsis-v"></i>
