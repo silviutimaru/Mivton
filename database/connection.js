@@ -82,7 +82,14 @@ if (isLocalDev) {
       console.log('📊 Query executed', { text: text.substring(0, 50) + '...', duration, rows: res.rowCount });
       return res;
     } catch (err) {
-      console.error('❌ Query error:', err.message);
+      console.error('❌ Query error:', {
+        message: err.message,
+        code: err.code,
+        detail: err.detail,
+        hint: err.hint,
+        query: text.substring(0, 100) + '...',
+        params: params ? params.length : 0
+      });
       throw err;
     }
   };

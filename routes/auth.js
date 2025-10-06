@@ -270,8 +270,16 @@ router.post('/login', authLimiter, loginValidation, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Server error during login' });
+    console.error('❌ Login error:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+      email: email ? email.substring(0, 3) + '***' : 'none'
+    });
+    res.status(500).json({
+      error: 'Server error during login',
+      details: process.env.NODE_ENV === 'production' ? undefined : error.message
+    });
   }
 });
 

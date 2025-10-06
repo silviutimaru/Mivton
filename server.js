@@ -156,7 +156,7 @@ app.get('/health', async (req, res) => {
   try {
     const db = getDb();
     await db.query('SELECT 1');
-    
+
     res.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
@@ -172,6 +172,60 @@ app.get('/health', async (req, res) => {
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
       error: error.message
+    });
+  }
+});
+
+// Database diagnostic endpoint
+app.get('/api/debug/database', async (req, res) => {
+  try {
+    const diagnostics = {
+      timestamp: new Date().toISOString(),
+      environment: {
+        NODE_ENV: process.env.NODE_ENV,
+        DATABASE_URL_EXISTS: !!process.env.DATABASE_URL,
+        DATABASE_URL_PREFIX: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 15) + '...' : 'MISSING',
+        RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT || 'not set',
+        PORT: process.env.PORT
+      },
+      connection: {
+        status: 'unknown',
+        error: null
+      }
+    };
+
+    // Try to connect to database
+    try {
+      const db = getDb();
+      const result = await db.query('SELECT NOW() as current_time, current_database() as db_name');
+
+      diagnostics.connection.status = 'connected';
+      diagnostics.connection.currentTime = result.rows[0].current_time;
+      diagnostics.connection.databaseName = result.rows[0].db_name;
+
+      // Try to query users table
+      try {
+        const userCount = await db.query('SELECT COUNT(*) as count FROM users');
+        diagnostics.connection.userCount = parseInt(userCount.rows[0].count);
+        diagnostics.connection.usersTableExists = true;
+      } catch (tableError) {
+        diagnostics.connection.usersTableExists = false;
+        diagnostics.connection.tableError = tableError.message;
+      }
+
+    } catch (dbError) {
+      diagnostics.connection.status = 'failed';
+      diagnostics.connection.error = dbError.message;
+      diagnostics.connection.errorCode = dbError.code;
+      diagnostics.connection.errorStack = process.env.NODE_ENV === 'production' ? 'hidden' : dbError.stack;
+    }
+
+    res.json(diagnostics);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Diagnostic failed',
+      message: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
