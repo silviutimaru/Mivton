@@ -38,11 +38,11 @@
             <form id="loginForm" class="auth-form">
                 <!-- Email field -->
                 <div class="form-group">
-                    <label for="email" class="form-label">Email Address</label>
+                    <label for="loginEmail" class="form-label">Email Address</label>
                     <div class="input-container">
                         <input 
                             type="email" 
-                            id="email" 
+                            id="loginEmail" 
                             name="email" 
                             class="form-input" 
                             placeholder="Enter your email"
@@ -57,16 +57,16 @@
                             </svg>
                         </div>
                     </div>
-                    <div class="field-error" id="emailError"></div>
+                    <div class="field-error" id="loginEmailError"></div>
                 </div>
 
                 <!-- Password field -->
                 <div class="form-group">
-                    <label for="password" class="form-label">Password</label>
+                    <label for="loginPassword" class="form-label">Password</label>
                     <div class="input-container">
                         <input 
                             type="password" 
-                            id="password" 
+                            id="loginPassword" 
                             name="password" 
                             class="form-input" 
                             placeholder="Enter your password"
@@ -81,7 +81,7 @@
                                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                             </svg>
                         </div>
-                        <button type="button" class="password-toggle" id="passwordToggle">
+                        <button type="button" class="password-toggle" id="loginPasswordToggle">
                             <svg class="eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                 <circle cx="12" cy="12" r="3"></circle>
@@ -92,7 +92,7 @@
                             </svg>
                         </button>
                     </div>
-                    <div class="field-error" id="passwordError"></div>
+                    <div class="field-error" id="loginPasswordError"></div>
                 </div>
 
                 <!-- Remember me and forgot password -->

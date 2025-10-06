@@ -213,8 +213,9 @@ const initDebouncedFunctions = () => {
 
 // Password Toggle Functionality
 const initPasswordToggle = () => {
-    const passwordField = document.getElementById('password');
-    const toggleButton = document.getElementById('passwordToggle');
+    // Try login page IDs first, then register page IDs
+    const passwordField = document.getElementById('loginPassword') || document.getElementById('registerPassword');
+    const toggleButton = document.getElementById('loginPasswordToggle') || document.getElementById('registerPasswordToggle');
     
     if (!passwordField || !toggleButton) return;
     
@@ -285,14 +286,29 @@ const validateForm = (formData, isLogin = false) => {
 };
 
 const displayValidationErrors = (errors) => {
+    // Determine page prefix based on current page
+    const isLoginPage = window.location.pathname.includes('login.html');
+    const prefix = isLoginPage ? 'login' : 'register';
+    
     // Clear all errors first
-    ['username', 'email', 'password', 'fullName', 'gender', 'nativeLanguage', 'agreeTerms'].forEach(field => {
+    const fields = ['username', 'email', 'password', 'fullName', 'gender', 'nativeLanguage', 'agreeTerms'];
+    fields.forEach(field => {
+        // Try both prefixed and non-prefixed versions for compatibility
+        hideError(`${prefix}${field.charAt(0).toUpperCase() + field.slice(1)}Error`);
         hideError(`${field}Error`);
     });
     
     // Show new errors
     Object.keys(errors).forEach(field => {
-        showError(`${field}Error`, errors[field]);
+        const prefixedField = `${prefix}${field.charAt(0).toUpperCase() + field.slice(1)}Error`;
+        const regularField = `${field}Error`;
+        
+        // Try prefixed version first, fallback to regular
+        if (document.getElementById(prefixedField)) {
+            showError(prefixedField, errors[field]);
+        } else {
+            showError(regularField, errors[field]);
+        }
     });
 };
 
@@ -382,7 +398,7 @@ const initRegisterPage = () => {
     }
     
     // Email availability check
-    const emailField = document.getElementById('email');
+    const emailField = document.getElementById('registerEmail');
     if (emailField) {
         emailField.addEventListener('input', (e) => {
             if (debouncedEmailCheck) {
@@ -392,7 +408,7 @@ const initRegisterPage = () => {
     }
     
     // Password strength indicator
-    const passwordField = document.getElementById('password');
+    const passwordField = document.getElementById('registerPassword');
     if (passwordField) {
         passwordField.addEventListener('input', (e) => {
             updatePasswordStrength(e.target.value);
