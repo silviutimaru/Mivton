@@ -81,8 +81,12 @@ class Dashboard {
             if (response.ok) {
                 const data = await response.json();
                 this.currentUser = data.user || data;
+
+                // Set globally for chat system
+                window.currentUser = this.currentUser;
+
                 this.updateUserDisplay();
-                console.log('✅ User data loaded');
+                console.log('✅ User data loaded:', this.currentUser);
             } else if (response.status === 401) {
                 // User not authenticated, redirect to login
                 window.location.href = '/login.html';
@@ -576,34 +580,37 @@ class Dashboard {
 
     showSection(sectionName) {
         console.log('📄 Showing section:', sectionName);
-        
+
         // Update navigation
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
         });
-        
+
         document.querySelectorAll('.content-section').forEach(section => {
             section.classList.remove('active');
         });
-        
+
         // Activate current section
         const activeNavItem = document.querySelector(`[data-section="${sectionName}"]`);
         const activeSection = document.getElementById(`${sectionName}-section`);
-        
+
         if (activeNavItem) {
             activeNavItem.classList.add('active');
         }
-        
+
         if (activeSection) {
             activeSection.classList.add('active');
         }
-        
+
         // Update header
         this.updateSectionHeader(sectionName);
-        
+
+        // Dispatch section changed event for chat state management
+        document.dispatchEvent(new CustomEvent('sectionChanged', { detail: sectionName }));
+
         // Load section-specific data
         this.loadSectionData(sectionName);
-        
+
         this.currentSection = sectionName;
     }
 
