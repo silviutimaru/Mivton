@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="/css/dropdown-fix.css">
     <link rel="stylesheet" href="/css/dashboard-language-selector.css">
     <link rel="stylesheet" href="/css/simple-chat.css">
+    <link rel="stylesheet" href="/css/friend-chat.css">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -30,118 +31,72 @@
     </div>
 
     <div class="dashboard-wrapper" id="dashboardWrapper">
-        <!-- Mobile Header -->
-        <header class="mobile-header">
-            <button class="mobile-menu-btn" id="mobileMenuBtn">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <div class="mobile-logo">MIVTON</div>
-            <div class="mobile-user-avatar" id="mobileUserAvatar">?</div>
-        </header>
-
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-logo">
+        <!-- Top Header with Navigation Tabs -->
+        <header class="top-header">
+            <div class="header-brand">
+                <div class="brand-logo">
                     <h1>MIVTON</h1>
                     <span class="version">v2.1</span>
                 </div>
-                <button class="sidebar-close" id="sidebarClose">×</button>
-            </div>
-
-            <div class="sidebar-user">
-                <div class="user-avatar" id="userAvatar">?</div>
-                <div class="user-details">
-                    <div class="user-name" id="userName">Loading...</div>
-                    <div class="user-status">
-                        <div class="status-indicator online"></div>
-                        <span>Online</span>
-                    </div>
+                <div class="user-info-compact">
+                    <div class="user-avatar-small" id="userAvatarSmall">?</div>
+                    <div class="user-name-small" id="userNameSmall">Loading...</div>
                 </div>
             </div>
 
-            <nav class="sidebar-nav">
-                <div class="nav-section">
-                    <div class="nav-section-title">Social</div>
-                    <a href="#" class="nav-item active" data-section="overview">
-                        <div class="nav-icon">🏠</div>
-                        <span>Overview</span>
-                    </a>
-                    <a href="#" class="nav-item" data-section="friends">
-                        <div class="nav-icon">🫂</div>
-                        <span>Friends</span>
-                        <div class="nav-badge" id="friendsCount">0</div>
-                    </a>
-                    <a href="#" class="nav-item" data-section="requests">
-                        <div class="nav-icon">📨</div>
-                        <span>Requests</span>
-                        <div class="nav-badge notification" id="requestsCount">0</div>
-                    </a>
-                    </a>
-                    <a href="#" class="nav-item" data-section="find">
-                        <div class="nav-icon">🔍</div>
-                        <span>Find Users</span>
-                    </a>
-                </div>
-
-                <div class="nav-section">
-                    <div class="nav-section-title">Settings</div>
-                    <a href="#" class="nav-item" data-section="blocked">
-                        <div class="nav-icon">🚫</div>
-                        <span>Blocked Users</span>
-                        <div class="nav-badge" id="blockedCount">0</div>
-                    </a>
-                    <a href="#" class="nav-item" data-section="profile">
-                        <div class="nav-icon">⚙️</div>
-                        <span>Profile & Settings</span>
-                    </a>
-                    <a href="#" class="nav-item admin-nav-item" data-section="admin" id="adminNavItem" style="display: block;">
-                        <div class="nav-icon">👑</div>
-                        <span>Admin</span>
-                    </a>
-                </div>
+            <!-- Navigation Tabs -->
+            <nav class="tab-navigation">
+                <a href="#" class="tab-item active" data-section="overview">
+                    <div class="tab-icon">🏠</div>
+                    <span>Overview</span>
+                </a>
+                <a href="#" class="tab-item" data-section="friends">
+                    <div class="tab-icon">🫂</div>
+                    <span>Friends</span>
+                    <div class="tab-badge" id="friendsCount">0</div>
+                </a>
+                <a href="#" class="tab-item" data-section="chat">
+                    <div class="tab-icon">💬</div>
+                    <span>Chat</span>
+                    <div class="tab-badge notification" id="chatUnreadCount">0</div>
+                </a>
+                <a href="#" class="tab-item" data-section="requests">
+                    <div class="tab-icon">📨</div>
+                    <span>Requests</span>
+                    <div class="tab-badge notification" id="requestsCount">0</div>
+                </a>
+                <a href="#" class="tab-item" data-section="find">
+                    <div class="tab-icon">🔍</div>
+                    <span>Find Users</span>
+                </a>
+                <a href="#" class="tab-item" data-section="blocked">
+                    <div class="tab-icon">🚫</div>
+                    <span>Blocked</span>
+                    <div class="tab-badge" id="blockedCount">0</div>
+                </a>
+                <a href="#" class="tab-item" data-section="profile">
+                    <div class="tab-icon">⚙️</div>
+                    <span>Settings</span>
+                </a>
+                <a href="#" class="tab-item admin-tab-item" data-section="admin" id="adminTabItem" style="display: none;">
+                    <div class="tab-icon">👑</div>
+                    <span>Admin</span>
+                </a>
             </nav>
 
-            <div class="sidebar-footer">
-                <button class="logout-btn" id="logoutBtn">
-                    <div class="nav-icon">🚪</div>
-                    <span>Logout</span>
+            <div class="header-actions">
+                <div class="notifications-btn" id="notificationsBtn">
+                    <div class="bell-icon">🔔</div>
+                    <div class="notification-badge" id="notificationBadge">0</div>
+                </div>
+                <button class="logout-btn-compact" id="logoutBtn" title="Logout">
+                    <div class="logout-icon">🚪</div>
                 </button>
             </div>
-        </aside>
+        </header>
 
         <!-- Main Content Area -->
         <main class="main-content">
-            <!-- Header Bar -->
-            <header class="main-header">
-                <div class="header-left">
-                    <h1 class="section-title" id="sectionTitle">Overview</h1>
-                    <div class="breadcrumb" id="breadcrumb">
-                        <span>Dashboard</span>
-                        <span class="separator">›</span>
-                        <span id="currentSection">Overview</span>
-                    </div>
-                </div>
-                <div class="header-right">
-                    <div class="header-stats">
-                        <div class="stat-item">
-                            <div class="stat-value" id="onlineCount">1</div>
-                            <div class="stat-label">Online</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="totalFriends">0</div>
-                            <div class="stat-label">Friends</div>
-                        </div>
-                    </div>
-                    <div class="notifications-btn" id="notificationsBtn">
-                        <div class="bell-icon">🔔</div>
-                        <div class="notification-badge" id="notificationBadge">0</div>
-                    </div>
-                </div>
-            </header>
-
             <!-- Content Sections -->
             <div class="content-container">
                 <!-- Overview Section -->
@@ -243,6 +198,40 @@
                     <div class="friends-container">
                         <!-- Phase 3.1 Friends Manager Component will be initialized here -->
                         <div data-component="friends-manager" id="friendsManager"></div>
+                    </div>
+                </section>
+
+                <!-- Chat Section -->
+                <section class="content-section" id="chat-section">
+                    <div class="chat-layout">
+                        <!-- Left: Conversations List -->
+                        <div class="chat-conversations-container">
+                            <div class="section-header">
+                                <h2>Messages</h2>
+                                <div class="chat-stats">
+                                    <span id="conversationsCount">0 conversations</span>
+                                </div>
+                            </div>
+
+                            <div class="conversations-list" id="conversationsList">
+                                <div class="empty-state">
+                                    <div class="empty-icon">💬</div>
+                                    <h3>No conversations yet</h3>
+                                    <p>Start chatting with your friends to see conversations here.</p>
+                                    <button class="empty-action-btn" onclick="showSection('friends')">
+                                        View Friends
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Chat Window -->
+                        <div class="chat-window-container" id="chatWindowContainer">
+                            <div class="chat-placeholder">
+                                <div class="placeholder-icon">💬</div>
+                                <p>Select a conversation to start chatting</p>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -831,7 +820,8 @@
     <!-- 9. Main dashboard logic (LAST) -->
     <script src="/js/dashboard.js"></script>
     <script src="/js/simple-messaging.js"></script>
-    
+    <script src="/js/friend-chat.js"></script>
+
     <!-- 9. Debug utilities (for development) -->
     <script src="/js/modal-debug.js"></script>
     <script src="/js/simple-modal-test.js"></script>

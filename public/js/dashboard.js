@@ -102,21 +102,21 @@ class Dashboard {
 
     updateUserDisplay() {
         if (!this.currentUser) return;
-        
+
         const userName = this.currentUser.full_name || this.currentUser.username || 'User';
         const userInitials = this.getUserInitials(userName);
-        
-        // Update user name displays
-        const userNameElements = ['userName', 'welcomeUserName', 'profileName'];
+
+        // Update user name displays (updated for new tab layout)
+        const userNameElements = ['userName', 'welcomeUserName', 'profileName', 'userNameSmall'];
         userNameElements.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
                 element.textContent = userName;
             }
         });
-        
-        // Update user avatars
-        const avatarElements = ['userAvatar', 'profileAvatar', 'mobileUserAvatar'];
+
+        // Update user avatars (updated for new tab layout)
+        const avatarElements = ['userAvatar', 'profileAvatar', 'mobileUserAvatar', 'userAvatarSmall'];
         avatarElements.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
@@ -152,34 +152,15 @@ class Dashboard {
 
     setupEventListeners() {
         console.log('🔗 Setting up event listeners...');
-        
-        // Navigation listeners
-        document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+
+        // Tab navigation listeners (updated for new tab layout)
+        document.querySelectorAll('.tab-item[data-section]').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 const section = item.dataset.section;
                 this.showSection(section);
             });
         });
-        
-        // Mobile menu
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const sidebar = document.getElementById('sidebar');
-        const sidebarClose = document.getElementById('sidebarClose');
-        
-        if (mobileMenuBtn && sidebar) {
-            mobileMenuBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('open');
-                mobileMenuBtn.classList.toggle('active');
-            });
-        }
-        
-        if (sidebarClose && sidebar) {
-            sidebarClose.addEventListener('click', () => {
-                sidebar.classList.remove('open');
-                mobileMenuBtn?.classList.remove('active');
-            });
-        }
         
         // Search functionality
         this.setupSearchListeners();
@@ -581,8 +562,8 @@ class Dashboard {
     showSection(sectionName) {
         console.log('📄 Showing section:', sectionName);
 
-        // Update navigation
-        document.querySelectorAll('.nav-item').forEach(item => {
+        // Update tab navigation (updated for new tab layout)
+        document.querySelectorAll('.tab-item').forEach(item => {
             item.classList.remove('active');
         });
 

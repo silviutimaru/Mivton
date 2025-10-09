@@ -86,10 +86,10 @@ class CompleteAdminDashboard {
 
     hideAdminSection() {
         console.log('🔒 Hiding admin section for non-admin user');
-        const adminNavItem = document.getElementById('adminNavItem');
-        if (adminNavItem) {
-            adminNavItem.style.display = 'none';
-            console.log('✅ Admin button hidden');
+        const adminTabItem = document.getElementById('adminTabItem');
+        if (adminTabItem) {
+            adminTabItem.style.display = 'none';
+            console.log('✅ Admin tab hidden');
         }
         const adminSection = document.getElementById('admin-section');
         if (adminSection) {
@@ -100,15 +100,16 @@ class CompleteAdminDashboard {
 
     setupEventListeners() {
         console.log('🎧 Setting up admin event listeners...');
-        
-        // Admin button click handler
-        const adminNavItem = document.getElementById('adminNavItem');
-        if (adminNavItem) {
-            adminNavItem.addEventListener('click', (e) => {
+
+        // Admin tab click handler (updated for new tab layout)
+        const adminTabItem = document.getElementById('adminTabItem');
+        if (adminTabItem) {
+            adminTabItem.style.display = 'flex'; // Show admin tab for admin users
+            adminTabItem.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.showAdminSection();
             });
-            console.log('✅ Admin button click listener added');
+            console.log('✅ Admin tab click listener added');
         }
         
         // Admin tab click handlers
