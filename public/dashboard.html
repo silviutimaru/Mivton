@@ -1093,7 +1093,7 @@
             });
         }
 
-        async initiateCall(friendId, friendName) {
+        async initiateCall(friendId, friendName, friendAvatar) {
             try {
                 console.log(`🎥 Initiating call to ${friendName} (${friendId})`);
                 
@@ -1389,15 +1389,15 @@
     // Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', () => {
         if (window.socket && window.currentUserId) {
-            window.simpleVideoCallSystem = new SimpleVideoCallSystem();
-            console.log('✅ Simple Video Call System initialized');
+            window.videoCallSystem = new SimpleVideoCallSystem();
+            console.log('✅ Video Call System initialized');
         } else {
             console.log('⏳ Waiting for socket and user ID...');
             // Retry after a short delay
             setTimeout(() => {
                 if (window.socket && window.currentUserId) {
-                    window.simpleVideoCallSystem = new SimpleVideoCallSystem();
-                    console.log('✅ Simple Video Call System initialized (delayed)');
+                    window.videoCallSystem = new SimpleVideoCallSystem();
+                    console.log('✅ Video Call System initialized (delayed)');
                 }
             }, 1000);
         }
