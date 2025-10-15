@@ -319,6 +319,11 @@ class VideoCallSystem {
             if (this.localVideo) {
                 this.localVideo.srcObject = this.localStream;
                 console.log('✅ Local video element updated');
+                
+                // Force video element to be visible and play
+                this.localVideo.style.display = 'block';
+                this.localVideo.style.visibility = 'visible';
+                this.localVideo.play().catch(e => console.log('Video play error:', e));
             }
 
             return this.localStream;
@@ -461,6 +466,11 @@ class VideoCallSystem {
                     }
                 }
                 this.remoteStream.addTrack(event.track);
+                
+                // Force remote video to play
+                if (this.remoteVideo) {
+                    this.remoteVideo.play().catch(e => console.log('Remote video play error:', e));
+                }
             };
 
             // Handle ICE candidates

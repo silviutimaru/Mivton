@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Call Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .video-container {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        video {
+            width: 300px;
+            height: 200px;
+            background: #000;
+            border-radius: 8px;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Video Call System Test</h1>
+    
+    <div class="test-section">
+        <h2>Camera Access Test</h2>
+        <button onclick="testCameraAccess()">Test Camera Access</button>
+        <div class="video-container">
+            <div>
+                <h3>Local Video</h3>
+                <video id="localVideo" autoplay playsinline muted></video>
+            </div>
+            <div>
+                <h3>Remote Video</h3>
+                <video id="remoteVideo" autoplay playsinline></video>
+            </div>
+        </div>
+        <div id="cameraLog" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>WebRTC Test</h2>
+        <button onclick="testWebRTC()">Test WebRTC Connection</button>
+        <div id="webrtcLog" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Video Call System Test</h2>
+        <button onclick="testVideoCallSystem()">Test Video Call System</button>
+        <div id="videoCallLog" class="log"></div>
+    </div>
+
+    <script>
+        let localStream = null;
+        let remoteStream = null;
+        let peerConnection = null;
+
+        function log(elementId, message) {
+            const logElement = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        async function testCameraAccess() {
+            log('cameraLog', '🎥 Testing camera access...');
+            
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: true 
+                });
+                
+                const localVideo = document.getElementById('localVideo');
+                localVideo.srcObject = localStream;
+                
+                log('cameraLog', `✅ Camera access successful!`);
+                log('cameraLog', `📹 Video tracks: ${localStream.getVideoTracks().length}`);
+                log('cameraLog', `🎤 Audio tracks: ${localStream.getAudioTracks().length}`);
+                
+                // Check video track details
+                localStream.getVideoTracks().forEach((track, index) => {
+                    const settings = track.getSettings();
+                    log('cameraLog', `📹 Video track ${index}: ${settings.width}x${settings.height} @ ${settings.frameRate}fps`);
+                });
+                
+            } catch (error) {
+                log('cameraLog', `❌ Camera access failed: ${error.message}`);
+            }
+        }
+
+        async function testWebRTC() {
+            log('webrtcLog', '🔄 Testing WebRTC connection...');
+            
+            try {
+                // Create peer connection
+                peerConnection = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+                
+                log('webrtcLog', '✅ Peer connection created');
+                
+                // Add local stream if available
+                if (localStream) {
+                    localStream.getTracks().forEach(track => {
+                        peerConnection.addTrack(track, localStream);
+                        log('webrtcLog', `✅ Added ${track.kind} track`);
+                    });
+                } else {
+                    log('webrtcLog', '⚠️ No local stream available - run camera test first');
+                }
+                
+                // Handle remote stream
+                peerConnection.ontrack = (event) => {
+                    log('webrtcLog', `📥 Received remote ${event.track.kind} track`);
+                    if (!remoteStream) {
+                        remoteStream = new MediaStream();
+                        const remoteVideo = document.getElementById('remoteVideo');
+                        remoteVideo.srcObject = remoteStream;
+                    }
+                    remoteStream.addTrack(event.track);
+                };
+                
+                // Handle ICE candidates
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        log('webrtcLog', `🧊 ICE candidate: ${event.candidate.candidate.substring(0, 50)}...`);
+                    }
+                };
+                
+                // Handle connection state
+                peerConnection.onconnectionstatechange = () => {
+                    log('webrtcLog', `📡 Connection state: ${peerConnection.connectionState}`);
+                };
+                
+                // Create offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                log('webrtcLog', '✅ Offer created');
+                
+            } catch (error) {
+                log('webrtcLog', `❌ WebRTC test failed: ${error.message}`);
+            }
+        }
+
+        async function testVideoCallSystem() {
+            log('videoCallLog', '🎥 Testing Video Call System...');
+            
+            // Check if VideoCallSystem is available
+            if (typeof VideoCallSystem === 'undefined') {
+                log('videoCallLog', '❌ VideoCallSystem class not available');
+                return;
+            }
+            
+            try {
+                // Create instance
+                const videoCallSystem = new VideoCallSystem();
+                log('videoCallLog', '✅ VideoCallSystem instance created');
+                
+                // Check if video elements exist
+                const localVideo = document.getElementById('localVideo');
+                const remoteVideo = document.getElementById('remoteVideo');
+                
+                if (localVideo && remoteVideo) {
+                    log('videoCallLog', '✅ Video elements found');
+                } else {
+                    log('videoCallLog', '❌ Video elements not found');
+                }
+                
+                // Test getUserMedia
+                try {
+                    const stream = await videoCallSystem.getUserMedia();
+                    log('videoCallLog', `✅ getUserMedia successful: ${stream.getTracks().length} tracks`);
+                } catch (error) {
+                    log('videoCallLog', `❌ getUserMedia failed: ${error.message}`);
+                }
+                
+            } catch (error) {
+                log('videoCallLog', `❌ VideoCallSystem test failed: ${error.message}`);
+            }
+        }
+
+        // Load the video call system
+        window.addEventListener('load', () => {
+            log('videoCallLog', '📄 Page loaded, checking for VideoCallSystem...');
+            
+            // Try to load the video call system
+            const script = document.createElement('script');
+            script.src = '/js/video-call-fixed.js?v=20250115f';
+            script.onload = () => {
+                log('videoCallLog', '✅ Video-call-fixed.js loaded successfully');
+            };
+            script.onerror = () => {
+                log('videoCallLog', '❌ Failed to load video-call-fixed.js');
+            };
+            document.head.appendChild(script);
+        });
+    </script>
+</body>
+</html>
