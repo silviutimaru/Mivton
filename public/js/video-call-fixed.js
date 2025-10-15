@@ -695,52 +695,26 @@ class VideoCallSystem {
         this.hideAllUI();
         const videoUI = document.getElementById('video-call-ui');
         if (videoUI) {
-            videoUI.style.display = 'flex';
+            videoUI.style.cssText = 'display: flex !important;';
             
             // Ensure video streams are assigned to elements
             if (this.localStream && this.localVideo) {
                 this.localVideo.srcObject = this.localStream;
                 console.log('✅ Local video stream assigned to UI');
-                console.log('📹 Local video element:', this.localVideo);
-                console.log('📹 Local stream tracks:', this.localStream.getTracks().length);
             }
             
             if (this.remoteStream && this.remoteVideo) {
                 this.remoteVideo.srcObject = this.remoteStream;
                 console.log('✅ Remote video stream assigned to UI');
-                console.log('📹 Remote video element:', this.remoteVideo);
-                console.log('📹 Remote stream tracks:', this.remoteStream.getTracks().length);
             }
 
-            // Force video elements to be visible and ensure they load
+            // Force video elements to be visible
             if (this.localVideo) {
-                this.localVideo.style.display = 'block';
-                this.localVideo.style.visibility = 'visible';
-                this.localVideo.style.backgroundColor = '#333';
-                this.localVideo.load(); // Force reload
-                console.log('📹 Local video element forced visible');
+                this.localVideo.style.cssText = 'display: block !important; visibility: visible !important;';
             }
             if (this.remoteVideo) {
-                this.remoteVideo.style.display = 'block';
-                this.remoteVideo.style.visibility = 'visible';
-                this.remoteVideo.style.backgroundColor = '#000';
-                this.remoteVideo.load(); // Force reload
-                console.log('📹 Remote video element forced visible');
+                this.remoteVideo.style.cssText = 'display: block !important; visibility: visible !important;';
             }
-
-            // Wait a moment then check if streams are actually playing
-            setTimeout(() => {
-                if (this.localVideo && this.localVideo.readyState >= 2) {
-                    console.log('✅ Local video is ready and playing');
-                } else {
-                    console.log('❌ Local video not ready:', this.localVideo?.readyState);
-                }
-                if (this.remoteVideo && this.remoteVideo.readyState >= 2) {
-                    console.log('✅ Remote video is ready and playing');
-                } else {
-                    console.log('❌ Remote video not ready:', this.remoteVideo?.readyState);
-                }
-            }, 1000);
         }
     }
 
