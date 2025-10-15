@@ -93,13 +93,13 @@ class VideoCallSystem {
                 
                 <div class="video-controls">
                     <button class="btn-call-control btn-audio" id="toggle-audio">
-                        <i class="fas fa-microphone"></i>
+                        🎤
                     </button>
                     <button class="btn-call-control btn-video" id="toggle-video">
-                        <i class="fas fa-video"></i>
+                        📹
                     </button>
                     <button class="btn-call-control btn-end" id="end-call-active">
-                        <i class="fas fa-phone-slash"></i>
+                        📞
                     </button>
                 </div>
             </div>
@@ -216,7 +216,12 @@ class VideoCallSystem {
 
         this.socket.on('video-call:answer', async (data) => {
             console.log('📥 Received answer');
-            await this.handleAnswer(data);
+            // Only process if we're not already connected
+            if (this.peerConnection && this.peerConnection.connectionState !== 'connected') {
+                await this.handleAnswer(data);
+            } else {
+                console.log('⚠️ Ignoring answer - already connected or no peer connection');
+            }
         });
 
         this.socket.on('video-call:ice-candidate', async (data) => {
@@ -638,7 +643,7 @@ class VideoCallSystem {
                 <p class="calling-status">Waiting for response...</p>
                 <div class="calling-actions">
                     <button class="btn-call-control btn-end" id="end-call-calling">
-                        <i class="fas fa-phone-slash"></i>
+                        📞
                     </button>
                 </div>
                 ${this.localVideo ? '<video id="localVideoPreview" autoplay playsinline muted style="width: 200px; height: 150px; border-radius: 10px; margin-top: 20px;"></video>' : ''}
@@ -674,10 +679,10 @@ class VideoCallSystem {
                 <p class="call-type">Video Call</p>
                 <div class="calling-actions">
                     <button class="btn-call-control btn-accept" id="accept-call">
-                        <i class="fas fa-phone"></i>
+                        ✅
                     </button>
                     <button class="btn-call-control btn-decline" id="decline-call">
-                        <i class="fas fa-phone-slash"></i>
+                        ❌
                     </button>
                 </div>
             </div>
@@ -707,15 +712,35 @@ class VideoCallSystem {
                 console.log('📹 Remote stream tracks:', this.remoteStream.getTracks().length);
             }
 
-            // Force video elements to be visible
+            // Force video elements to be visible and ensure they load
             if (this.localVideo) {
                 this.localVideo.style.display = 'block';
                 this.localVideo.style.visibility = 'visible';
+                this.localVideo.style.backgroundColor = '#333';
+                this.localVideo.load(); // Force reload
+                console.log('📹 Local video element forced visible');
             }
             if (this.remoteVideo) {
                 this.remoteVideo.style.display = 'block';
                 this.remoteVideo.style.visibility = 'visible';
+                this.remoteVideo.style.backgroundColor = '#000';
+                this.remoteVideo.load(); // Force reload
+                console.log('📹 Remote video element forced visible');
             }
+
+            // Wait a moment then check if streams are actually playing
+            setTimeout(() => {
+                if (this.localVideo && this.localVideo.readyState >= 2) {
+                    console.log('✅ Local video is ready and playing');
+                } else {
+                    console.log('❌ Local video not ready:', this.localVideo?.readyState);
+                }
+                if (this.remoteVideo && this.remoteVideo.readyState >= 2) {
+                    console.log('✅ Remote video is ready and playing');
+                } else {
+                    console.log('❌ Remote video not ready:', this.remoteVideo?.readyState);
+                }
+            }, 1000);
         }
     }
 
