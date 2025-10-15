@@ -1,0 +1,239 @@
+/* Video Call Styles */
+.video-call-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999999 !important;
+}
+
+.calling-container,
+.incoming-call-container {
+    text-align: center;
+    color: white;
+    animation: fadeIn 0.3s ease;
+}
+
+.calling-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin-bottom: 20px;
+    border: 3px solid #4CAF50;
+    animation: pulse 2s infinite;
+}
+
+.calling-actions {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.btn-call-control {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-call-control:hover {
+    transform: scale(1.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.btn-accept {
+    background: #4CAF50;
+}
+
+.btn-decline,
+.btn-end {
+    background: #f44336;
+}
+
+.btn-audio,
+.btn-video {
+    background: #2196F3;
+}
+
+.btn-muted {
+    background: #666;
+}
+
+/* Video Call UI */
+#video-call-ui {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #1a1a1a;
+    display: none;
+    z-index: 9999;
+}
+
+.video-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+#remoteVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+}
+
+#localVideo {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 200px;
+    height: 150px;
+    object-fit: cover;
+    background: #333;
+    border-radius: 10px;
+    border: 2px solid #4CAF50;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.video-controls {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 15px;
+    border-radius: 30px;
+}
+
+/* Toast Notifications */
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    font-weight: 500;
+    z-index: 11000;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.toast-info {
+    background: #2196F3;
+}
+
+.toast-success {
+    background: #4CAF50;
+}
+
+.toast-warning {
+    background: #ff9800;
+}
+
+.toast-error {
+    background: #f44336;
+}
+
+/* Remote Media Indicators */
+#remote-audio-indicator,
+#remote-video-indicator {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    display: none;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 30px rgba(76, 175, 80, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Video call button in friends list */
+.video-call-btn {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin-left: 10px;
+}
+
+.video-call-btn:hover {
+    background: #45a049;
+}
+
+.video-call-btn i {
+    margin-right: 5px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #localVideo {
+        width: 120px;
+        height: 90px;
+        bottom: 10px;
+        right: 10px;
+    }
+
+    .video-controls {
+        bottom: 20px;
+        padding: 10px;
+    }
+
+    .btn-call-control {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+}
