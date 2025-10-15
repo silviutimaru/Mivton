@@ -29,10 +29,10 @@ async function areUsersFriends(userId1, userId2) {
         const result = await query(`
             SELECT EXISTS(
                 SELECT 1 FROM friendships 
-                WHERE ((user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?))
+                WHERE ((user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1))
                 AND status = 'active'
             ) as are_friends
-        `, [userId1, userId2, userId2, userId1]);
+        `, [userId1, userId2]);
 
         console.log(`🔍 Query result:`, result.rows[0].are_friends);
         return result.rows[0].are_friends;
