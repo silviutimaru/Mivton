@@ -23,7 +23,24 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "https://mivton.com",
+    origin: function(origin, callback) {
+      // Allow requests with no origin (like mobile apps, Postman, or same-origin)
+      if (!origin) return callback(null, true);
+
+      // Allow any Railway domain, localhost, or mivton.com
+      const allowedOrigins = [
+        'https://mivton.com',
+        'http://localhost:3000',
+        'http://localhost:5000'
+      ];
+
+      // Allow any .railway.app domain or whitelisted origins
+      if (origin.includes('.railway.app') || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Be permissive for now to debug the issue
+      }
+    },
     methods: ["GET", "POST"],
     credentials: true
   },
@@ -63,7 +80,23 @@ app.use(helmet({
 
 // CORS middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "https://mivton.com",
+  origin: function(origin, callback) {
+    // Allow requests with no origin (same-origin requests)
+    if (!origin) return callback(null, true);
+
+    // Allow any Railway domain, localhost, or mivton.com
+    const allowedOrigins = [
+      'https://mivton.com',
+      'http://localhost:3000',
+      'http://localhost:5000'
+    ];
+
+    if (origin.includes('.railway.app') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Be permissive for debugging
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
@@ -139,9 +172,25 @@ app.use((req, res, next) => {
 
 // ===== EARLY ROUTES (ADDED BEFORE DATABASE INIT) =====
 
-// Chat functionality removed per user request
+// Friend Chat API Routes
+try {
+  const chatApiRoutes = require('./routes/chat-api');
+  app.use('/api/chat', chatApiRoutes);
+  console.log('✅ Friend chat API routes loaded at /api/chat');
+} catch (error) {
+  console.log('⚠️ Friend chat API routes not available:', error.message);
+}
 
-// Test route 
+// Random Chat API Routes
+try {
+  const randomChatApiRoutes = require('./routes/random-chat-api');
+  app.use('/api/random-chat', randomChatApiRoutes);
+  console.log('✅ Random chat API routes loaded');
+} catch (error) {
+  console.log('⚠️ Random chat API routes not available:', error.message);
+}
+
+// Test route
 app.get('/test-route', (req, res) => {
   res.json({ message: 'Test route works!', timestamp: new Date().toISOString() });
 });
@@ -489,6 +538,10 @@ app.use('/api/admin', adminRoutes);
 const userProfileRoutes = require('./routes/user-profile');
 app.use('/api/user-profile', userProfileRoutes);
 
+// Profile management routes (picture upload, bio, preferences)
+const profileRoutes = require('./routes/profile');
+app.use('/api/profile', profileRoutes);
+
 // Serve login page
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -529,6 +582,15 @@ app.get('/task-4-2-test', (req, res) => {
 
 app.get('/task-4-2-test.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'task-4-2-test.html'));
+});
+
+// Serve Random Chat page
+app.get('/random-chat', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'random-chat.html'));
+});
+
+app.get('/random-chat.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'random-chat.html'));
 });
 
 // Test authentication bypass (kept for general testing)
@@ -588,21 +650,26 @@ app.get('/', (req, res) => {
 
 // ===== SOCKET.IO SETUP =====
 
-// Initialize Enhanced Real-Time Events (chat removed)
+// Initialize Enhanced Real-Time Events
 try {
   const { initializeEnhancedFriendsEvents } = require('./socket/enhanced-friends-events');
-  // Chat events removed per user request
-  
+  // Initialize Random Chat Manager
+  const RandomChatManager = require('./socket/random-chat-manager');
+
+  // Initialize Enhanced Friends Events (includes chat functionality)
   initializeEnhancedFriendsEvents(io);
-  // Chat initialization removed per user request
-  
-  console.log('✅ Enhanced real-time events loaded (chat removed)');
-  
+  console.log('✅ Enhanced friends events + chat initialized');
+
+  // Initialize Random Chat System
+  const randomChatManager = new RandomChatManager(io);
+  global.randomChatManager = randomChatManager;
+  console.log('✅ Random chat manager initialized');
+
+  console.log('✅ Enhanced real-time events loaded');
+
   // Store io instance globally for access from other modules
   global.io = io;
-  
-  // Chat Socket.IO events removed per user request
-  
+
 } catch (error) {
   console.log('⚠️ Enhanced real-time events not available, falling back to Phase 3.1:', error.message);
   
@@ -880,12 +947,22 @@ const startServer = async () => {
     try {
       await initializeDatabase();
       console.log('✅ Database connected successfully');
+
+      // Run database migrations for profile features
+      try {
+        const { runMigrations } = require('./database/run-migrations');
+        await runMigrations();
+      } catch (migrationError) {
+        console.error('⚠️ Migrations error:', migrationError.message);
+        console.error('Stack:', migrationError.stack);
+      }
       
       // AUTO-CLEANUP: Remove any remaining chat tables from production
-      if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL) {
-        console.log('🧹 Running production chat cleanup...');
-        await autoRemoveChatTables();
-      }
+      // Chat cleanup disabled - chat functionality is now permanent
+      // if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL) {
+      //   console.log('🧹 Running production chat cleanup...');
+      //   await autoRemoveChatTables();
+      // }
       
     } catch (dbError) {
       console.log('⚠️ Database connection failed, but server will continue:', dbError.message);
@@ -975,7 +1052,7 @@ const startServer = async () => {
     // Initialize Chat System Schema
     try {
         const { initializeChatSchema, isChatSchemaInitialized } = require('./database/init-chat');
-        
+
         const chatSchemaExists = await isChatSchemaInitialized();
         if (!chatSchemaExists) {
             console.log('🔄 Initializing modern chat database schema...');
@@ -990,6 +1067,26 @@ const startServer = async () => {
         }
     } catch (chatSchemaError) {
         console.log('⚠️ Chat schema initialization failed, but continuing:', chatSchemaError.message);
+    }
+
+    // Initialize Random Chat Schema (Coomeet Model)
+    try {
+        const { initializeRandomChatSchema, isRandomChatSchemaInitialized } = require('./database/init-random-chat');
+
+        const randomChatSchemaExists = await isRandomChatSchemaInitialized();
+        if (!randomChatSchemaExists) {
+            console.log('🎲 Initializing random chat database schema...');
+            const randomChatInitialized = await initializeRandomChatSchema();
+            if (randomChatInitialized) {
+                console.log('✅ Random chat database schema initialized');
+            } else {
+                console.log('❌ Random chat schema initialization failed - random chat may not work');
+            }
+        } else {
+            console.log('✅ Random chat database schema already exists');
+        }
+    } catch (randomChatSchemaError) {
+        console.log('⚠️ Random chat schema initialization failed, but continuing:', randomChatSchemaError.message);
     }
     
     // Auto-fix socket_sessions schema (critical for real-time features)

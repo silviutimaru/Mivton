@@ -17,6 +17,7 @@ const { presenceManager } = require('./presence-events');
 const { activityManager } = require('./activity-events');
 const { improvedSocketAuth, requireSocketAuth } = require('./improved-socket-auth');
 const { areUsersFriends, isUserBlocked } = require('../utils/friends-utils');
+const { setupVideoCallHandlers } = require('./video-call-handlers');
 
 /**
  * Enhanced friends events configuration
@@ -414,6 +415,184 @@ function initializeEnhancedFriendsEvents(io) {
                 console.error('❌ Mark notification read error:', error);
                 callback({ success: false, error: 'Failed to mark notification as read' });
             }
+        });
+
+        // ================================
+        // SIMPLE FRIEND CHAT (INTEGRATED)
+        // ================================
+
+        // User registers for chat
+        socket.on('chat:register', (userId) => {
+            console.log(`📝 chat:register event - userId: ${userId}, socket: ${socket.id}`);
+            if (!userId) {
+                console.log('❌ No userId provided to chat:register');
+                return;
+            }
+            
+            // CRITICAL: Set userId on socket for video calls and other features
+            socket.userId = userId;
+            
+            socket.join(`user_${userId}`);
+            console.log(`✅ User ${userId} (socket: ${socket.id}) registered for chat and joined room: user_${userId}`);
+            console.log(`🔑 Socket userId set to: ${socket.userId}`);
+        });
+
+        // When someone sends a message, forward it to the recipient
+        socket.on('chat:message', (data) => {
+            const { recipientId, messageData } = data;
+            console.log(`📨 Message from ${socket.userId} to ${recipientId}`);
+
+            // Send to recipient's room
+            io.to(`user_${recipientId}`).emit('chat:receive', messageData);
+            console.log(`✅ Sent to user_${recipientId}`);
+        });
+
+        // Typing indicators
+        socket.on('chat:typing', (recipientId) => {
+            io.to(`user_${recipientId}`).emit('chat:typing_start', socket.userId);
+        });
+
+        socket.on('chat:stop_typing', (recipientId) => {
+            io.to(`user_${recipientId}`).emit('chat:typing_stop', socket.userId);
+        });
+
+        // ================================
+        // VIDEO CALL EVENTS
+        // ================================
+
+        // Setup comprehensive video call handlers (always set up, handle auth in handlers)
+        setupVideoCallHandlers(io, socket, userId);
+
+        // Legacy video call events (keep for backward compatibility)
+        socket.on('friend:initiate_video_call', async (data) => {
+            // Use socket.userId (set by auth or chat:register) instead of the userId from connection
+            const callerId = socket.userId;
+            console.log(`🔔 VIDEO CALL EVENT RECEIVED - Caller: ${callerId}, Data:`, data);
+
+            if (!callerId) {
+                console.log('❌ No userId on socket - rejecting call');
+                console.log('🔍 Available socket properties:', {
+                    userId: socket.userId,
+                    roomUserId: socket.roomUserId,
+                    authUserId: userId
+                });
+                return;
+            }
+
+            try {
+                const { friendId } = data;
+                console.log(`📋 Call details - From: ${callerId} (${socket.userInfo?.username}) → To: ${friendId}`);
+
+                // Check if users are friends
+                const areFriends = await areUsersFriends(callerId, friendId);
+                console.log(`🤝 Are users friends? ${areFriends}`);
+
+                if (!areFriends) {
+                    console.log(`⚠️ Users ${callerId} and ${friendId} are not friends - call rejected`);
+                    return;
+                }
+
+                console.log(`📞 Video call from ${callerId} to ${friendId}`);
+                console.log(`📤 Emitting to room: user_${friendId}`);
+                
+                // Debug: Check if target room has any sockets
+                const roomSockets = io.sockets.adapter.rooms.get(`user_${friendId}`);
+                console.log(`🔍 Sockets in room user_${friendId}:`, roomSockets ? Array.from(roomSockets) : 'No sockets');
+
+                // Send incoming call notification to friend
+                const eventData = {
+                    from: {
+                        id: callerId,
+                        name: socket.userInfo?.username || 'Friend',
+                        avatar: socket.userInfo?.profile_picture_url || '/img/default-avatar.png'
+                    },
+                    timestamp: new Date().toISOString()
+                };
+
+                console.log(`📨 Event data:`, eventData);
+                io.to(`user_${friendId}`).emit('friend:incoming_video_call', eventData);
+                console.log(`✅ Event emitted to user_${friendId}`);
+
+            } catch (error) {
+                console.error('❌ Error initiating video call:', error);
+                console.error('Stack:', error.stack);
+            }
+        });
+
+        // Accept video call
+        socket.on('friend:accept_video_call', async (data) => {
+            if (!userId) return;
+
+            try {
+                const { friendId } = data;
+
+                console.log(`✅ ${userId} accepted call from ${friendId}`);
+
+                // Notify initiator that call was accepted
+                io.to(`user_${friendId}`).emit('friend:call_accepted', {
+                    friendId: userId,
+                    timestamp: new Date().toISOString()
+                });
+
+            } catch (error) {
+                console.error('❌ Error accepting call:', error);
+            }
+        });
+
+        // Decline video call
+        socket.on('friend:decline_video_call', async (data) => {
+            if (!userId) return;
+
+            try {
+                const { friendId } = data;
+
+                console.log(`❌ ${userId} declined call from ${friendId}`);
+
+                // Notify initiator that call was declined
+                io.to(`user_${friendId}`).emit('friend:call_declined', {
+                    friendId: userId,
+                    timestamp: new Date().toISOString()
+                });
+
+            } catch (error) {
+                console.error('❌ Error declining call:', error);
+            }
+        });
+
+        // End video call
+        socket.on('friend:end_video_call', async (data) => {
+            if (!userId) return;
+
+            try {
+                const { friendId } = data;
+
+                console.log(`📴 ${userId} ended call with ${friendId}`);
+
+                // Notify other participant
+                io.to(`user_${friendId}`).emit('friend:call_ended', {
+                    friendId: userId,
+                    timestamp: new Date().toISOString()
+                });
+
+            } catch (error) {
+                console.error('❌ Error ending call:', error);
+            }
+        });
+
+        // WebRTC signaling for video calls
+        socket.on('friend:webrtc_offer', (data) => {
+            const { friendId, signal } = data;
+            io.to(`user_${friendId}`).emit('friend:webrtc_offer', { signal, from: userId });
+        });
+
+        socket.on('friend:webrtc_answer', (data) => {
+            const { friendId, signal } = data;
+            io.to(`user_${friendId}`).emit('friend:webrtc_answer', { signal, from: userId });
+        });
+
+        socket.on('friend:webrtc_ice_candidate', (data) => {
+            const { friendId, signal } = data;
+            io.to(`user_${friendId}`).emit('friend:webrtc_ice_candidate', { signal, from: userId });
         });
 
         // ================================

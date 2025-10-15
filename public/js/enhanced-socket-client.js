@@ -22,6 +22,12 @@ class EnhancedSocketClient {
             if (response.ok) {
                 const userData = await response.json();
                 this.userId = userData.user?.id || userData.id;
+                
+                // Set global currentUserId for video call system
+                if (this.userId) {
+                    window.currentUserId = this.userId;
+                    console.log('🔧 Set window.currentUserId from enhanced socket client:', this.userId);
+                }
             }
             
             // Connect with either real userId or tempUserId
@@ -57,7 +63,11 @@ class EnhancedSocketClient {
         try {
             // Task 4.2: Use tempUserId for connection
             const connectionUserId = this.userId || this.tempUserId;
-            this.socket = io({ auth: { userId: connectionUserId } });
+            this.socket = io({
+                auth: { userId: connectionUserId },
+                withCredentials: true,  // CRITICAL: Send session cookies for authentication
+                transports: ['websocket', 'polling']
+            });
 
             this.socket.on('connect', () => {
                 console.log('🔌 Enhanced socket connected for real-time friend updates');

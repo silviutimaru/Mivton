@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Test Conversations</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; background: #f9f9f9; }
+        .error { background: #ffebee; border-color: #f44336; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+    </style>
+</head>
+<body>
+    <h1>Chat System Test Data Creator</h1>
+    <p>This page creates test conversations to populate the chat sidebar.</p>
+    
+    <button class="button" onclick="createTestData()">Create Test Conversations</button>
+    <button class="button" onclick="checkStatus()">Check Current Status</button>
+    
+    <div id="result" class="result" style="display: none;"></div>
+
+    <script>
+        function showResult(message, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.className = isError ? 'result error' : 'result success';
+            resultDiv.style.display = 'block';
+        }
+
+        async function createTestData() {
+            try {
+                showResult('Creating test conversations...', false);
+                
+                const response = await fetch('/api/admin/create-test-conversations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult(`
+                        <h3>✅ Success!</h3>
+                        <p>${data.message}</p>
+                        <p><strong>Users found:</strong> ${data.users_found}</p>
+                        <ul>${data.details.map(detail => `<li>${detail}</li>`).join('')}</ul>
+                        <p><em>Refresh the dashboard to see conversations in the sidebar!</em></p>
+                    `, false);
+                } else {
+                    showResult(`<h3>❌ Error:</h3><p>${data.error}</p><p>${data.details}</p>`, true);
+                }
+            } catch (error) {
+                showResult(`<h3>❌ Network Error:</h3><p>${error.message}</p>`, true);
+            }
+        }
+
+        async function checkStatus() {
+            try {
+                showResult('Checking conversations status...', false);
+                
+                const response = await fetch('/api/admin/conversations-status', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.total_conversations === 0) {
+                        showResult(`
+                            <h3>📭 No Conversations Found</h3>
+                            <p>There are currently no conversations in the database.</p>
+                            <p><em>Click "Create Test Conversations" to add some!</em></p>
+                        `, false);
+                    } else {
+                        const convList = data.conversations.map(conv => 
+                            `<li><strong>${conv.user1} ↔ ${conv.user2}</strong><br>
+                             Last: "${conv.last_message}"<br>
+                             Updated: ${new Date(conv.updated_at).toLocaleString()}</li>`
+                        ).join('');
+                        
+                        showResult(`
+                            <h3>💬 Found ${data.total_conversations} Conversations</h3>
+                            <ul>${convList}</ul>
+                        `, false);
+                    }
+                } else {
+                    showResult(`<h3>❌ Error:</h3><p>${data.error}</p><p>${data.details}</p>`, true);
+                }
+            } catch (error) {
+                showResult(`<h3>❌ Network Error:</h3><p>${error.message}</p>`, true);
+            }
+        }
+
+        // Auto-check status on page load
+        window.onload = checkStatus;
+    </script>
+</body>
+</html>

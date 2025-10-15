@@ -9,8 +9,23 @@ router.get('/stats', requireAuth, async (req, res) => {
     try {
         const userId = req.session.userId;
         console.log(`📊 Loading dashboard stats for user ${userId}`);
-        
+
         const db = getDb();
+
+        // 🔥 UPDATE PRESENCE: Mark user as online when they load dashboard
+        try {
+            await db.query(`
+                INSERT INTO user_presence (user_id, status, last_seen, updated_at)
+                VALUES ($1, 'online', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ON CONFLICT (user_id) DO UPDATE SET
+                    status = 'online',
+                    last_seen = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+            `, [userId]);
+            console.log(`🟢 Updated presence for user ${userId} to online`);
+        } catch (presenceError) {
+            console.log('⚠️ Could not update presence:', presenceError.message);
+        }
         
         // 🔧 REAL FIX: First check which table has the actual friendship data
         let friendsCount = 0;
@@ -459,6 +474,71 @@ router.get('/health', requireAuth, async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ error: 'Dashboard health check failed' });
+    }
+});
+
+// Debug endpoint to check presence data
+router.get('/debug/presence', requireAuth, async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        const db = getDb();
+
+        // Get current user's friends with their presence data
+        const result = await db.query(`
+            SELECT
+                u.id,
+                u.username,
+                u.full_name,
+                u.last_login,
+                up.last_seen as presence_last_seen,
+                up.status as presence_status,
+                up.updated_at as presence_updated,
+                COALESCE(up.last_seen, u.last_login) as effective_last_activity
+            FROM friendships f
+            JOIN users u ON (
+                CASE
+                    WHEN f.user1_id = $1 THEN u.id = f.user2_id
+                    WHEN f.user2_id = $1 THEN u.id = f.user1_id
+                END
+            )
+            LEFT JOIN user_presence up ON up.user_id = u.id
+            WHERE (f.user1_id = $1 OR f.user2_id = $1)
+            AND f.status = 'active'
+            ORDER BY u.username
+        `, [userId]);
+
+        res.json({
+            success: true,
+            your_user_id: userId,
+            friends_presence: result.rows,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('❌ Presence debug error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Heartbeat endpoint - keep user marked as online
+router.post('/heartbeat', requireAuth, async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        const db = getDb();
+
+        await db.query(`
+            INSERT INTO user_presence (user_id, status, last_seen, updated_at)
+            VALUES ($1, 'online', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT (user_id) DO UPDATE SET
+                status = 'online',
+                last_seen = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+        `, [userId]);
+
+        res.json({ success: true, timestamp: new Date().toISOString() });
+    } catch (error) {
+        console.error('❌ Heartbeat error:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 

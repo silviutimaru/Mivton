@@ -526,8 +526,14 @@ class VideoCallSystem {
     async handleAnswer(data) {
         try {
             console.log('📥 Processing answer...');
-            await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-            console.log('✅ Answer processed, connection should establish soon');
+            
+            // Check connection state before setting remote description
+            if (this.peerConnection && this.peerConnection.signalingState === 'have-local-offer') {
+                await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                console.log('✅ Answer processed, connection should establish soon');
+            } else {
+                console.log('⚠️ Cannot set remote description, connection state:', this.peerConnection?.signalingState);
+            }
         } catch (error) {
             console.error('❌ Error handling answer:', error);
         }
@@ -671,6 +677,17 @@ class VideoCallSystem {
         const videoUI = document.getElementById('video-call-ui');
         if (videoUI) {
             videoUI.style.display = 'flex';
+            
+            // Ensure video streams are assigned to elements
+            if (this.localStream && this.localVideo) {
+                this.localVideo.srcObject = this.localStream;
+                console.log('✅ Local video stream assigned to UI');
+            }
+            
+            if (this.remoteStream && this.remoteVideo) {
+                this.remoteVideo.srcObject = this.remoteStream;
+                console.log('✅ Remote video stream assigned to UI');
+            }
         }
     }
 

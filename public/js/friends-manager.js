@@ -428,14 +428,16 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                         <span class="friend-status ${friend.online_status}">
                             <i class="fas fa-circle"></i>
                             ${friend.online_status}
+                            ${friend.online_status === 'offline' && friend.last_activity ?
+                                `<span class="last-seen"> · ${this.formatLastSeen(friend.last_activity)}</span>` : ''}
                         </span>
-                        
+
                         ${languageFlag ? `
                             <span class="friend-language">
                                 ${languageFlag} ${friend.native_language}
                             </span>
                         ` : ''}
-                        
+
                         ${friend.mutual_friends_count > 0 ? `
                             <span class="mutual-friends">
                                 <i class="fas fa-users"></i>
@@ -446,8 +448,20 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                 </div>
                 
                 <div class="friend-actions">
-                    <!-- Chat button removed - chat functionality no longer available -->
+                    <button class="btn btn-sm btn-primary" data-action="chat" data-friend-id="${friend.id || friend.user_id || friend.friend_id || 'unknown'}" data-friend-username="${this.escapeHtml(friend.username)}" title="Start Chat">
+                        <i class="fas fa-comment"></i>
+                        Chat
+                    </button>
                     
+                    <button class="btn btn-sm btn-success video-call-btn" 
+                            data-friend-id="${friend.id || friend.user_id || friend.friend_id || 'unknown'}" 
+                            data-friend-name="${this.escapeHtml(friend.full_name)}" 
+                            data-friend-avatar="${friend.profile_picture_url || '/img/default-avatar.png'}" 
+                            title="Start Video Call">
+                        <i class="fas fa-video"></i>
+                        Call
+                    </button>
+
                     <button class="btn btn-sm btn-secondary" data-action="more" data-friend-id="${friend.id || friend.user_id || friend.friend_id || 'unknown'}" title="More Options">
                         <i class="fas fa-ellipsis-v"></i>
                     </button>
@@ -590,7 +604,8 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                 break;
             case 'chat':
                 if (friendId) {
-                    this.startChat(friendId);
+                    const friendUsername = element?.dataset.friendUsername;
+                    this.startChat(friendId, friendUsername);
                 }
                 break;
             case 'more':
@@ -661,6 +676,18 @@ class MivtonFriendsManager extends MivtonBaseComponent {
             modal.classList.remove('modal-active');
         }
         this.selectedFriendId = null;
+    }
+
+    startChat(friendId, friendUsername) {
+        console.log(`💬 Starting chat with friend ${friendId} (${friendUsername})`);
+
+        // Use the global friendChat instance to start a conversation
+        if (window.friendChat) {
+            window.friendChat.startChatWithFriend(friendId, friendUsername);
+        } else {
+            console.error('❌ Friend chat system not initialized');
+            this.showToast('Chat system is not available', 'error');
+        }
     }
 
     async removeFriend(friendId) {
@@ -753,35 +780,6 @@ class MivtonFriendsManager extends MivtonBaseComponent {
                 'error'
             );
         }
-    }
-
-    async startChat(friendId) {
-        try {
-            console.log(`🚀 Starting real chat with friend ${friendId}`);
-            
-            // Get friend info
-            const friendCard = this.element.querySelector(`[data-friend-id="${friendId}"]`);
-            const friendName = friendCard?.querySelector('.friend-name')?.textContent?.trim() || 'Friend';
-
-            // Initialize complete chat system if not already done
-            if (!window.completeChatSystem) {
-                console.log('🔄 Initializing complete chat system...');
-                window.completeChatSystem = new CompleteChatSystem();
-                await window.completeChatSystem.init();
-            }
-            
-            // Open conversation
-            await window.completeChatSystem.openConversation(friendId, friendName);
-            
-            console.log(`✅ Real chat opened with ${friendName}`);
-            
-        } catch (error) {
-            console.error('❌ Error starting real chat:', error);
-            alert('Failed to start chat. Please try again.');
-        }
-        
-        // Close the friend actions modal if it's open
-        this.hideFriendActions();
     }
 
     // 🚀 ENHANCED PROFILE VIEW FUNCTION WITH DEBUG
@@ -1050,8 +1048,37 @@ class MivtonFriendsManager extends MivtonBaseComponent {
         if (this.searchTimeout) {
             clearTimeout(this.searchTimeout);
         }
-        
+
         super.destroy();
+    }
+
+    formatLastSeen(timestamp) {
+        if (!timestamp) return 'long ago';
+
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffMinutes < 60) {
+            return `last seen ${diffMinutes}m ago`;
+        } else if (diffHours < 24) {
+            return `last seen ${diffHours}h ago`;
+        } else if (diffDays === 1) {
+            return 'last seen yesterday';
+        } else if (diffDays < 7) {
+            return `last seen ${diffDays}d ago`;
+        } else {
+            return `last seen ${date.toLocaleDateString()}`;
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 

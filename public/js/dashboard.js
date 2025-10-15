@@ -52,7 +52,10 @@ class Dashboard {
             
             // Load dashboard stats
             await this.loadDashboardStats();
-            
+
+            // Start presence heartbeat - keep user marked as online
+            this.startPresenceHeartbeat();
+
             // Hide loading screen
             setTimeout(() => {
                 if (loadingScreen) {
@@ -60,7 +63,7 @@ class Dashboard {
                 }
                 document.getElementById('dashboardWrapper').style.display = 'block';
             }, 1000);
-            
+
             console.log('✅ Dashboard initialized successfully');
             
         } catch (error) {
@@ -180,7 +183,28 @@ class Dashboard {
                 this.saveProfile();
             });
         }
-        
+
+        // Profile picture upload
+        const uploadPictureBtn = document.getElementById('uploadPictureBtn');
+        const profilePictureInput = document.getElementById('profilePictureInput');
+        if (uploadPictureBtn && profilePictureInput) {
+            uploadPictureBtn.addEventListener('click', () => {
+                profilePictureInput.click();
+            });
+            profilePictureInput.addEventListener('change', (e) => {
+                this.handleProfilePictureUpload(e.target.files[0]);
+            });
+        }
+
+        // Bio character counter
+        const bioInput = document.getElementById('bioInput');
+        const bioCharCount = document.getElementById('bioCharCount');
+        if (bioInput && bioCharCount) {
+            bioInput.addEventListener('input', () => {
+                bioCharCount.textContent = bioInput.value.length;
+            });
+        }
+
         // Tab switching for requests
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -871,53 +895,195 @@ class Dashboard {
 
     async loadProfileData() {
         console.log('⚙️ Loading profile data...');
-        
+
         if (!this.currentUser) return;
-        
+
         // Fill profile form with current user data
         const fullNameInput = document.getElementById('fullNameInput');
         const emailInput = document.getElementById('emailInput');
         const nativeLanguageSelect = document.getElementById('nativeLanguageSelect');
         const genderSelect = document.getElementById('genderSelect');
-        
+        const bioInput = document.getElementById('bioInput');
+        const bioCharCount = document.getElementById('bioCharCount');
+        const profilePicturePreview = document.getElementById('profilePicturePreview');
+
         if (fullNameInput) fullNameInput.value = this.currentUser.full_name || '';
         if (emailInput) emailInput.value = this.currentUser.email || '';
         if (nativeLanguageSelect) nativeLanguageSelect.value = this.currentUser.native_language || 'en';
         if (genderSelect) genderSelect.value = this.currentUser.gender || '';
+        if (bioInput) {
+            bioInput.value = this.currentUser.bio || '';
+            if (bioCharCount) bioCharCount.textContent = (this.currentUser.bio || '').length;
+        }
+        if (profilePicturePreview && this.currentUser.profile_picture_url) {
+            profilePicturePreview.src = this.currentUser.profile_picture_url;
+            profilePicturePreview.style.display = 'block';
+        }
+
+        // Load preferences and privacy settings
+        await this.loadUserPreferences();
     }
 
     async saveProfile() {
         try {
             console.log('💾 Saving profile...');
-            
+
             const fullName = document.getElementById('fullNameInput')?.value;
             const nativeLanguage = document.getElementById('nativeLanguageSelect')?.value;
-            
+            const bio = document.getElementById('bioInput')?.value;
+
+            // Save basic profile
             const profileData = {
                 full_name: fullName,
                 native_language: nativeLanguage
             };
-            
+
             const response = await fetch('/api/dashboard/profile', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify(profileData)
             });
-            
+
             const data = await response.json();
-            
-            if (data.success) {
-                this.showToast('Profile updated successfully!', 'success');
-                await this.loadUserData(); // Reload user data
-            } else {
+
+            if (!data.success) {
                 throw new Error(data.error || 'Failed to update profile');
             }
-            
+
+            // Save bio
+            if (bio !== undefined) {
+                await fetch('/api/profile/bio', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ bio })
+                });
+            }
+
+            // Save notification preferences
+            await this.saveNotificationPreferences();
+
+            // Save privacy settings
+            await this.savePrivacySettings();
+
+            this.showToast('Profile updated successfully!', 'success');
+            await this.loadUserData(); // Reload user data
+
         } catch (error) {
             console.error('❌ Error saving profile:', error);
             this.showToast('Failed to update profile', 'error');
         }
+    }
+
+    async handleProfilePictureUpload(file) {
+        if (!file) return;
+
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            this.showToast('File size must be less than 5MB', 'error');
+            return;
+        }
+
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            this.showToast('Only JPG, PNG, GIF, and WEBP images are allowed', 'error');
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('profile_picture', file);
+
+            const response = await fetch('/api/profile/picture', {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Update preview
+                const preview = document.getElementById('profilePicturePreview');
+                if (preview) {
+                    preview.src = data.pictureUrl;
+                    preview.style.display = 'block';
+                }
+                this.showToast('Profile picture uploaded!', 'success');
+                await this.loadUserData();
+            } else {
+                throw new Error(data.error || 'Upload failed');
+            }
+        } catch (error) {
+            console.error('❌ Error uploading picture:', error);
+            this.showToast('Failed to upload picture', 'error');
+        }
+    }
+
+    async loadUserPreferences() {
+        try {
+            const response = await fetch('/api/auth/me', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+
+            if (data.user) {
+                const notifPrefs = data.user.notification_preferences || {};
+                const privacySettings = data.user.privacy_settings || {};
+
+                // Load notification preferences
+                const notifyEmail = document.getElementById('notifyEmail');
+                const notifyPush = document.getElementById('notifyPush');
+                const notifyFriendRequests = document.getElementById('notifyFriendRequests');
+                const notifyMessages = document.getElementById('notifyMessages');
+
+                if (notifyEmail) notifyEmail.checked = notifPrefs.email !== false;
+                if (notifyPush) notifyPush.checked = notifPrefs.push !== false;
+                if (notifyFriendRequests) notifyFriendRequests.checked = notifPrefs.friend_requests !== false;
+                if (notifyMessages) notifyMessages.checked = notifPrefs.messages !== false;
+
+                // Load privacy settings
+                const profileVisibility = document.getElementById('profileVisibility');
+                const onlineStatusVisibility = document.getElementById('onlineStatusVisibility');
+
+                if (profileVisibility) profileVisibility.value = privacySettings.profile_visibility || 'friends';
+                if (onlineStatusVisibility) onlineStatusVisibility.value = privacySettings.online_status || 'everyone';
+            }
+        } catch (error) {
+            console.error('❌ Error loading preferences:', error);
+        }
+    }
+
+    async saveNotificationPreferences() {
+        const preferences = {
+            email: document.getElementById('notifyEmail')?.checked !== false,
+            push: document.getElementById('notifyPush')?.checked !== false,
+            friend_requests: document.getElementById('notifyFriendRequests')?.checked !== false,
+            messages: document.getElementById('notifyMessages')?.checked !== false
+        };
+
+        await fetch('/api/profile/preferences/notifications', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(preferences)
+        });
+    }
+
+    async savePrivacySettings() {
+        const settings = {
+            profile_visibility: document.getElementById('profileVisibility')?.value || 'friends',
+            online_status: document.getElementById('onlineStatusVisibility')?.value || 'everyone'
+        };
+
+        await fetch('/api/profile/preferences/privacy', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(settings)
+        });
     }
 
     async loadDashboardStats() {
@@ -1192,10 +1358,37 @@ class Dashboard {
         }
     }
 
+    // Start presence heartbeat to keep user marked as online
+    startPresenceHeartbeat() {
+        // Send heartbeat every 30 seconds
+        this.presenceHeartbeatInterval = setInterval(async () => {
+            try {
+                await fetch('/api/dashboard/heartbeat', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                console.log('💓 Presence heartbeat sent');
+            } catch (error) {
+                console.log('⚠️ Heartbeat failed:', error.message);
+            }
+        }, 30000); // 30 seconds
+
+        // Also mark as offline when user closes tab/window
+        window.addEventListener('beforeunload', () => {
+            navigator.sendBeacon('/api/dashboard/offline', JSON.stringify({}));
+        });
+
+        console.log('✅ Presence heartbeat started');
+    }
+
     // Cleanup method
     destroy() {
         if (this.notificationInterval) {
             clearInterval(this.notificationInterval);
+        }
+        if (this.presenceHeartbeatInterval) {
+            clearInterval(this.presenceHeartbeatInterval);
         }
     }
 }

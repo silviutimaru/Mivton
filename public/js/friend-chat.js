@@ -13,6 +13,13 @@ class FriendChat {
         this.unreadCounts = new Map();
         this.hasShownUnreadNotification = false;
 
+        // Lazy loading properties
+        this.allMessages = [];
+        this.currentMessagePage = 1;
+        this.hasMoreMessages = false;
+        this.loadingMoreMessages = false;
+        this.scrollListenerAttached = false;
+
         this.init();
     }
 
@@ -22,8 +29,33 @@ class FriendChat {
 
         // Initialize Socket.IO for real-time messaging
         if (typeof io !== 'undefined') {
-            this.socket = io();
+            console.log('🔌 Initializing Socket.IO connection...');
+            this.socket = io({
+                withCredentials: true,  // CRITICAL: Send session cookies for authentication
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000
+            });
             this.setupSocketEvents();
+
+            // Add error handler
+            this.socket.on('connect_error', (error) => {
+                console.error('❌ Socket connection error:', error);
+            });
+
+            this.socket.on('disconnect', (reason) => {
+                console.warn('⚠️ Socket disconnected:', reason);
+                // Auto-reconnect after 2 seconds
+                setTimeout(() => {
+                    if (!this.socket.connected) {
+                        console.log('🔄 Attempting to reconnect socket...');
+                        this.socket.connect();
+                    }
+                }, 2000);
+            });
+        } else {
+            console.error('❌ Socket.IO library not loaded');
         }
 
         // Load conversations when chat section is shown
@@ -86,17 +118,20 @@ class FriendChat {
 
         // Typing indicators
         this.socket.on('chat:typing_start', (userId) => {
+            console.log('👀 Received typing_start from userId:', userId, 'currentFriendId:', this.currentFriendId);
             if (userId === this.currentFriendId) {
                 this.showTypingIndicator();
             }
         });
 
         this.socket.on('chat:typing_stop', (userId) => {
+            console.log('👀 Received typing_stop from userId:', userId);
             if (userId === this.currentFriendId) {
                 this.hideTypingIndicator();
             }
         });
     }
+
 
     registerUser() {
         // Try to register immediately
@@ -122,9 +157,23 @@ class FriendChat {
 
     setupEventListeners() {
         // Listen for section changes to load conversations
-        document.addEventListener('sectionChanged', (e) => {
+        document.addEventListener('sectionChanged', async (e) => {
             if (e.detail === 'chat') {
-                this.loadConversations();
+                await this.loadConversations();
+
+                // Auto-open conversation with unread messages if not already viewing one
+                if (!this.currentConversationId) {
+                    // Find conversations with unread messages, sorted by most recent
+                    const unreadConvs = this.conversations
+                        .filter(c => parseInt(c.unread_count) > 0)
+                        .sort((a, b) => new Date(b.last_message_at) - new Date(a.last_message_at));
+
+                    if (unreadConvs.length > 0) {
+                        const conv = unreadConvs[0]; // Most recent unread conversation
+                        console.log(`🔓 Auto-opening most recent unread conversation (${unreadConvs.length} total unread)`);
+                        await this.openConversation(conv.id, conv.other_user_id, conv.other_username);
+                    }
+                }
             } else {
                 // When leaving chat section, reset current chat state
                 console.log(`📤 Leaving chat section, resetting state`);
@@ -195,9 +244,11 @@ class FriendChat {
                 : this.formatTimeAgo(new Date(conv.created_at));
 
             const isUnread = unreadCount > 0;
+            const isActive = conv.id === this.currentConversationId;
 
             return `
-                <div class="conversation-item ${isUnread ? 'unread' : ''}"
+                <div class="conversation-item ${isUnread ? 'unread' : ''} ${isActive ? 'active' : ''}"
+                     data-conversation-id="${conv.id}"
                      onclick="friendChat.openConversation(${conv.id}, ${conv.other_user_id}, '${conv.other_username}')">
                     <div class="conversation-avatar">
                         <div class="avatar-circle">${conv.other_username.charAt(0).toUpperCase()}</div>
@@ -221,11 +272,20 @@ class FriendChat {
     }
 
     async openConversation(conversationId, friendId, friendUsername) {
-        console.log(`🔓 Opening conversation ${conversationId} with ${friendUsername}`);
+        console.log(`🔓 Opening conversation ${conversationId} with ${friendUsername} (friendId: ${friendId})`);
+        console.log('🔍 State before opening:', {
+            oldFriendId: this.currentFriendId,
+            oldConversationId: this.currentConversationId
+        });
 
         this.currentConversationId = conversationId;
         this.currentFriendId = friendId;
         this.currentFriendUsername = friendUsername;
+
+        console.log('🔍 State after opening:', {
+            newFriendId: this.currentFriendId,
+            newConversationId: this.currentConversationId
+        });
 
         // Show chat window
         this.showChatWindow();
@@ -245,13 +305,19 @@ class FriendChat {
     }
 
     showChatWindow() {
-        const chatSection = document.getElementById('chat-section');
-        if (!chatSection) return;
+        const chatWindowContainer = document.getElementById('chatWindowContainer');
+        if (!chatWindowContainer) return;
+
+        // Hide conversation list on mobile
+        const conversationsContainer = document.querySelector('.chat-conversations-container');
+        if (conversationsContainer && window.innerWidth <= 768) {
+            conversationsContainer.classList.add('chat-open');
+        }
 
         const chatHTML = `
             <div class="chat-window">
                 <div class="chat-header">
-                    <button class="back-btn" onclick="friendChat.closeChatWindow()">
+                    <button class="back-btn" onclick="friendChat.showConversationList()" style="display: none;">
                         ← Back
                     </button>
                     <div class="chat-partner-info">
@@ -260,6 +326,13 @@ class FriendChat {
                             <div class="partner-name">${this.currentFriendUsername}</div>
                             <div class="partner-status">Online</div>
                         </div>
+                    </div>
+                    <div class="chat-header-actions">
+                        <button class="chat-action-btn" id="videoCallBtn" title="Start Video Call" style="cursor: pointer;">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2V5z"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -295,7 +368,52 @@ class FriendChat {
             </div>
         `;
 
-        chatSection.innerHTML = chatHTML;
+        chatWindowContainer.innerHTML = chatHTML;
+
+        // Attach video call button listener AFTER button is created
+        setTimeout(() => {
+            const videoCallBtn = document.getElementById('videoCallBtn');
+            if (videoCallBtn) {
+                console.log('🔧 Attaching video call handler...');
+                // Remove any existing handlers
+                videoCallBtn.onclick = null;
+                videoCallBtn.removeEventListener('click', () => {});
+                
+                // Add handler
+                videoCallBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('📹 VIDEO CALL BUTTON CLICKED!');
+                    console.log('📋 Call details:', {
+                        friendId: this.currentFriendId,
+                        friendUsername: this.currentFriendUsername,
+                        videoCallSystemAvailable: !!window.videoCallSystem
+                    });
+                    
+                    // Use VideoCallSystem (from video-call-fixed.js)
+                    if (window.videoCallSystem) {
+                        console.log('✅ Using VideoCallSystem');
+                        // Get friend's avatar from friends list or use default
+                        const friendAvatar = '/img/default-avatar.png';
+                        window.videoCallSystem.initiateCall(this.currentFriendId, this.currentFriendUsername, friendAvatar);
+                    } else {
+                        console.error('❌ VideoCallSystem not available');
+                        alert('Video call system is loading... Please try again in a moment.');
+                        
+                        // Try to initialize if it wasn't ready
+                        setTimeout(() => {
+                            if (window.videoCallSystem) {
+                                window.videoCallSystem.initiateCall(this.currentFriendId, this.currentFriendUsername);
+                            }
+                        }, 1000);
+                    }
+                });
+                
+                console.log('✅ Video call handler attached successfully!');
+            } else {
+                console.error('❌ Video call button not found');
+            }
+        }, 100);
 
         // Focus on input
         setTimeout(() => {
@@ -304,6 +422,16 @@ class FriendChat {
     }
 
     closeChatWindow() {
+        const chatWindowContainer = document.getElementById('chatWindowContainer');
+        if (chatWindowContainer) {
+            chatWindowContainer.innerHTML = `
+                <div class="chat-placeholder">
+                    <div class="placeholder-icon">💬</div>
+                    <p>Select a conversation to start chatting</p>
+                </div>
+            `;
+        }
+
         this.currentConversationId = null;
         this.currentFriendId = null;
         this.currentFriendUsername = null;
@@ -312,9 +440,9 @@ class FriendChat {
         this.loadConversations();
     }
 
-    async loadMessages(conversationId) {
+    async loadMessages(conversationId, page = 1) {
         try {
-            const response = await fetch(`/api/chat/messages/${conversationId}`, {
+            const response = await fetch(`/api/chat/messages/${conversationId}?page=${page}&limit=50`, {
                 credentials: 'include'
             });
 
@@ -325,12 +453,51 @@ class FriendChat {
             const data = await response.json();
             const messages = data.messages || [];
 
-            this.renderMessages(messages);
+            if (page === 1) {
+                // First load - replace all messages
+                this.allMessages = messages;
+                this.currentMessagePage = 1;
+                this.hasMoreMessages = data.pagination?.hasMore || false;
+                this.renderMessages(messages);
+            } else {
+                // Lazy load - prepend older messages
+                this.allMessages = [...messages, ...this.allMessages];
+                this.currentMessagePage = page;
+                this.hasMoreMessages = data.pagination?.hasMore || false;
+                this.renderMessages(this.allMessages, true); // true = preserve scroll position
+            }
+
+            // Setup scroll listener for lazy loading
+            this.setupMessageScrollListener();
 
         } catch (error) {
             console.error('❌ Error loading messages:', error);
             this.showError('Failed to load messages');
         }
+    }
+
+    setupMessageScrollListener() {
+        const container = document.getElementById('chatMessagesContainer');
+        if (!container || this.scrollListenerAttached) return;
+
+        container.addEventListener('scroll', () => {
+            // Check if scrolled to top
+            if (container.scrollTop === 0 && this.hasMoreMessages && !this.loadingMoreMessages) {
+                this.loadingMoreMessages = true;
+                console.log(`📜 Loading more messages (page ${this.currentMessagePage + 1})`);
+
+                // Store scroll height before loading
+                const oldScrollHeight = container.scrollHeight;
+
+                this.loadMessages(this.currentConversationId, this.currentMessagePage + 1).then(() => {
+                    // Restore scroll position
+                    container.scrollTop = container.scrollHeight - oldScrollHeight;
+                    this.loadingMoreMessages = false;
+                });
+            }
+        });
+
+        this.scrollListenerAttached = true;
     }
 
     renderMessages(messages) {
@@ -377,6 +544,20 @@ class FriendChat {
         if (!input || !input.value.trim()) return;
 
         const content = input.value.trim();
+
+        console.log('📤 Attempting to send message:', {
+            content: content?.substring(0, 20),
+            currentFriendId: this.currentFriendId,
+            currentConversationId: this.currentConversationId,
+            currentFriendUsername: this.currentFriendUsername
+        });
+
+        if (!this.currentFriendId) {
+            console.log('❌ Cannot send - missing friendId');
+            this.showError('Please select a conversation first');
+            return;
+        }
+
         input.value = '';
 
         // Stop typing indicator
@@ -518,6 +699,7 @@ class FriendChat {
 
     handleTyping() {
         if (this.socket && this.currentFriendId) {
+            console.log('⌨️  Sending typing indicator to friend:', this.currentFriendId);
             this.socket.emit('chat:typing', this.currentFriendId);
 
             // Auto-stop after 3 seconds
@@ -530,6 +712,7 @@ class FriendChat {
 
     stopTyping() {
         if (this.socket && this.currentFriendId) {
+            console.log('⌨️  Sending stop typing indicator to friend:', this.currentFriendId);
             this.socket.emit('chat:stop_typing', this.currentFriendId);
         }
         clearTimeout(this.typingTimeout);
@@ -545,14 +728,18 @@ class FriendChat {
     showTypingIndicator() {
         const indicator = document.getElementById('typingIndicator');
         if (indicator) {
+            console.log('👀 Showing typing indicator for:', this.currentFriendUsername);
             indicator.classList.remove('hidden');
             this.scrollToBottom();
+        } else {
+            console.log('⚠️ Typing indicator element not found');
         }
     }
 
     hideTypingIndicator() {
         const indicator = document.getElementById('typingIndicator');
         if (indicator) {
+            console.log('👀 Hiding typing indicator');
             indicator.classList.add('hidden');
         }
     }
@@ -764,6 +951,7 @@ class FriendChat {
         }, 4000);
     }
 
+    
     // Helper: Start a new chat with a friend
     async startChatWithFriend(friendId, friendUsername) {
         try {
@@ -840,6 +1028,14 @@ class FriendChat {
             console.error(message);
         }
     }
+
+    // Mobile: Show conversation list (hide chat window)
+    showConversationList() {
+        const conversationsContainer = document.querySelector('.chat-conversations-container');
+        if (conversationsContainer) {
+            conversationsContainer.classList.remove('chat-open');
+        }
+    }
 }
 
 // Initialize friend chat system
@@ -849,6 +1045,52 @@ document.addEventListener('DOMContentLoaded', () => {
     friendChat = new FriendChat();
     window.friendChat = friendChat;
     console.log('💬 Friend chat system initialized');
+    
+    // Create global video call handler
+    window.handleVideoCallClick = function() {
+        console.log('🎆 Global video call handler triggered!');
+        if (friendChat && friendChat.currentFriendId && window.videoCallSystem) {
+            console.log('🎆 Calling friend:', friendChat.currentFriendUsername);
+            window.videoCallSystem.initiateCall(friendChat.currentFriendId, friendChat.currentFriendUsername);
+        } else if (!window.videoCallSystem) {
+            alert('Video call system is loading... Please try again in a moment.');
+        } else {
+            alert('Please open a chat conversation first');
+        }
+    };
+    console.log('🎆 Global video call handler installed');
+    
+    
+    // Add a test video call button for debugging
+    const testButton = document.createElement('button');
+    testButton.innerHTML = '🎥 Test Video Call';
+    testButton.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 9999;
+        padding: 10px 20px;
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    `;
+    testButton.onclick = () => {
+        console.log('🎬 Test button clicked!');
+        if (friendChat && friendChat.currentFriendId && window.videoCallSystem) {
+            window.videoCallSystem.initiateCall(friendChat.currentFriendId, friendChat.currentFriendUsername);
+        } else if (!window.videoCallSystem) {
+            alert('Video call system is loading... Please try again in a moment.');
+        } else {
+            alert('Please open a chat conversation first');
+        }
+    };
+    document.body.appendChild(testButton);
+    console.log('🎬 Test video call button added to page');
 
     // Add debugging tools to window
     window.chatDebug = {

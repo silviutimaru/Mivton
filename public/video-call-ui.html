@@ -1,0 +1,106 @@
+<!-- Video Call UI Components (Add this before closing </body>) -->
+
+<!-- Video Call Interface -->
+<div id="video-call-ui" class="video-call-overlay" style="display: none;">
+    <div class="video-container">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <video id="localVideo" autoplay playsinline muted></video>
+        
+        <!-- Remote media state indicators -->
+        <div id="remote-audio-indicator" style="display: none;">
+            <i class="fas fa-microphone-slash"></i> Muted
+        </div>
+        <div id="remote-video-indicator" style="display: none;">
+            <i class="fas fa-video-slash"></i> Camera Off
+        </div>
+        
+        <div class="video-controls">
+            <button class="btn-call-control btn-audio" id="toggle-audio">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <button class="btn-call-control btn-video" id="toggle-video">
+                <i class="fas fa-video"></i>
+            </button>
+            <button class="btn-call-control btn-end" id="end-call">
+                <i class="fas fa-phone-slash"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Incoming Call UI -->
+<div id="incoming-call-ui" class="video-call-overlay" style="display: none;">
+    <div class="incoming-call-container">
+        <img id="incoming-call-avatar" src="/img/default-avatar.png" alt="Caller" class="calling-avatar">
+        <h3 id="incoming-call-name">Friend Name</h3>
+        <p>Incoming video call...</p>
+        <div class="calling-actions">
+            <button class="btn-call-control btn-accept" id="accept-call">
+                <i class="fas fa-phone"></i>
+            </button>
+            <button class="btn-call-control btn-decline" id="decline-call">
+                <i class="fas fa-phone-slash"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Calling UI -->
+<div id="calling-ui" class="video-call-overlay" style="display: none;">
+    <div class="calling-container">
+        <img id="calling-avatar" src="/img/default-avatar.png" alt="Calling" class="calling-avatar">
+        <h3 id="calling-name">Calling...</h3>
+        <div class="calling-actions">
+            <button class="btn-call-control btn-end" id="end-call-calling">
+                <i class="fas fa-phone-slash"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Include Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<!-- Include the Video Call JavaScript -->
+<script src="/js/video-call-client.js"></script>
+
+<script>
+// Initialize Video Call Manager when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Make sure we have socket and user ID
+    if (window.socket && window.currentUserId) {
+        console.log('🎥 Initializing Video Call Manager');
+        window.videoCallManager = new VideoCallManager();
+    } else {
+        console.log('⏳ Waiting for socket and user ID...');
+        // Retry initialization when socket is ready
+        const initInterval = setInterval(() => {
+            if (window.socket && window.currentUserId) {
+                clearInterval(initInterval);
+                console.log('🎥 Delayed initialization of Video Call Manager');
+                window.videoCallManager = new VideoCallManager();
+            }
+        }, 500);
+    }
+});
+
+// Add video call buttons to friends list
+function addVideoCallButton(friendElement, friendId, friendName, friendAvatar) {
+    // Check if button already exists
+    if (friendElement.querySelector('.video-call-btn')) return;
+    
+    const button = document.createElement('button');
+    button.className = 'video-call-btn';
+    button.dataset.friendId = friendId;
+    button.dataset.friendName = friendName || 'Friend';
+    button.dataset.friendAvatar = friendAvatar || '/img/default-avatar.png';
+    button.innerHTML = '<i class="fas fa-video"></i> Call';
+    button.title = 'Start video call';
+    
+    // Add to friend element
+    const actionsContainer = friendElement.querySelector('.friend-actions') || 
+                           friendElement.querySelector('.actions') || 
+                           friendElement;
+    actionsContainer.appendChild(button);
+}
+</script>
