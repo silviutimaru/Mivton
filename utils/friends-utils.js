@@ -1,4 +1,4 @@
-const pool = require('../database/connection');
+const { query } = require('../database/connection');
 
 /**
  * 🚀 MIVTON PHASE 3.1 - FRIENDS UTILITIES
@@ -19,18 +19,22 @@ const pool = require('../database/connection');
  */
 async function areUsersFriends(userId1, userId2) {
     try {
+        console.log(`🔍 areUsersFriends called with: userId1=${userId1}, userId2=${userId2}`);
+        
         if (!userId1 || !userId2 || userId1 === userId2) {
+            console.log(`🔍 Invalid parameters, returning false`);
             return false;
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             SELECT EXISTS(
                 SELECT 1 FROM friendships 
-                WHERE ((user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1))
+                WHERE ((user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?))
                 AND status = 'active'
             ) as are_friends
-        `, [userId1, userId2]);
+        `, [userId1, userId2, userId2, userId1]);
 
+        console.log(`🔍 Query result:`, result.rows[0].are_friends);
         return result.rows[0].are_friends;
     } catch (error) {
         console.error('Error checking friendship:', error);
@@ -50,7 +54,7 @@ async function isUserBlocked(blockerId, blockedId) {
             return false;
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             SELECT EXISTS(
                 SELECT 1 FROM blocked_users 
                 WHERE blocker_id = $1 AND blocked_id = $2
@@ -76,7 +80,7 @@ async function canUsersInteract(userId1, userId2) {
             return false;
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             SELECT NOT EXISTS(
                 SELECT 1 FROM blocked_users 
                 WHERE (blocker_id = $1 AND blocked_id = $2) 
@@ -103,7 +107,7 @@ async function getFriendRequestStatus(senderId, receiverId) {
             return null;
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             SELECT id, status, created_at, expires_at, message
             FROM friend_requests
             WHERE sender_id = $1 AND receiver_id = $2
@@ -131,7 +135,7 @@ async function getMutualFriends(userId1, userId2, limit = 10) {
             return [];
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             WITH user1_friends AS (
                 SELECT CASE 
                     WHEN f.user1_id = $1 THEN f.user2_id 
@@ -183,7 +187,7 @@ async function getMutualFriendsCount(userId1, userId2) {
             return 0;
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             WITH user1_friends AS (
                 SELECT CASE 
                     WHEN f.user1_id = $1 THEN f.user2_id 
@@ -227,7 +231,7 @@ async function getOnlineFriendsCount(userId) {
             return 0;
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             SELECT COUNT(*) as online_count
             FROM v_user_friends vuf
             WHERE vuf.user_id = $1
@@ -252,7 +256,7 @@ async function getFriendsCount(userId) {
             return 0;
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             SELECT COUNT(*) as friends_count
             FROM friendships f
             WHERE (f.user1_id = $1 OR f.user2_id = $1)
@@ -277,7 +281,7 @@ async function getPendingRequestsCount(userId) {
             return { sent: 0, received: 0 };
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             SELECT 
                 COUNT(CASE WHEN sender_id = $1 THEN 1 END) as sent_count,
                 COUNT(CASE WHEN receiver_id = $1 THEN 1 END) as received_count
@@ -350,7 +354,7 @@ async function createNotification(userId, senderId, type, message, data = {}) {
             return null;
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             INSERT INTO friend_notifications (user_id, sender_id, type, message, data)
             VALUES ($1, $2, $3, $4, $5)
             RETURNING id, created_at
@@ -402,7 +406,7 @@ async function getFriendSuggestions(userId, limit = 10) {
             return [];
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             WITH user_friends AS (
                 SELECT CASE 
                     WHEN f.user1_id = $1 THEN f.user2_id 
@@ -473,7 +477,7 @@ async function getFriendSuggestions(userId, limit = 10) {
  */
 async function cleanupExpiredRequests() {
     try {
-        const result = await pool.query(`
+        const result = await query(`
             UPDATE friend_requests 
             SET status = 'expired', updated_at = CURRENT_TIMESTAMP
             WHERE status = 'pending' 
@@ -613,7 +617,7 @@ async function getUserSocialStats(userId) {
             return null;
         }
 
-        const result = await pool.query(`
+        const result = await query(`
             SELECT 
                 -- Friends stats
                 (SELECT COUNT(*) FROM friendships f 

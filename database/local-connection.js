@@ -10,8 +10,28 @@ const db = new sqlite3.Database(dbPath);
 function query(sql, params = []) {
     return new Promise((resolve, reject) => {
         // Convert PostgreSQL-style queries to SQLite
-        let sqliteQuery = sql
-            .replace(/\$(\d+)/g, '?') // Replace $1, $2, etc. with ?
+        let sqliteQuery = sql;
+        
+        // Replace PostgreSQL parameters with SQLite parameters
+        // First, find all parameter references
+        const paramMatches = sql.match(/\$(\d+)/g);
+        if (paramMatches) {
+            // Get unique parameter numbers and sort them
+            const paramNumbers = [...new Set(paramMatches.map(match => parseInt(match.substring(1))))].sort();
+            
+            // Replace each parameter reference with the actual value
+            paramNumbers.forEach(paramNum => {
+                const regex = new RegExp(`\\$${paramNum}`, 'g');
+                sqliteQuery = sqliteQuery.replace(regex, '?');
+                // Add the parameter value to the params array for each occurrence
+                const occurrences = (sql.match(new RegExp(`\\$${paramNum}`, 'g')) || []).length;
+                for (let i = 1; i < occurrences; i++) {
+                    params.push(params[paramNum - 1]);
+                }
+            });
+        }
+        
+        sqliteQuery = sqliteQuery
             .replace(/CURRENT_TIMESTAMP/g, "datetime('now')")
             .replace(/NOW\(\)/g, "datetime('now')")
             .replace(/ILIKE/g, 'LIKE')
