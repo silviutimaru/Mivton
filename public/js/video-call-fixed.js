@@ -112,6 +112,13 @@ class VideoCallSystem {
     }
 
     setupEventListeners() {
+        // Prevent duplicate event listeners
+        if (this.domEventListenersSetup) {
+            console.log('⚠️ DOM event listeners already setup, skipping...');
+            return;
+        }
+        this.domEventListenersSetup = true;
+
         // Video call button in friends list
         document.addEventListener('click', async (e) => {
             if (e.target.closest('.video-call-btn')) {
@@ -143,6 +150,13 @@ class VideoCallSystem {
     }
 
     setupSocketListeners() {
+        // Prevent duplicate socket listeners
+        if (this.socketEventListenersSetup) {
+            console.log('⚠️ Socket event listeners already setup, skipping...');
+            return;
+        }
+        this.socketEventListenersSetup = true;
+
         if (!this.socket) {
             console.error('❌ Socket not available for listeners');
             return;
@@ -682,11 +696,25 @@ class VideoCallSystem {
             if (this.localStream && this.localVideo) {
                 this.localVideo.srcObject = this.localStream;
                 console.log('✅ Local video stream assigned to UI');
+                console.log('📹 Local video element:', this.localVideo);
+                console.log('📹 Local stream tracks:', this.localStream.getTracks().length);
             }
             
             if (this.remoteStream && this.remoteVideo) {
                 this.remoteVideo.srcObject = this.remoteStream;
                 console.log('✅ Remote video stream assigned to UI');
+                console.log('📹 Remote video element:', this.remoteVideo);
+                console.log('📹 Remote stream tracks:', this.remoteStream.getTracks().length);
+            }
+
+            // Force video elements to be visible
+            if (this.localVideo) {
+                this.localVideo.style.display = 'block';
+                this.localVideo.style.visibility = 'visible';
+            }
+            if (this.remoteVideo) {
+                this.remoteVideo.style.display = 'block';
+                this.remoteVideo.style.visibility = 'visible';
             }
         }
     }
