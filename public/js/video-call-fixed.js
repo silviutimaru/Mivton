@@ -977,17 +977,87 @@ class VideoCallSystem {
         this.hideAllUI();
         const videoUI = document.getElementById('video-call-ui');
         if (videoUI) {
-            videoUI.style.cssText = 'display: flex !important;';
+            // Show the video call UI
+            videoUI.style.display = 'flex';
             
-            // Ensure video elements are visible
+            console.log('🎬 Showing video UI, checking video elements...');
+            
+            // Ensure video elements are visible (don't overwrite all styles with cssText)
             if (this.localVideo) {
-                this.localVideo.style.cssText = 'display: block !important; visibility: visible !important;';
-            }
-            if (this.remoteVideo) {
-                this.remoteVideo.style.cssText = 'display: block !important; visibility: visible !important;';
+                this.localVideo.style.display = 'block';
+                this.localVideo.style.visibility = 'visible';
+                this.localVideo.style.opacity = '1';
+                
+                const localComputedStyle = getComputedStyle(this.localVideo);
+                console.log('📹 Local video element state:', {
+                    exists: !!this.localVideo,
+                    hasStream: !!this.localVideo.srcObject,
+                    streamTracks: this.localVideo.srcObject?.getTracks().length || 0,
+                    readyState: this.localVideo.readyState,
+                    videoWidth: this.localVideo.videoWidth,
+                    videoHeight: this.localVideo.videoHeight,
+                    paused: this.localVideo.paused,
+                    display: localComputedStyle.display,
+                    visibility: localComputedStyle.visibility,
+                    opacity: localComputedStyle.opacity,
+                    width: localComputedStyle.width,
+                    height: localComputedStyle.height,
+                    position: localComputedStyle.position,
+                    zIndex: localComputedStyle.zIndex,
+                    top: localComputedStyle.top,
+                    left: localComputedStyle.left,
+                    right: localComputedStyle.right,
+                    bottom: localComputedStyle.bottom
+                });
+            } else {
+                console.error('❌ Local video element not found!');
             }
             
-            console.log('✅ Video UI shown');
+            if (this.remoteVideo) {
+                this.remoteVideo.style.display = 'block';
+                this.remoteVideo.style.visibility = 'visible';
+                this.remoteVideo.style.opacity = '1';
+                
+                const remoteComputedStyle = getComputedStyle(this.remoteVideo);
+                console.log('📹 Remote video element state:', {
+                    exists: !!this.remoteVideo,
+                    hasStream: !!this.remoteVideo.srcObject,
+                    streamTracks: this.remoteVideo.srcObject?.getTracks().length || 0,
+                    readyState: this.remoteVideo.readyState,
+                    videoWidth: this.remoteVideo.videoWidth,
+                    videoHeight: this.remoteVideo.videoHeight,
+                    paused: this.remoteVideo.paused,
+                    display: remoteComputedStyle.display,
+                    visibility: remoteComputedStyle.visibility,
+                    opacity: remoteComputedStyle.opacity,
+                    width: remoteComputedStyle.width,
+                    height: remoteComputedStyle.height,
+                    position: remoteComputedStyle.position,
+                    zIndex: remoteComputedStyle.zIndex,
+                    top: remoteComputedStyle.top,
+                    left: remoteComputedStyle.left,
+                    right: remoteComputedStyle.right,
+                    bottom: remoteComputedStyle.bottom
+                });
+            } else {
+                console.error('❌ Remote video element not found!');
+            }
+            
+            // Log video container state
+            const videoContainer = videoUI.querySelector('.video-container');
+            if (videoContainer) {
+                const containerStyle = getComputedStyle(videoContainer);
+                console.log('📦 Video container state:', {
+                    width: containerStyle.width,
+                    height: containerStyle.height,
+                    position: containerStyle.position,
+                    display: containerStyle.display
+                });
+            }
+            
+            console.log('✅ Video UI shown with proper styling');
+        } else {
+            console.error('❌ Video UI element not found!');
         }
     }
 

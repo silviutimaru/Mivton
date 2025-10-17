@@ -78,7 +78,7 @@
     height: 100%;
     background: #1a1a1a;
     display: none;
-    z-index: 9999;
+    z-index: 9999999 !important;
 }
 
 .video-container {
