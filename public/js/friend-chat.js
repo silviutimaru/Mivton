@@ -27,37 +27,39 @@ class FriendChat {
     init() {
         this.requestNotificationPermission();
 
-        // Wait for the main socket to be ready
-        if (window.socket && window.socket.connected) {
-            console.log('✅ Using existing window.socket for chat');
-            this.socket = window.socket;
-            this.setupSocketEvents();
-        } else if (window.enhancedSocketClient) {
-            console.log('⏳ Waiting for socket to connect...');
-            // Wait up to 3 seconds for socket to connect
-            const checkInterval = setInterval(() => {
-                if (window.socket && window.socket.connected) {
-                    console.log('✅ Socket ready, setting up chat');
-                    this.socket = window.socket;
-                    this.setupSocketEvents();
-                    clearInterval(checkInterval);
-                }
-            }, 100);
-            
-            setTimeout(() => clearInterval(checkInterval), 3000);
-        } else {
-            // Fallback: only create new socket if absolutely necessary
-            console.warn('⚠️ Creating new socket (enhanced-socket-client not ready)');
-            if (typeof io !== 'undefined') {
-                this.socket = io({
-                    withCredentials: true,
-                    transports: ['websocket', 'polling'],
-                    reconnection: true,
-                    reconnectionAttempts: 5,
-                    reconnectionDelay: 1000
-                });
+        // CRITICAL: Wait for socketClientReady event from enhanced-socket-client
+        const setupSocket = () => {
+            if (window.socket && window.socket.connected) {
+                console.log('✅ Using existing window.socket for chat');
+                console.log('🔍 Socket ID:', window.socket.id);
+                this.socket = window.socket;
                 this.setupSocketEvents();
+                this.registerUser();
+            } else {
+                console.warn('⚠️ window.socket not ready yet, retrying...');
+                setTimeout(setupSocket, 100);
             }
+        };
+
+        // Check if socket is already ready
+        if (window.socket && window.socket.connected) {
+            console.log('✅ Socket already connected, using it immediately');
+            setupSocket();
+        } else {
+            console.log('⏳ Waiting for socketClientReady event...');
+            // Listen for socketClientReady event from enhanced-socket-client
+            document.addEventListener('socketClientReady', () => {
+                console.log('✅ socketClientReady event received');
+                setupSocket();
+            }, { once: true });
+            
+            // Fallback: try polling after 1 second if event doesn't fire
+            setTimeout(() => {
+                if (!this.socket) {
+                    console.log('⚠️ Event not received, trying polling...');
+                    setupSocket();
+                }
+            }, 1000);
         }
         
         this.setupEventListeners();
