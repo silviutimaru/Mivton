@@ -1,4 +1,4 @@
-// Fixed Video Call System - Complete Working Implementation
+// Fixed Video Call System - Complete Working Implementation with WebRTC State Management
 class VideoCallSystem {
     constructor() {
         this.localStream = null;
@@ -10,6 +10,10 @@ class VideoCallSystem {
         this.isCallActive = false;
         this.localVideo = null;
         this.remoteVideo = null;
+        
+        // Critical: Prevent duplicate WebRTC initialization
+        this.webrtcInitialized = false;
+        this.isProcessingAnswer = false;
         
         // Track if we're currently playing videos to prevent interruptions
         this.isPlayingLocalVideo = false;
@@ -247,8 +251,13 @@ class VideoCallSystem {
             this.hideCallingUI();
             this.showVideoUI();
             
-            // Start WebRTC connection
-            await this.startWebRTC(true);
+            // CRITICAL FIX: Start WebRTC ONLY ONCE here as initiator
+            if (!this.webrtcInitialized) {
+                console.log('🔄 Initiator starting WebRTC after acceptance');
+                await this.startWebRTC(true);
+            } else {
+                console.warn('⚠️ WebRTC already initialized, skipping duplicate initialization');
+            }
         });
 
         this.socket.on('video-call:declined', (data) => {
@@ -304,6 +313,10 @@ class VideoCallSystem {
                 this.showNotification('Already in a call', 'warning');
                 return;
             }
+
+            // Reset WebRTC state for new call
+            this.webrtcInitialized = false;
+            this.isProcessingAnswer = false;
 
             // Generate unique call ID
             const callId = `call_${this.currentUserId}_${friendId}_${Date.now()}`;
@@ -490,6 +503,10 @@ class VideoCallSystem {
             return;
         }
 
+        // Reset WebRTC state for new call
+        this.webrtcInitialized = false;
+        this.isProcessingAnswer = false;
+
         this.currentCall = {
             callId: data.callId,
             callerId: data.caller?.id,
@@ -537,8 +554,13 @@ class VideoCallSystem {
 
             this.isCallActive = true;
 
-            // Start WebRTC as receiver (will wait for offer)
-            await this.startWebRTC(false);
+            // CRITICAL FIX: Start WebRTC ONLY ONCE here as receiver (will wait for offer)
+            if (!this.webrtcInitialized) {
+                console.log('🔄 Receiver starting WebRTC after accepting');
+                await this.startWebRTC(false);
+            } else {
+                console.warn('⚠️ WebRTC already initialized, skipping duplicate initialization');
+            }
 
         } catch (error) {
             console.error('❌ Error accepting call:', error);
@@ -585,6 +607,12 @@ class VideoCallSystem {
     }
 
     async startWebRTC(isInitiator) {
+        // CRITICAL FIX: Guard against duplicate initialization
+        if (this.webrtcInitialized) {
+            console.warn('⚠️ WebRTC already initialized, skipping duplicate initialization');
+            return;
+        }
+        
         console.log(`🔄 Starting WebRTC (initiator: ${isInitiator})`);
         
         try {
@@ -594,11 +622,14 @@ class VideoCallSystem {
                 await this.getUserMedia();
             }
 
-            // Create peer connection
+            // Create peer connection ONCE
             this.peerConnection = new RTCPeerConnection(this.iceServers);
             console.log('✅ Peer connection created');
             
-            // Add local stream tracks
+            // Mark as initialized BEFORE any async operations
+            this.webrtcInitialized = true;
+            
+            // Add local stream tracks BEFORE creating offer/answer
             if (this.localStream) {
                 this.localStream.getTracks().forEach(track => {
                     this.peerConnection.addTrack(track, this.localStream);
@@ -665,15 +696,23 @@ class VideoCallSystem {
                 console.log('🧊 ICE connection state:', this.peerConnection.iceConnectionState);
             };
 
-            // Create offer if initiator
+            // Signaling state changes (for debugging)
+            this.peerConnection.onsignalingstatechange = () => {
+                console.log('📡 Signaling state:', this.peerConnection.signalingState);
+            };
+
+            // Create offer if initiator (after tracks are added)
             if (isInitiator) {
-                // Wait a moment to ensure all tracks are added
+                // Wait a moment to ensure all tracks are fully added
                 await new Promise(resolve => setTimeout(resolve, 100));
                 await this.createOffer();
+            } else {
+                console.log('📥 Receiver ready, waiting for offer...');
             }
             
         } catch (error) {
             console.error('❌ Error in startWebRTC:', error);
+            this.webrtcInitialized = false; // Reset on error
             this.showNotification('Failed to establish connection', 'error');
             throw error;
         }
@@ -683,13 +722,19 @@ class VideoCallSystem {
         try {
             console.log('📤 Creating offer...');
             
+            // Verify signaling state before creating offer
+            if (this.peerConnection.signalingState !== 'stable') {
+                console.error('❌ Cannot create offer, signaling state not stable:', this.peerConnection.signalingState);
+                return;
+            }
+            
             const offer = await this.peerConnection.createOffer({
                 offerToReceiveAudio: true,
                 offerToReceiveVideo: true
             });
             
             await this.peerConnection.setLocalDescription(offer);
-            console.log('✅ Local description set (offer)');
+            console.log('✅ Local description set (offer), signaling state:', this.peerConnection.signalingState);
             
             this.socket.emit('video-call:offer', {
                 targetUserId: this.currentCall.targetUserId,
@@ -708,23 +753,28 @@ class VideoCallSystem {
         try {
             console.log('📥 Processing offer from user:', data.from);
             
-            // Ensure WebRTC is started (if not already)
+            // CRITICAL FIX: Don't call startWebRTC if already initialized
             if (!this.peerConnection) {
-                console.log('🔄 Starting WebRTC to handle offer...');
-                await this.startWebRTC(false);
+                console.error('❌ No peer connection available - this should not happen. Call acceptCall first.');
+                return;
+            }
+            
+            // Verify signaling state before setting remote description
+            if (this.peerConnection.signalingState !== 'stable') {
+                console.warn('⚠️ Signaling state not stable when receiving offer:', this.peerConnection.signalingState);
             }
             
             // Set remote description
             console.log('📥 Setting remote description (offer)...');
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-            console.log('✅ Remote description set (offer)');
+            console.log('✅ Remote description set (offer), signaling state:', this.peerConnection.signalingState);
             
             // Create answer
             console.log('📤 Creating answer...');
             const answer = await this.peerConnection.createAnswer();
             
             await this.peerConnection.setLocalDescription(answer);
-            console.log('✅ Local description set (answer)');
+            console.log('✅ Local description set (answer), signaling state:', this.peerConnection.signalingState);
             
             // Send answer back
             this.socket.emit('video-call:answer', {
@@ -741,7 +791,14 @@ class VideoCallSystem {
     }
 
     async handleAnswer(data) {
+        // CRITICAL FIX: Prevent processing duplicate answers
+        if (this.isProcessingAnswer) {
+            console.warn('⚠️ Already processing an answer, ignoring duplicate');
+            return;
+        }
+        
         try {
+            this.isProcessingAnswer = true;
             console.log('📥 Processing answer...');
             
             if (!this.peerConnection) {
@@ -752,16 +809,23 @@ class VideoCallSystem {
             const currentState = this.peerConnection.signalingState;
             console.log('📡 Current signaling state:', currentState);
             
-            // Only set remote description if we're in the correct state
+            // CRITICAL FIX: Only set remote description if we're in the correct state
             if (currentState === 'have-local-offer') {
                 console.log('📥 Setting remote description (answer)...');
                 await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                console.log('✅ Remote description set (answer)');
+                console.log('✅ Remote description set (answer), signaling state:', this.peerConnection.signalingState);
+            } else if (currentState === 'stable') {
+                console.warn('⚠️ Already in stable state, ignoring answer (connection already established)');
             } else {
-                console.warn('⚠️ Cannot set remote description, wrong state:', currentState);
+                console.error('❌ Cannot set remote description, wrong state:', currentState);
             }
         } catch (error) {
             console.error('❌ Error handling answer:', error);
+        } finally {
+            // Reset flag after a delay to allow for any late duplicate answers
+            setTimeout(() => {
+                this.isProcessingAnswer = false;
+            }, 1000);
         }
     }
 
@@ -811,6 +875,10 @@ class VideoCallSystem {
 
     cleanup() {
         console.log('🧹 Cleaning up video call...');
+        
+        // Reset WebRTC flags
+        this.webrtcInitialized = false;
+        this.isProcessingAnswer = false;
         
         // Stop playing flags
         this.isPlayingLocalVideo = false;
