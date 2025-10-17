@@ -328,6 +328,11 @@ class FriendChat {
                         </div>
                     </div>
                     <div class="chat-header-actions">
+                        <div class="chat-language-selector" style="margin-right: 10px;">
+                            <select id="chatLanguageSelector" class="language-dropdown" title="Display messages in">
+                                <option value="en">🌍 EN</option>
+                            </select>
+                        </div>
                         <button class="chat-action-btn" id="videoCallBtn" title="Start Video Call" style="cursor: pointer;">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2V5z"/>
@@ -369,6 +374,21 @@ class FriendChat {
         `;
 
         chatWindowContainer.innerHTML = chatHTML;
+
+        // Initialize language selector after chat window is created
+        setTimeout(() => {
+            console.log('🔤 Initializing language selector for chat window...');
+            if (window.chatLanguageSelector && window.chatLanguageSelector.init) {
+                window.chatLanguageSelector.init();
+            } else {
+                console.log('⚠️ Language selector not available, trying direct init...');
+                if (typeof initChatLanguageSelector === 'function') {
+                    initChatLanguageSelector();
+                } else {
+                    console.log('⚠️ initChatLanguageSelector function not found');
+                }
+            }
+        }, 100);
 
         // Attach video call button listener AFTER button is created
         setTimeout(() => {
