@@ -977,8 +977,14 @@ class VideoCallSystem {
         this.hideAllUI();
         const videoUI = document.getElementById('video-call-ui');
         if (videoUI) {
-            // Show the video call UI
+            // Show the video call UI with proper display
             videoUI.style.display = 'flex';
+            videoUI.style.position = 'fixed';
+            videoUI.style.top = '0';
+            videoUI.style.left = '0';
+            videoUI.style.width = '100%';
+            videoUI.style.height = '100%';
+            videoUI.style.zIndex = '999999';
             
             console.log('🎬 Showing video UI, checking video elements...');
             
@@ -996,6 +1002,8 @@ class VideoCallSystem {
                     readyState: this.localVideo.readyState,
                     videoWidth: this.localVideo.videoWidth,
                     videoHeight: this.localVideo.videoHeight,
+                    offsetWidth: this.localVideo.offsetWidth,
+                    offsetHeight: this.localVideo.offsetHeight,
                     paused: this.localVideo.paused,
                     display: localComputedStyle.display,
                     visibility: localComputedStyle.visibility,
@@ -1026,6 +1034,8 @@ class VideoCallSystem {
                     readyState: this.remoteVideo.readyState,
                     videoWidth: this.remoteVideo.videoWidth,
                     videoHeight: this.remoteVideo.videoHeight,
+                    offsetWidth: this.remoteVideo.offsetWidth,
+                    offsetHeight: this.remoteVideo.offsetHeight,
                     paused: this.remoteVideo.paused,
                     display: remoteComputedStyle.display,
                     visibility: remoteComputedStyle.visibility,
@@ -1051,9 +1061,23 @@ class VideoCallSystem {
                     width: containerStyle.width,
                     height: containerStyle.height,
                     position: containerStyle.position,
-                    display: containerStyle.display
+                    display: containerStyle.display,
+                    zIndex: containerStyle.zIndex
                 });
             }
+            
+            // Log video UI container state
+            const videoUIStyle = getComputedStyle(videoUI);
+            console.log('🎥 VIDEO UI CONTAINER DEBUG:', {
+                containerDisplay: videoUIStyle.display,
+                containerVisibility: videoUIStyle.visibility,
+                containerZIndex: videoUIStyle.zIndex,
+                containerPosition: videoUIStyle.position,
+                containerWidth: videoUIStyle.width,
+                containerHeight: videoUIStyle.height,
+                containerTop: videoUIStyle.top,
+                containerLeft: videoUIStyle.left
+            });
             
             console.log('✅ Video UI shown with proper styling');
         } else {
