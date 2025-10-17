@@ -442,6 +442,18 @@ function initializeEnhancedFriendsEvents(io) {
             const { recipientId, messageData } = data;
             const senderId = socket.userId;
             
+            // CRITICAL: Validate sender is registered
+            if (!senderId) {
+                console.error(`❌ Message rejected: socket.userId is undefined (socket: ${socket.id})`);
+                console.error(`⚠️ User must call chat:register before sending messages`);
+                return;
+            }
+            
+            if (!recipientId) {
+                console.error(`❌ Message rejected: recipientId is missing`);
+                return;
+            }
+            
             console.log(`📨 Message from ${senderId} to ${recipientId}`);
 
             try {

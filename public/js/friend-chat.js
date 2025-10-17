@@ -12,6 +12,7 @@ class FriendChat {
         this.socket = null;
         this.unreadCounts = new Map();
         this.hasShownUnreadNotification = false;
+        this.isUserRegistered = false;  // Track if user is registered for Socket.IO
 
         // Lazy loading properties
         this.allMessages = [];
@@ -138,15 +139,20 @@ class FriendChat {
         if (window.currentUser?.id) {
             console.log('📝 Registering for chat:', window.currentUser.id);
             this.socket.emit('chat:register', window.currentUser.id);
+            this.isUserRegistered = true;  // Mark as registered
+            console.log('✅ User registered for chat, can now send messages');
             return;
         }
 
         // If not available, wait for it
         console.log('⏳ Waiting for currentUser to be set...');
+        this.isUserRegistered = false;  // Not yet registered
         const checkInterval = setInterval(() => {
             if (window.currentUser?.id) {
                 console.log('📝 Registering for chat (delayed):', window.currentUser.id);
                 this.socket.emit('chat:register', window.currentUser.id);
+                this.isUserRegistered = true;  // Mark as registered
+                console.log('✅ User registered for chat (delayed), can now send messages');
                 clearInterval(checkInterval);
             }
         }, 100);
@@ -569,13 +575,22 @@ class FriendChat {
             content: content?.substring(0, 20),
             currentFriendId: this.currentFriendId,
             currentConversationId: this.currentConversationId,
-            currentFriendUsername: this.currentFriendUsername
+            currentFriendUsername: this.currentFriendUsername,
+            isUserRegistered: this.isUserRegistered
         });
 
         if (!this.currentFriendId) {
             console.log('❌ Cannot send - missing friendId');
             this.showError('Please select a conversation first');
             return;
+        }
+
+        // CRITICAL: Ensure user is registered before sending via Socket.IO
+        if (!this.isUserRegistered && this.socket) {
+            console.log('⚠️ User not registered yet, registering now...');
+            this.registerUser();
+            // Wait a moment for registration to complete
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
 
         input.value = '';
