@@ -1114,49 +1114,92 @@ class VideoCallSystem {
 
     playRingtone() {
         try {
-            // Create a simple beep sound using Web Audio API
+            // Modern Gen Z-style notification sound using Web Audio API
             if (!this.audioContext) {
                 this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
             
-            // Create a simple beep tone
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
+            console.log('🎵 Playing modern ringtone...');
             
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
+            // Create a trendy lo-fi / synthwave notification sound
+            const playModernRingtone = () => {
+                const ctx = this.audioContext;
+                const now = ctx.currentTime;
+                
+                // Create a filter for that lo-fi vibe
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 2000;
+                filter.Q.value = 1;
+                
+                // Main gain node
+                const mainGain = ctx.createGain();
+                mainGain.connect(filter);
+                filter.connect(ctx.destination);
+                
+                // First note (C5 - 523 Hz) - short and punchy
+                const osc1 = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                osc1.connect(gain1);
+                gain1.connect(mainGain);
+                osc1.type = 'sine';
+                osc1.frequency.value = 523;
+                gain1.gain.setValueAtTime(0.3, now);
+                gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc1.start(now);
+                osc1.stop(now + 0.15);
+                
+                // Second note (E5 - 659 Hz) - slightly delayed
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(mainGain);
+                osc2.type = 'sine';
+                osc2.frequency.value = 659;
+                gain2.gain.setValueAtTime(0, now + 0.12);
+                gain2.gain.setValueAtTime(0.3, now + 0.13);
+                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+                osc2.start(now + 0.12);
+                osc2.stop(now + 0.28);
+                
+                // Third note (G5 - 784 Hz) - the hook
+                const osc3 = ctx.createOscillator();
+                const gain3 = ctx.createGain();
+                osc3.connect(gain3);
+                gain3.connect(mainGain);
+                osc3.type = 'sine';
+                osc3.frequency.value = 784;
+                gain3.gain.setValueAtTime(0, now + 0.24);
+                gain3.gain.setValueAtTime(0.35, now + 0.25);
+                gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc3.start(now + 0.24);
+                osc3.stop(now + 0.5);
+                
+                // Add a subtle bass note for depth
+                const bassOsc = ctx.createOscillator();
+                const bassGain = ctx.createGain();
+                bassOsc.connect(bassGain);
+                bassGain.connect(mainGain);
+                bassOsc.type = 'sine';
+                bassOsc.frequency.value = 130; // C3
+                bassGain.gain.setValueAtTime(0.15, now);
+                bassGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                bassOsc.start(now);
+                bassOsc.stop(now + 0.4);
+            };
             
-            oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
-            oscillator.type = 'sine';
+            // Play immediately
+            playModernRingtone();
             
-            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.5);
-            
-            // Repeat the beep every second
+            // Repeat every 2 seconds (not too annoying)
             this.ringtoneInterval = setInterval(() => {
                 if (this.audioContext) {
-                    const osc = this.audioContext.createOscillator();
-                    const gain = this.audioContext.createGain();
-                    
-                    osc.connect(gain);
-                    gain.connect(this.audioContext.destination);
-                    
-                    osc.frequency.setValueAtTime(800, this.audioContext.currentTime);
-                    osc.type = 'sine';
-                    
-                    gain.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-                    
-                    osc.start(this.audioContext.currentTime);
-                    osc.stop(this.audioContext.currentTime + 0.5);
+                    playModernRingtone();
                 }
-            }, 1000);
+            }, 2000);
             
         } catch (e) {
-            console.log('Ringtone not available:', e);
+            console.log('⚠️ Ringtone not available:', e);
         }
     }
 
