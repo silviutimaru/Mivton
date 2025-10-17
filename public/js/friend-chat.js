@@ -28,33 +28,39 @@ class FriendChat {
         // Request notification permission on init
         this.requestNotificationPermission();
 
-        // Initialize Socket.IO for real-time messaging
+        // CRITICAL FIX: Use existing Socket.IO connection from enhanced-socket-client.js
+        // DO NOT create a new socket instance!
         if (typeof io !== 'undefined') {
-            console.log('🔌 Initializing Socket.IO connection...');
-            this.socket = io({
-                withCredentials: true,  // CRITICAL: Send session cookies for authentication
-                transports: ['websocket', 'polling'],
-                reconnection: true,
-                reconnectionAttempts: 5,
-                reconnectionDelay: 1000
-            });
-            this.setupSocketEvents();
-
-            // Add error handler
-            this.socket.on('connect_error', (error) => {
-                console.error('❌ Socket connection error:', error);
-            });
-
-            this.socket.on('disconnect', (reason) => {
-                console.warn('⚠️ Socket disconnected:', reason);
-                // Auto-reconnect after 2 seconds
-                setTimeout(() => {
-                    if (!this.socket.connected) {
-                        console.log('🔄 Attempting to reconnect socket...');
-                        this.socket.connect();
-                    }
-                }, 2000);
-            });
+            console.log('🔌 Checking for existing Socket.IO connection...');
+            
+            // Wait for enhanced-socket-client to initialize if needed
+            const initSocket = () => {
+                // Use the SAME socket instance that enhanced-socket-client.js created
+                this.socket = window.socket || window.enhancedSocketClient?.socket;
+                
+                if (!this.socket) {
+                    console.warn('⚠️ No existing socket found, waiting for enhanced-socket-client...');
+                    // Try again in 100ms
+                    setTimeout(initSocket, 100);
+                    return;
+                }
+                
+                if (!this.socket.connected) {
+                    console.warn('⚠️ Socket exists but not connected, waiting for connection...');
+                    this.socket.once('connect', () => {
+                        console.log('✅ Socket connected, setting up chat events');
+                        this.setupSocketEvents();
+                        this.registerUser();
+                    });
+                } else {
+                    console.log('✅ Using existing socket connection:', this.socket.id);
+                    this.setupSocketEvents();
+                    this.registerUser();
+                }
+            };
+            
+            // Start initialization
+            initSocket();
         } else {
             console.error('❌ Socket.IO library not loaded');
         }
@@ -77,10 +83,10 @@ class FriendChat {
     }
 
     setupSocketEvents() {
-        this.socket.on('connect', () => {
-            console.log('💬 Connected to chat server');
-            this.registerUser();
-        });
+        // CRITICAL: Don't add 'connect' handler - socket is already managed by enhanced-socket-client
+        // Just add our chat-specific event listeners
+        
+        console.log('📝 Setting up chat-specific socket event listeners...');
 
         // Listen for incoming messages (SIMPLE!)
         this.socket.on('chat:receive', (messageData) => {
