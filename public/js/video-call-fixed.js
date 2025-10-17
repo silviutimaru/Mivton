@@ -11,6 +11,10 @@ class VideoCallSystem {
         this.localVideo = null;
         this.remoteVideo = null;
         
+        // Track if we're currently playing videos to prevent interruptions
+        this.isPlayingLocalVideo = false;
+        this.isPlayingRemoteVideo = false;
+        
         // ICE servers configuration
         this.iceServers = {
             iceServers: [
@@ -57,8 +61,6 @@ class VideoCallSystem {
             // Register for chat (which sets up the user room)
             this.socket.emit('chat:register', this.currentUserId);
             console.log(`📝 Registered user ${this.currentUserId} for video calls in room user_${this.currentUserId}`);
-            
-            // Legacy event listener removed to prevent conflicts
         } else {
             console.warn('⚠️ Cannot register user - missing userId or socket', {
                 currentUserId: this.currentUserId,
@@ -109,6 +111,71 @@ class VideoCallSystem {
         // Store references to video elements
         this.localVideo = document.getElementById('localVideo');
         this.remoteVideo = document.getElementById('remoteVideo');
+        
+        // Set up video element event listeners
+        this.setupVideoElementListeners();
+    }
+
+    setupVideoElementListeners() {
+        if (this.localVideo) {
+            this.localVideo.addEventListener('loadedmetadata', () => {
+                console.log('📹 Local video metadata loaded');
+                this.playLocalVideo();
+            });
+            
+            this.localVideo.addEventListener('playing', () => {
+                console.log('✅ Local video is playing');
+                this.isPlayingLocalVideo = true;
+            });
+            
+            this.localVideo.addEventListener('pause', () => {
+                console.log('⏸️ Local video paused');
+                this.isPlayingLocalVideo = false;
+            });
+        }
+        
+        if (this.remoteVideo) {
+            this.remoteVideo.addEventListener('loadedmetadata', () => {
+                console.log('📹 Remote video metadata loaded');
+                this.playRemoteVideo();
+            });
+            
+            this.remoteVideo.addEventListener('playing', () => {
+                console.log('✅ Remote video is playing');
+                this.isPlayingRemoteVideo = true;
+            });
+            
+            this.remoteVideo.addEventListener('pause', () => {
+                console.log('⏸️ Remote video paused');
+                this.isPlayingRemoteVideo = false;
+            });
+        }
+    }
+
+    async playLocalVideo() {
+        if (this.localVideo && this.localVideo.srcObject && !this.isPlayingLocalVideo) {
+            try {
+                await this.localVideo.play();
+                console.log('✅ Local video play started');
+            } catch (error) {
+                console.warn('⚠️ Local video play failed (non-critical):', error.message);
+                // Try again after a short delay
+                setTimeout(() => this.playLocalVideo(), 500);
+            }
+        }
+    }
+
+    async playRemoteVideo() {
+        if (this.remoteVideo && this.remoteVideo.srcObject && !this.isPlayingRemoteVideo) {
+            try {
+                await this.remoteVideo.play();
+                console.log('✅ Remote video play started');
+            } catch (error) {
+                console.warn('⚠️ Remote video play failed (non-critical):', error.message);
+                // Try again after a short delay
+                setTimeout(() => this.playRemoteVideo(), 500);
+            }
+        }
     }
 
     setupEventListeners() {
@@ -179,6 +246,8 @@ class VideoCallSystem {
             console.log('✅ Call accepted:', data);
             this.hideCallingUI();
             this.showVideoUI();
+            
+            // Start WebRTC connection
             await this.startWebRTC(true);
         });
 
@@ -210,18 +279,13 @@ class VideoCallSystem {
 
         // WebRTC signaling
         this.socket.on('video-call:offer', async (data) => {
-            console.log('📥 Received offer');
+            console.log('📥 Received offer from:', data.from);
             await this.handleOffer(data);
         });
 
         this.socket.on('video-call:answer', async (data) => {
             console.log('📥 Received answer');
-            // Only process if we're not already connected
-            if (this.peerConnection && this.peerConnection.connectionState !== 'connected') {
-                await this.handleAnswer(data);
-            } else {
-                console.log('⚠️ Ignoring answer - already connected or no peer connection');
-            }
+            await this.handleAnswer(data);
         });
 
         this.socket.on('video-call:ice-candidate', async (data) => {
@@ -241,42 +305,43 @@ class VideoCallSystem {
                 return;
             }
 
+            // Generate unique call ID
+            const callId = `call_${this.currentUserId}_${friendId}_${Date.now()}`;
+
             // Store call information
             this.currentCall = {
+                callId: callId,
                 targetUserId: parseInt(friendId),
                 targetName: friendName,
                 targetAvatar: friendAvatar,
                 isInitiator: true
             };
 
-            // Show calling UI immediately
-            this.showCallingUI(friendName, friendAvatar);
-            
-            // Request user media with error handling
+            // Request user media first (BEFORE showing UI)
             try {
+                console.log('📹 Requesting user media...');
                 await this.getUserMedia();
                 console.log('✅ Got user media successfully');
-                
-                // Show local video preview in calling UI
-                if (this.localVideo && this.localStream) {
-                    this.localVideo.srcObject = this.localStream;
-                }
             } catch (mediaError) {
                 console.error('❌ Failed to get user media:', mediaError);
                 this.showNotification('Camera/microphone access denied', 'error');
-                this.hideCallingUI();
+                this.currentCall = null;
                 return;
             }
 
+            // Show calling UI after we have the stream
+            this.showCallingUI(friendName, friendAvatar);
+
             // Send call initiation via new system only
-            console.log('📤 Sending call initiation to server');
+            console.log('📤 Sending call initiation to server with callId:', callId);
             
             this.socket.emit('video-call:initiate', {
                 targetUserId: parseInt(friendId),
+                callId: callId,
                 callerInfo: {
                     id: this.currentUserId,
-                    name: window.currentUserName || 'User',
-                    avatar: window.currentUserAvatar || '/img/default-avatar.png'
+                    name: window.currentUser?.name || window.currentUserName || 'User',
+                    avatar: window.currentUser?.avatar || window.currentUserAvatar || '/img/default-avatar.png'
                 }
             });
 
@@ -293,7 +358,7 @@ class VideoCallSystem {
 
     async getUserMedia() {
         try {
-            console.log('📹 Requesting user media...');
+            console.log('📹 Requesting user media with constraints...');
             
             // Request with fallback options
             const constraints = {
@@ -310,21 +375,32 @@ class VideoCallSystem {
             };
 
             this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
             console.log('✅ Got media stream:', {
                 videoTracks: this.localStream.getVideoTracks().length,
-                audioTracks: this.localStream.getAudioTracks().length
+                audioTracks: this.localStream.getAudioTracks().length,
+                videoTrackState: this.localStream.getVideoTracks()[0]?.readyState,
+                audioTrackState: this.localStream.getAudioTracks()[0]?.readyState
             });
 
-            // Set local video
-            if (this.localVideo) {
-                this.localVideo.srcObject = this.localStream;
-                console.log('✅ Local video element updated');
-                
-                // Force video element to be visible and play
-                this.localVideo.style.display = 'block';
-                this.localVideo.style.visibility = 'visible';
-                this.localVideo.play().catch(e => console.log('Video play error:', e));
+            // Verify tracks are active
+            const videoTrack = this.localStream.getVideoTracks()[0];
+            const audioTrack = this.localStream.getAudioTracks()[0];
+            
+            if (videoTrack && videoTrack.readyState === 'live') {
+                console.log('✅ Video track is live');
+            } else {
+                console.warn('⚠️ Video track not live:', videoTrack?.readyState);
             }
+            
+            if (audioTrack && audioTrack.readyState === 'live') {
+                console.log('✅ Audio track is live');
+            } else {
+                console.warn('⚠️ Audio track not live:', audioTrack?.readyState);
+            }
+
+            // Assign stream to local video element
+            await this.assignLocalStream();
 
             return this.localStream;
 
@@ -337,6 +413,7 @@ class VideoCallSystem {
                 try {
                     this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                     console.log('✅ Got audio-only stream');
+                    await this.assignLocalStream();
                     return this.localStream;
                 } catch (audioError) {
                     console.error('❌ Audio-only fallback also failed:', audioError);
@@ -344,6 +421,58 @@ class VideoCallSystem {
                 }
             }
             throw error;
+        }
+    }
+
+    async assignLocalStream() {
+        if (this.localVideo && this.localStream) {
+            // Clear any existing stream first
+            if (this.localVideo.srcObject) {
+                console.log('🔄 Clearing existing local video stream');
+                this.localVideo.srcObject = null;
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            console.log('📹 Assigning local stream to video element');
+            this.localVideo.srcObject = this.localStream;
+            
+            // Make video element visible
+            this.localVideo.style.display = 'block';
+            this.localVideo.style.visibility = 'visible';
+            
+            // Wait for metadata to load, then play
+            if (this.localVideo.readyState >= 2) {
+                await this.playLocalVideo();
+            }
+            // Otherwise, the 'loadedmetadata' event listener will trigger playback
+            
+            console.log('✅ Local video stream assigned');
+        }
+    }
+
+    async assignRemoteStream() {
+        if (this.remoteVideo && this.remoteStream) {
+            // Clear any existing stream first
+            if (this.remoteVideo.srcObject) {
+                console.log('🔄 Clearing existing remote video stream');
+                this.remoteVideo.srcObject = null;
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            console.log('📹 Assigning remote stream to video element');
+            this.remoteVideo.srcObject = this.remoteStream;
+            
+            // Make video element visible
+            this.remoteVideo.style.display = 'block';
+            this.remoteVideo.style.visibility = 'visible';
+            
+            // Wait for metadata to load, then play
+            if (this.remoteVideo.readyState >= 2) {
+                await this.playRemoteVideo();
+            }
+            // Otherwise, the 'loadedmetadata' event listener will trigger playback
+            
+            console.log('✅ Remote video stream assigned');
         }
     }
 
@@ -380,7 +509,22 @@ class VideoCallSystem {
             this.stopRingtone();
 
             // Get user media first
-            await this.getUserMedia();
+            try {
+                await this.getUserMedia();
+                console.log('✅ Got user media for accepting call');
+            } catch (mediaError) {
+                console.error('❌ Failed to get user media:', mediaError);
+                this.showNotification('Camera/microphone access denied', 'error');
+                
+                // Decline the call since we can't get media
+                this.socket.emit('video-call:decline', {
+                    callId: this.currentCall.callId,
+                    callerId: this.currentCall.callerId
+                });
+                
+                this.cleanup();
+                return;
+            }
 
             // Show video UI
             this.showVideoUI();
@@ -393,7 +537,7 @@ class VideoCallSystem {
 
             this.isCallActive = true;
 
-            // Start WebRTC as receiver
+            // Start WebRTC as receiver (will wait for offer)
             await this.startWebRTC(false);
 
         } catch (error) {
@@ -429,7 +573,7 @@ class VideoCallSystem {
             if (otherUserId) {
                 this.socket.emit('video-call:end', {
                     callId: this.currentCall.callId,
-                    otherUserId: otherUserId
+                    targetUserId: otherUserId
                 });
             }
         }
@@ -444,32 +588,43 @@ class VideoCallSystem {
         console.log(`🔄 Starting WebRTC (initiator: ${isInitiator})`);
         
         try {
+            // Ensure we have local stream
+            if (!this.localStream) {
+                console.warn('⚠️ No local stream available, getting media...');
+                await this.getUserMedia();
+            }
+
             // Create peer connection
             this.peerConnection = new RTCPeerConnection(this.iceServers);
+            console.log('✅ Peer connection created');
             
             // Add local stream tracks
             if (this.localStream) {
                 this.localStream.getTracks().forEach(track => {
                     this.peerConnection.addTrack(track, this.localStream);
-                    console.log(`✅ Added local track: ${track.kind}`);
+                    console.log(`✅ Added local ${track.kind} track (${track.readyState})`);
                 });
+            } else {
+                console.error('❌ No local stream to add to peer connection');
             }
 
             // Handle remote stream
-            this.peerConnection.ontrack = (event) => {
-                console.log('📥 Received remote track:', event.track.kind);
+            this.peerConnection.ontrack = async (event) => {
+                console.log('📥 Received remote track:', event.track.kind, 'state:', event.track.readyState);
+                
+                // Create remote stream if it doesn't exist
                 if (!this.remoteStream) {
                     this.remoteStream = new MediaStream();
-                    if (this.remoteVideo) {
-                        this.remoteVideo.srcObject = this.remoteStream;
-                        console.log('✅ Remote video stream set');
-                    }
+                    console.log('✅ Created remote stream');
                 }
-                this.remoteStream.addTrack(event.track);
                 
-                // Force remote video to play
-                if (this.remoteVideo) {
-                    this.remoteVideo.play().catch(e => console.log('Remote video play error:', e));
+                // Add track to remote stream
+                this.remoteStream.addTrack(event.track);
+                console.log(`✅ Added remote ${event.track.kind} track to stream`);
+                
+                // Assign remote stream to video element (only once)
+                if (this.remoteVideo && !this.remoteVideo.srcObject) {
+                    await this.assignRemoteStream();
                 }
             };
 
@@ -492,19 +647,34 @@ class VideoCallSystem {
             // Connection state changes
             this.peerConnection.onconnectionstatechange = () => {
                 console.log('📡 Connection state:', this.peerConnection.connectionState);
+                
                 if (this.peerConnection.connectionState === 'connected') {
                     console.log('✅ WebRTC connected successfully!');
                     this.showNotification('Connected', 'success');
+                } else if (this.peerConnection.connectionState === 'failed') {
+                    console.error('❌ WebRTC connection failed');
+                    this.showNotification('Connection failed', 'error');
+                    this.endCall();
+                } else if (this.peerConnection.connectionState === 'disconnected') {
+                    console.warn('⚠️ WebRTC connection disconnected');
                 }
+            };
+
+            // ICE connection state changes
+            this.peerConnection.oniceconnectionstatechange = () => {
+                console.log('🧊 ICE connection state:', this.peerConnection.iceConnectionState);
             };
 
             // Create offer if initiator
             if (isInitiator) {
+                // Wait a moment to ensure all tracks are added
+                await new Promise(resolve => setTimeout(resolve, 100));
                 await this.createOffer();
             }
             
         } catch (error) {
             console.error('❌ Error in startWebRTC:', error);
+            this.showNotification('Failed to establish connection', 'error');
             throw error;
         }
     }
@@ -512,8 +682,14 @@ class VideoCallSystem {
     async createOffer() {
         try {
             console.log('📤 Creating offer...');
-            const offer = await this.peerConnection.createOffer();
+            
+            const offer = await this.peerConnection.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+            });
+            
             await this.peerConnection.setLocalDescription(offer);
+            console.log('✅ Local description set (offer)');
             
             this.socket.emit('video-call:offer', {
                 targetUserId: this.currentCall.targetUserId,
@@ -521,34 +697,46 @@ class VideoCallSystem {
                 callId: this.currentCall.callId
             });
             
-            console.log('✅ Offer sent');
+            console.log('✅ Offer sent to server');
         } catch (error) {
             console.error('❌ Error creating offer:', error);
+            throw error;
         }
     }
 
     async handleOffer(data) {
         try {
-            console.log('📥 Processing offer...');
+            console.log('📥 Processing offer from user:', data.from);
             
+            // Ensure WebRTC is started (if not already)
             if (!this.peerConnection) {
+                console.log('🔄 Starting WebRTC to handle offer...');
                 await this.startWebRTC(false);
             }
             
+            // Set remote description
+            console.log('📥 Setting remote description (offer)...');
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+            console.log('✅ Remote description set (offer)');
             
+            // Create answer
+            console.log('📤 Creating answer...');
             const answer = await this.peerConnection.createAnswer();
-            await this.peerConnection.setLocalDescription(answer);
             
+            await this.peerConnection.setLocalDescription(answer);
+            console.log('✅ Local description set (answer)');
+            
+            // Send answer back
             this.socket.emit('video-call:answer', {
                 targetUserId: data.from,
                 answer: answer,
-                callId: data.callId
+                callId: data.callId || this.currentCall?.callId
             });
             
-            console.log('✅ Answer sent');
+            console.log('✅ Answer sent to server');
         } catch (error) {
             console.error('❌ Error handling offer:', error);
+            this.showNotification('Connection error', 'error');
         }
     }
 
@@ -556,12 +744,21 @@ class VideoCallSystem {
         try {
             console.log('📥 Processing answer...');
             
-            // Check connection state before setting remote description
-            if (this.peerConnection && this.peerConnection.signalingState === 'have-local-offer') {
+            if (!this.peerConnection) {
+                console.error('❌ No peer connection available to handle answer');
+                return;
+            }
+            
+            const currentState = this.peerConnection.signalingState;
+            console.log('📡 Current signaling state:', currentState);
+            
+            // Only set remote description if we're in the correct state
+            if (currentState === 'have-local-offer') {
+                console.log('📥 Setting remote description (answer)...');
                 await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                console.log('✅ Answer processed, connection should establish soon');
+                console.log('✅ Remote description set (answer)');
             } else {
-                console.log('⚠️ Cannot set remote description, connection state:', this.peerConnection?.signalingState);
+                console.warn('⚠️ Cannot set remote description, wrong state:', currentState);
             }
         } catch (error) {
             console.error('❌ Error handling answer:', error);
@@ -570,7 +767,12 @@ class VideoCallSystem {
 
     async handleIceCandidate(data) {
         try {
-            if (this.peerConnection && data.candidate) {
+            if (!this.peerConnection) {
+                console.warn('⚠️ No peer connection available for ICE candidate');
+                return;
+            }
+            
+            if (data.candidate) {
                 await this.peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
                 console.log('✅ ICE candidate added');
             }
@@ -586,10 +788,9 @@ class VideoCallSystem {
                 audioTrack.enabled = !audioTrack.enabled;
                 const btn = document.getElementById('toggle-audio');
                 if (btn) {
-                    btn.innerHTML = audioTrack.enabled ? 
-                        '<i class="fas fa-microphone"></i>' : 
-                        '<i class="fas fa-microphone-slash"></i>';
+                    btn.innerHTML = audioTrack.enabled ? '🎤' : '🔇';
                 }
+                console.log('🎤 Audio toggled:', audioTrack.enabled ? 'ON' : 'OFF');
             }
         }
     }
@@ -601,16 +802,19 @@ class VideoCallSystem {
                 videoTrack.enabled = !videoTrack.enabled;
                 const btn = document.getElementById('toggle-video');
                 if (btn) {
-                    btn.innerHTML = videoTrack.enabled ? 
-                        '<i class="fas fa-video"></i>' : 
-                        '<i class="fas fa-video-slash"></i>';
+                    btn.innerHTML = videoTrack.enabled ? '📹' : '📵';
                 }
+                console.log('📹 Video toggled:', videoTrack.enabled ? 'ON' : 'OFF');
             }
         }
     }
 
     cleanup() {
         console.log('🧹 Cleaning up video call...');
+        
+        // Stop playing flags
+        this.isPlayingLocalVideo = false;
+        this.isPlayingRemoteVideo = false;
         
         // Stop local stream
         if (this.localStream) {
@@ -625,14 +829,23 @@ class VideoCallSystem {
         if (this.peerConnection) {
             this.peerConnection.close();
             this.peerConnection = null;
+            console.log('🔌 Peer connection closed');
         }
 
         // Clear streams from video elements
-        if (this.localVideo) this.localVideo.srcObject = null;
-        if (this.remoteVideo) this.remoteVideo.srcObject = null;
+        if (this.localVideo) {
+            this.localVideo.srcObject = null;
+            this.localVideo.style.display = 'none';
+        }
+        if (this.remoteVideo) {
+            this.remoteVideo.srcObject = null;
+            this.remoteVideo.style.display = 'none';
+        }
 
         this.remoteStream = null;
         this.currentCall = null;
+        
+        console.log('✅ Cleanup complete');
     }
 
     showCallingUI(name, avatar) {
@@ -656,19 +869,10 @@ class VideoCallSystem {
                         📞
                     </button>
                 </div>
-                ${this.localVideo ? '<video id="localVideoPreview" autoplay playsinline muted style="width: 200px; height: 150px; border-radius: 10px; margin-top: 20px;"></video>' : ''}
             </div>
         `;
         
         callingUI.style.cssText = 'display: flex !important;';
-        
-        // Show local video preview
-        if (this.localStream) {
-            const preview = document.getElementById('localVideoPreview');
-            if (preview) {
-                preview.srcObject = this.localStream;
-            }
-        }
     }
 
     showIncomingCallUI(name, avatar) {
@@ -707,24 +911,15 @@ class VideoCallSystem {
         if (videoUI) {
             videoUI.style.cssText = 'display: flex !important;';
             
-            // Ensure video streams are assigned to elements
-            if (this.localStream && this.localVideo) {
-                this.localVideo.srcObject = this.localStream;
-                console.log('✅ Local video stream assigned to UI');
-            }
-            
-            if (this.remoteStream && this.remoteVideo) {
-                this.remoteVideo.srcObject = this.remoteStream;
-                console.log('✅ Remote video stream assigned to UI');
-            }
-
-            // Force video elements to be visible
+            // Ensure video elements are visible
             if (this.localVideo) {
                 this.localVideo.style.cssText = 'display: block !important; visibility: visible !important;';
             }
             if (this.remoteVideo) {
                 this.remoteVideo.style.cssText = 'display: block !important; visibility: visible !important;';
             }
+            
+            console.log('✅ Video UI shown');
         }
     }
 
@@ -757,7 +952,7 @@ class VideoCallSystem {
 
     playRingtone() {
         try {
-            // Create a simple beep sound using Web Audio API instead of loading file
+            // Create a simple beep sound using Web Audio API
             if (!this.audioContext) {
                 this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
@@ -799,7 +994,7 @@ class VideoCallSystem {
             }, 1000);
             
         } catch (e) {
-            console.log('Ringtone not available');
+            console.log('Ringtone not available:', e);
         }
     }
 
@@ -809,7 +1004,7 @@ class VideoCallSystem {
             this.ringtoneInterval = null;
         }
         if (this.audioContext) {
-            this.audioContext.close();
+            this.audioContext.close().catch(e => console.log('Error closing audio context:', e));
             this.audioContext = null;
         }
     }
@@ -848,8 +1043,8 @@ class VideoCallSystem {
 // Initialize the video call system
 if (typeof window !== 'undefined') {
     // Clean up any existing instance
-    if (window.videoCallManager) {
-        window.videoCallManager.cleanup?.();
+    if (window.videoCallSystem) {
+        window.videoCallSystem.cleanup?.();
     }
     
     // Wait for dependencies
