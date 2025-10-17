@@ -1,4 +1,30 @@
 // Fixed Video Call System - Complete Working Implementation with WebRTC State Management
+
+// Logging System - Set level to control verbosity
+const LOG_LEVEL = {
+    SILENT: 0,
+    ERROR: 1,
+    WARN: 2,
+    INFO: 3,
+    DEBUG: 4
+};
+
+// Set to INFO for clean production logs, DEBUG for troubleshooting
+const CURRENT_LOG_LEVEL = LOG_LEVEL.INFO;
+
+function vcLog(level, message, data = null) {
+    if (level <= CURRENT_LOG_LEVEL) {
+        const prefix = level === LOG_LEVEL.ERROR ? '❌' : 
+                      level === LOG_LEVEL.WARN ? '⚠️' : 
+                      level === LOG_LEVEL.INFO ? '✅' : '🔍';
+        if (data) {
+            console.log(`${prefix} ${message}`, data);
+        } else {
+            console.log(`${prefix} ${message}`);
+        }
+    }
+}
+
 class VideoCallSystem {
     constructor() {
         this.localStream = null;
@@ -27,7 +53,7 @@ class VideoCallSystem {
             ]
         };
         
-        console.log('🎥 Video Call System Constructor', {
+        vcLog(LOG_LEVEL.DEBUG, '🎥 Video Call System Constructor', {
             socketConnected: this.socket?.connected,
             currentUserId: this.currentUserId
         });
@@ -36,7 +62,7 @@ class VideoCallSystem {
     }
 
     async initialize() {
-        console.log('🎥 Initializing Video Call System...');
+        vcLog(LOG_LEVEL.INFO, 'Video Call System initializing...');
         
         // Create UI elements first
         this.createVideoUI();
@@ -49,7 +75,7 @@ class VideoCallSystem {
         // Also listen for future connections
         if (this.socket) {
             this.socket.on('connect', () => {
-                console.log('✅ Socket connected, registering for video calls');
+                vcLog(LOG_LEVEL.DEBUG, 'Socket connected, registering for video calls');
                 this.registerUser();
             });
         }
@@ -57,16 +83,16 @@ class VideoCallSystem {
         this.setupEventListeners();
         this.setupSocketListeners();
         
-        console.log('✅ Video Call System initialized');
+        vcLog(LOG_LEVEL.INFO, 'Video Call System ready');
     }
 
     registerUser() {
         if (this.currentUserId && this.socket) {
             // Register for chat (which sets up the user room)
             this.socket.emit('chat:register', this.currentUserId);
-            console.log(`📝 Registered user ${this.currentUserId} for video calls in room user_${this.currentUserId}`);
+            vcLog(LOG_LEVEL.DEBUG, `Registered user ${this.currentUserId} for video calls`);
         } else {
-            console.warn('⚠️ Cannot register user - missing userId or socket', {
+            vcLog(LOG_LEVEL.WARN, 'Cannot register user - missing userId or socket', {
                 currentUserId: this.currentUserId,
                 socketExists: !!this.socket
             });
@@ -123,34 +149,34 @@ class VideoCallSystem {
     setupVideoElementListeners() {
         if (this.localVideo) {
             this.localVideo.addEventListener('loadedmetadata', () => {
-                console.log('📹 Local video metadata loaded');
+                vcLog(LOG_LEVEL.DEBUG, 'Local video metadata loaded');
                 this.playLocalVideo();
             });
             
             this.localVideo.addEventListener('playing', () => {
-                console.log('✅ Local video is playing');
+                vcLog(LOG_LEVEL.DEBUG, 'Local video is playing');
                 this.isPlayingLocalVideo = true;
             });
             
             this.localVideo.addEventListener('pause', () => {
-                console.log('⏸️ Local video paused');
+                vcLog(LOG_LEVEL.DEBUG, 'Local video paused');
                 this.isPlayingLocalVideo = false;
             });
         }
         
         if (this.remoteVideo) {
             this.remoteVideo.addEventListener('loadedmetadata', () => {
-                console.log('📹 Remote video metadata loaded');
+                vcLog(LOG_LEVEL.DEBUG, 'Remote video metadata loaded');
                 this.playRemoteVideo();
             });
             
             this.remoteVideo.addEventListener('playing', () => {
-                console.log('✅ Remote video is playing');
+                vcLog(LOG_LEVEL.DEBUG, 'Remote video is playing');
                 this.isPlayingRemoteVideo = true;
             });
             
             this.remoteVideo.addEventListener('pause', () => {
-                console.log('⏸️ Remote video paused');
+                vcLog(LOG_LEVEL.DEBUG, 'Remote video paused');
                 this.isPlayingRemoteVideo = false;
             });
         }
@@ -160,9 +186,9 @@ class VideoCallSystem {
         if (this.localVideo && this.localVideo.srcObject && !this.isPlayingLocalVideo) {
             try {
                 await this.localVideo.play();
-                console.log('✅ Local video play started');
+                vcLog(LOG_LEVEL.DEBUG, 'Local video play started');
             } catch (error) {
-                console.warn('⚠️ Local video play failed (non-critical):', error.message);
+                vcLog(LOG_LEVEL.WARN, 'Local video play failed (non-critical):', error.message);
                 // Try again after a short delay
                 setTimeout(() => this.playLocalVideo(), 500);
             }
@@ -173,9 +199,9 @@ class VideoCallSystem {
         if (this.remoteVideo && this.remoteVideo.srcObject && !this.isPlayingRemoteVideo) {
             try {
                 await this.remoteVideo.play();
-                console.log('✅ Remote video play started');
+                vcLog(LOG_LEVEL.DEBUG, 'Remote video play started');
             } catch (error) {
-                console.warn('⚠️ Remote video play failed (non-critical):', error.message);
+                vcLog(LOG_LEVEL.WARN, 'Remote video play failed (non-critical):', error.message);
                 // Try again after a short delay
                 setTimeout(() => this.playRemoteVideo(), 500);
             }
@@ -185,7 +211,7 @@ class VideoCallSystem {
     setupEventListeners() {
         // Prevent duplicate event listeners
         if (this.domEventListenersSetup) {
-            console.log('⚠️ DOM event listeners already setup, skipping...');
+            vcLog(LOG_LEVEL.DEBUG, 'DOM event listeners already setup, skipping...');
             return;
         }
         this.domEventListenersSetup = true;
@@ -201,7 +227,7 @@ class VideoCallSystem {
                 const friendName = btn.dataset.friendName || 'Friend';
                 const friendAvatar = btn.dataset.friendAvatar || '/img/default-avatar.png';
                 
-                console.log(`📞 Video call button clicked for ${friendName} (ID: ${friendId})`);
+                vcLog(LOG_LEVEL.INFO, `Video call initiated to ${friendName}`);
                 await this.initiateCall(friendId, friendName, friendAvatar);
             }
 
@@ -223,64 +249,64 @@ class VideoCallSystem {
     setupSocketListeners() {
         // Prevent duplicate socket listeners
         if (this.socketEventListenersSetup) {
-            console.log('⚠️ Socket event listeners already setup, skipping...');
+            vcLog(LOG_LEVEL.DEBUG, 'Socket event listeners already setup, skipping...');
             return;
         }
         this.socketEventListenersSetup = true;
 
         if (!this.socket) {
-            console.error('❌ Socket not available for listeners');
+            vcLog(LOG_LEVEL.ERROR, ' Socket not available for listeners');
             return;
         }
 
-        console.log('🔌 Setting up socket listeners for video calls...');
+        vcLog(LOG_LEVEL.DEBUG, 'Setting up socket listeners for video calls...');
 
         // New event system
         this.socket.on('video-call:incoming', (data) => {
-            console.log('📞 [New] Incoming video call:', data);
+            vcLog(LOG_LEVEL.INFO, 'Incoming video call:', data);
             this.handleIncomingCall(data);
         });
 
         // Call responses
         this.socket.on('video-call:ringing', (data) => {
-            console.log('🔔 Call is ringing:', data);
+            vcLog(LOG_LEVEL.INFO, 'Call is ringing:', data);
         });
 
         this.socket.on('video-call:accepted', async (data) => {
-            console.log('✅ Call accepted:', data);
+            vcLog(LOG_LEVEL.INFO, 'Call accepted', data);
             this.hideCallingUI();
             this.showVideoUI();
             
             // CRITICAL FIX: Start WebRTC ONLY ONCE here as initiator
             if (!this.webrtcInitialized) {
-                console.log('🔄 Initiator starting WebRTC after acceptance');
+                vcLog(LOG_LEVEL.INFO, 'Initiator starting WebRTC after acceptance');
                 await this.startWebRTC(true);
             } else {
-                console.warn('⚠️ WebRTC already initialized, skipping duplicate initialization');
+                vcLog(LOG_LEVEL.WARN, 'WebRTC already initialized, skipping duplicate initialization');
             }
         });
 
         this.socket.on('video-call:declined', (data) => {
-            console.log('❌ Call declined:', data);
+            vcLog(LOG_LEVEL.ERROR, ' Call declined:', data);
             this.hideCallingUI();
             this.showNotification('Call declined', 'error');
             this.cleanup();
         });
 
         this.socket.on('video-call:ended', (data) => {
-            console.log('📴 Call ended by remote:', data);
+            vcLog(LOG_LEVEL.INFO, 'Call ended by remote');
             this.endCall(false);
         });
 
         this.socket.on('video-call:timeout', (data) => {
-            console.log('⏱️ Call timed out:', data);
+            vcLog(LOG_LEVEL.INFO, 'Call timed out');
             this.hideCallingUI();
             this.showNotification('No answer', 'warning');
             this.cleanup();
         });
 
         this.socket.on('video-call:error', (data) => {
-            console.error('❌ Call error:', data);
+            vcLog(LOG_LEVEL.ERROR, ' Call error:', data);
             this.hideAllUI();
             this.showNotification(data.error || 'Call failed', 'error');
             this.cleanup();
@@ -288,26 +314,26 @@ class VideoCallSystem {
 
         // WebRTC signaling
         this.socket.on('video-call:offer', async (data) => {
-            console.log('📥 Received offer from:', data.from);
+            vcLog(LOG_LEVEL.DEBUG, 'Received offer from:', data.from);
             await this.handleOffer(data);
         });
 
         this.socket.on('video-call:answer', async (data) => {
-            console.log('📥 Received answer');
+            vcLog(LOG_LEVEL.DEBUG, 'Received answer');
             await this.handleAnswer(data);
         });
 
         this.socket.on('video-call:ice-candidate', async (data) => {
-            console.log('🧊 Received ICE candidate');
+            vcLog(LOG_LEVEL.DEBUG, 'Received ICE candidate');
             await this.handleIceCandidate(data);
         });
 
-        console.log('✅ Socket listeners setup complete');
+        vcLog(LOG_LEVEL.DEBUG, 'Socket listeners setup complete');
     }
 
     async initiateCall(friendId, friendName, friendAvatar) {
         try {
-            console.log(`🎥 Initiating call to ${friendName} (${friendId})`);
+            vcLog(LOG_LEVEL.INFO, `Initiating call to ${friendName}`);
             
             if (this.isCallActive) {
                 this.showNotification('Already in a call', 'warning');
@@ -332,11 +358,11 @@ class VideoCallSystem {
 
             // Request user media first (BEFORE showing UI)
             try {
-                console.log('📹 Requesting user media...');
+                vcLog(LOG_LEVEL.DEBUG, 'Requesting user media...');
                 await this.getUserMedia();
-                console.log('✅ Got user media successfully');
+                vcLog(LOG_LEVEL.INFO, 'Got user media successfully');
             } catch (mediaError) {
-                console.error('❌ Failed to get user media:', mediaError);
+                vcLog(LOG_LEVEL.ERROR, ' Failed to get user media:', mediaError);
                 this.showNotification('Camera/microphone access denied', 'error');
                 this.currentCall = null;
                 return;
@@ -346,7 +372,7 @@ class VideoCallSystem {
             this.showCallingUI(friendName, friendAvatar);
 
             // Send call initiation via new system only
-            console.log('📤 Sending call initiation to server with callId:', callId);
+            vcLog(LOG_LEVEL.DEBUG, 'Sending call initiation to server with callId:', callId);
             
             this.socket.emit('video-call:initiate', {
                 targetUserId: parseInt(friendId),
@@ -358,11 +384,11 @@ class VideoCallSystem {
                 }
             });
 
-            console.log(`✅ Call initiation sent to ${friendName}`);
+            vcLog(LOG_LEVEL.INFO, `Call sent to ${friendName}`);
             this.isCallActive = true;
 
         } catch (error) {
-            console.error('❌ Error initiating call:', error);
+            vcLog(LOG_LEVEL.ERROR, ' Error initiating call:', error);
             this.showNotification('Failed to start call', 'error');
             this.hideCallingUI();
             this.cleanup();
@@ -371,7 +397,7 @@ class VideoCallSystem {
 
     async getUserMedia() {
         try {
-            console.log('📹 Requesting user media with constraints...');
+            vcLog(LOG_LEVEL.DEBUG, 'Requesting user media with constraints...');
             
             // Request with fallback options
             const constraints = {
@@ -389,7 +415,7 @@ class VideoCallSystem {
 
             this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
             
-            console.log('✅ Got media stream:', {
+            vcLog(LOG_LEVEL.DEBUG, 'Got media stream:', {
                 videoTracks: this.localStream.getVideoTracks().length,
                 audioTracks: this.localStream.getAudioTracks().length,
                 videoTrackState: this.localStream.getVideoTracks()[0]?.readyState,
@@ -401,15 +427,15 @@ class VideoCallSystem {
             const audioTrack = this.localStream.getAudioTracks()[0];
             
             if (videoTrack && videoTrack.readyState === 'live') {
-                console.log('✅ Video track is live');
+                vcLog(LOG_LEVEL.DEBUG, 'Video track is live');
             } else {
-                console.warn('⚠️ Video track not live:', videoTrack?.readyState);
+                vcLog(LOG_LEVEL.WARN, 'Video track not live:', videoTrack?.readyState);
             }
             
             if (audioTrack && audioTrack.readyState === 'live') {
-                console.log('✅ Audio track is live');
+                vcLog(LOG_LEVEL.DEBUG, 'Audio track is live');
             } else {
-                console.warn('⚠️ Audio track not live:', audioTrack?.readyState);
+                vcLog(LOG_LEVEL.WARN, 'Audio track not live:', audioTrack?.readyState);
             }
 
             // Assign stream to local video element
@@ -418,18 +444,18 @@ class VideoCallSystem {
             return this.localStream;
 
         } catch (error) {
-            console.error('❌ Error accessing media devices:', error);
+            vcLog(LOG_LEVEL.ERROR, ' Error accessing media devices:', error);
             
             // Try audio only as fallback
             if (error.name === 'NotAllowedError' || error.name === 'NotFoundError') {
-                console.log('🎤 Trying audio-only fallback...');
+                vcLog(LOG_LEVEL.WARN, 'Trying audio-only fallback...');
                 try {
                     this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                    console.log('✅ Got audio-only stream');
+                    vcLog(LOG_LEVEL.INFO, 'Got audio-only stream');
                     await this.assignLocalStream();
                     return this.localStream;
                 } catch (audioError) {
-                    console.error('❌ Audio-only fallback also failed:', audioError);
+                    vcLog(LOG_LEVEL.ERROR, ' Audio-only fallback also failed:', audioError);
                     throw audioError;
                 }
             }
@@ -441,12 +467,12 @@ class VideoCallSystem {
         if (this.localVideo && this.localStream) {
             // Clear any existing stream first
             if (this.localVideo.srcObject) {
-                console.log('🔄 Clearing existing local video stream');
+                vcLog(LOG_LEVEL.DEBUG, 'Clearing existing local video stream');
                 this.localVideo.srcObject = null;
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
             
-            console.log('📹 Assigning local stream to video element');
+            vcLog(LOG_LEVEL.DEBUG, 'Assigning local stream to video element');
             this.localVideo.srcObject = this.localStream;
             
             // Make video element visible
@@ -459,7 +485,7 @@ class VideoCallSystem {
             }
             // Otherwise, the 'loadedmetadata' event listener will trigger playback
             
-            console.log('✅ Local video stream assigned');
+            vcLog(LOG_LEVEL.DEBUG, 'Local video stream assigned');
         }
     }
 
@@ -467,12 +493,12 @@ class VideoCallSystem {
         if (this.remoteVideo && this.remoteStream) {
             // Clear any existing stream first
             if (this.remoteVideo.srcObject) {
-                console.log('🔄 Clearing existing remote video stream');
+                vcLog(LOG_LEVEL.DEBUG, 'Clearing existing remote video stream');
                 this.remoteVideo.srcObject = null;
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
             
-            console.log('📹 Assigning remote stream to video element');
+            vcLog(LOG_LEVEL.DEBUG, 'Assigning remote stream to video element');
             this.remoteVideo.srcObject = this.remoteStream;
             
             // Make video element visible
@@ -485,15 +511,15 @@ class VideoCallSystem {
             }
             // Otherwise, the 'loadedmetadata' event listener will trigger playback
             
-            console.log('✅ Remote video stream assigned');
+            vcLog(LOG_LEVEL.DEBUG, 'Remote video stream assigned');
         }
     }
 
     handleIncomingCall(data) {
-        console.log('📥 Processing incoming call:', data);
+        vcLog(LOG_LEVEL.INFO, 'Processing incoming call:', data);
         
         if (this.isCallActive) {
-            console.log('⚠️ Already in a call, auto-declining');
+            vcLog(LOG_LEVEL.INFO, 'Already in a call, auto-declining');
             if (data.callId && data.caller?.id) {
                 this.socket.emit('video-call:decline', {
                     callId: data.callId,
@@ -521,16 +547,16 @@ class VideoCallSystem {
 
     async acceptCall() {
         try {
-            console.log('✅ Accepting call...');
+            vcLog(LOG_LEVEL.INFO, 'Accepting call...');
             this.hideIncomingCallUI();
             this.stopRingtone();
 
             // Get user media first
             try {
                 await this.getUserMedia();
-                console.log('✅ Got user media for accepting call');
+                vcLog(LOG_LEVEL.INFO, 'Got user media for accepting call');
             } catch (mediaError) {
-                console.error('❌ Failed to get user media:', mediaError);
+                vcLog(LOG_LEVEL.ERROR, ' Failed to get user media:', mediaError);
                 this.showNotification('Camera/microphone access denied', 'error');
                 
                 // Decline the call since we can't get media
@@ -556,21 +582,21 @@ class VideoCallSystem {
 
             // CRITICAL FIX: Start WebRTC ONLY ONCE here as receiver (will wait for offer)
             if (!this.webrtcInitialized) {
-                console.log('🔄 Receiver starting WebRTC after accepting');
+                vcLog(LOG_LEVEL.INFO, 'Receiver starting WebRTC after accepting');
                 await this.startWebRTC(false);
             } else {
-                console.warn('⚠️ WebRTC already initialized, skipping duplicate initialization');
+                vcLog(LOG_LEVEL.WARN, 'WebRTC already initialized, skipping duplicate initialization');
             }
 
         } catch (error) {
-            console.error('❌ Error accepting call:', error);
+            vcLog(LOG_LEVEL.ERROR, ' Error accepting call:', error);
             this.showNotification('Failed to accept call', 'error');
             this.cleanup();
         }
     }
 
     declineCall() {
-        console.log('❌ Declining call...');
+        vcLog(LOG_LEVEL.INFO, 'Declining call...');
         this.stopRingtone();
         
         if (this.currentCall) {
@@ -585,7 +611,7 @@ class VideoCallSystem {
     }
 
     endCall(notifyRemote = true) {
-        console.log('📴 Ending call...');
+        vcLog(LOG_LEVEL.INFO, 'Ending call...');
         
         if (notifyRemote && this.currentCall && this.socket) {
             const otherUserId = this.currentCall.isInitiator ? 
@@ -609,22 +635,22 @@ class VideoCallSystem {
     async startWebRTC(isInitiator) {
         // CRITICAL FIX: Guard against duplicate initialization
         if (this.webrtcInitialized) {
-            console.warn('⚠️ WebRTC already initialized, skipping duplicate initialization');
+            vcLog(LOG_LEVEL.WARN, 'WebRTC already initialized, skipping duplicate initialization');
             return;
         }
         
-        console.log(`🔄 Starting WebRTC (initiator: ${isInitiator})`);
+        vcLog(LOG_LEVEL.DEBUG, `Starting WebRTC (initiator: ${isInitiator})`);
         
         try {
             // Ensure we have local stream
             if (!this.localStream) {
-                console.warn('⚠️ No local stream available, getting media...');
+                vcLog(LOG_LEVEL.WARN, 'No local stream available, getting media...');
                 await this.getUserMedia();
             }
 
             // Create peer connection ONCE
             this.peerConnection = new RTCPeerConnection(this.iceServers);
-            console.log('✅ Peer connection created');
+            vcLog(LOG_LEVEL.DEBUG, 'Peer connection created');
             
             // Mark as initialized BEFORE any async operations
             this.webrtcInitialized = true;
@@ -633,25 +659,25 @@ class VideoCallSystem {
             if (this.localStream) {
                 this.localStream.getTracks().forEach(track => {
                     this.peerConnection.addTrack(track, this.localStream);
-                    console.log(`✅ Added local ${track.kind} track (${track.readyState})`);
+                    vcLog(LOG_LEVEL.DEBUG, `Added local ${track.kind} track`);
                 });
             } else {
-                console.error('❌ No local stream to add to peer connection');
+                vcLog(LOG_LEVEL.ERROR, ' No local stream to add to peer connection');
             }
 
             // Handle remote stream
             this.peerConnection.ontrack = async (event) => {
-                console.log('📥 Received remote track:', event.track.kind, 'state:', event.track.readyState);
+                vcLog(LOG_LEVEL.DEBUG, 'Received remote track:', event.track.kind, 'state:', event.track.readyState);
                 
                 // Create remote stream if it doesn't exist
                 if (!this.remoteStream) {
                     this.remoteStream = new MediaStream();
-                    console.log('✅ Created remote stream');
+                    vcLog(LOG_LEVEL.DEBUG, 'Created remote stream');
                 }
                 
                 // Add track to remote stream
                 this.remoteStream.addTrack(event.track);
-                console.log(`✅ Added remote ${event.track.kind} track to stream`);
+                vcLog(LOG_LEVEL.DEBUG, `Added remote ${event.track.kind} track`);
                 
                 // Assign remote stream to video element (only once)
                 if (this.remoteVideo && !this.remoteVideo.srcObject) {
@@ -662,7 +688,7 @@ class VideoCallSystem {
             // Handle ICE candidates
             this.peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
-                    console.log('🧊 Sending ICE candidate');
+                    vcLog(LOG_LEVEL.DEBUG, 'Sending ICE candidate');
                     const targetUserId = this.currentCall.isInitiator ? 
                         this.currentCall.targetUserId : 
                         this.currentCall.callerId;
@@ -677,28 +703,28 @@ class VideoCallSystem {
 
             // Connection state changes
             this.peerConnection.onconnectionstatechange = () => {
-                console.log('📡 Connection state:', this.peerConnection.connectionState);
+                vcLog(LOG_LEVEL.DEBUG, 'Connection state:', this.peerConnection.connectionState);
                 
                 if (this.peerConnection.connectionState === 'connected') {
-                    console.log('✅ WebRTC connected successfully!');
+                    vcLog(LOG_LEVEL.INFO, 'WebRTC connected successfully!');
                     this.showNotification('Connected', 'success');
                 } else if (this.peerConnection.connectionState === 'failed') {
-                    console.error('❌ WebRTC connection failed');
+                    vcLog(LOG_LEVEL.ERROR, ' WebRTC connection failed');
                     this.showNotification('Connection failed', 'error');
                     this.endCall();
                 } else if (this.peerConnection.connectionState === 'disconnected') {
-                    console.warn('⚠️ WebRTC connection disconnected');
+                    vcLog(LOG_LEVEL.WARN, 'WebRTC connection disconnected');
                 }
             };
 
             // ICE connection state changes
             this.peerConnection.oniceconnectionstatechange = () => {
-                console.log('🧊 ICE connection state:', this.peerConnection.iceConnectionState);
+                vcLog(LOG_LEVEL.DEBUG, 'ICE connection state:', this.peerConnection.iceConnectionState);
             };
 
             // Signaling state changes (for debugging)
             this.peerConnection.onsignalingstatechange = () => {
-                console.log('📡 Signaling state:', this.peerConnection.signalingState);
+                vcLog(LOG_LEVEL.DEBUG, 'Signaling state:', this.peerConnection.signalingState);
             };
 
             // Create offer if initiator (after tracks are added)
@@ -707,11 +733,11 @@ class VideoCallSystem {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 await this.createOffer();
             } else {
-                console.log('📥 Receiver ready, waiting for offer...');
+                vcLog(LOG_LEVEL.DEBUG, 'Receiver ready, waiting for offer...');
             }
             
         } catch (error) {
-            console.error('❌ Error in startWebRTC:', error);
+            vcLog(LOG_LEVEL.ERROR, ' Error in startWebRTC:', error);
             this.webrtcInitialized = false; // Reset on error
             this.showNotification('Failed to establish connection', 'error');
             throw error;
@@ -720,11 +746,11 @@ class VideoCallSystem {
 
     async createOffer() {
         try {
-            console.log('📤 Creating offer...');
+            vcLog(LOG_LEVEL.DEBUG, 'Creating offer...');
             
             // Verify signaling state before creating offer
             if (this.peerConnection.signalingState !== 'stable') {
-                console.error('❌ Cannot create offer, signaling state not stable:', this.peerConnection.signalingState);
+                vcLog(LOG_LEVEL.ERROR, ' Cannot create offer, signaling state not stable:', this.peerConnection.signalingState);
                 return;
             }
             
@@ -734,7 +760,7 @@ class VideoCallSystem {
             });
             
             await this.peerConnection.setLocalDescription(offer);
-            console.log('✅ Local description set (offer), signaling state:', this.peerConnection.signalingState);
+            vcLog(LOG_LEVEL.DEBUG, 'Local description set (offer), signaling state:', this.peerConnection.signalingState);
             
             this.socket.emit('video-call:offer', {
                 targetUserId: this.currentCall.targetUserId,
@@ -742,39 +768,39 @@ class VideoCallSystem {
                 callId: this.currentCall.callId
             });
             
-            console.log('✅ Offer sent to server');
+            vcLog(LOG_LEVEL.DEBUG, 'Offer sent to server');
         } catch (error) {
-            console.error('❌ Error creating offer:', error);
+            vcLog(LOG_LEVEL.ERROR, ' Error creating offer:', error);
             throw error;
         }
     }
 
     async handleOffer(data) {
         try {
-            console.log('📥 Processing offer from user:', data.from);
+            vcLog(LOG_LEVEL.DEBUG, 'Processing offer from user:', data.from);
             
             // CRITICAL FIX: Don't call startWebRTC if already initialized
             if (!this.peerConnection) {
-                console.error('❌ No peer connection available - this should not happen. Call acceptCall first.');
+                vcLog(LOG_LEVEL.ERROR, ' No peer connection available - this should not happen. Call acceptCall first.');
                 return;
             }
             
             // Verify signaling state before setting remote description
             if (this.peerConnection.signalingState !== 'stable') {
-                console.warn('⚠️ Signaling state not stable when receiving offer:', this.peerConnection.signalingState);
+                vcLog(LOG_LEVEL.WARN, 'Signaling state not stable when receiving offer:', this.peerConnection.signalingState);
             }
             
             // Set remote description
-            console.log('📥 Setting remote description (offer)...');
+            vcLog(LOG_LEVEL.DEBUG, 'Setting remote description (offer)...');
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-            console.log('✅ Remote description set (offer), signaling state:', this.peerConnection.signalingState);
+            vcLog(LOG_LEVEL.DEBUG, 'Remote description set (offer), signaling state:', this.peerConnection.signalingState);
             
             // Create answer
-            console.log('📤 Creating answer...');
+            vcLog(LOG_LEVEL.DEBUG, 'Creating answer...');
             const answer = await this.peerConnection.createAnswer();
             
             await this.peerConnection.setLocalDescription(answer);
-            console.log('✅ Local description set (answer), signaling state:', this.peerConnection.signalingState);
+            vcLog(LOG_LEVEL.DEBUG, 'Local description set (answer), signaling state:', this.peerConnection.signalingState);
             
             // Send answer back
             this.socket.emit('video-call:answer', {
@@ -783,9 +809,9 @@ class VideoCallSystem {
                 callId: data.callId || this.currentCall?.callId
             });
             
-            console.log('✅ Answer sent to server');
+            vcLog(LOG_LEVEL.DEBUG, 'Answer sent to server');
         } catch (error) {
-            console.error('❌ Error handling offer:', error);
+            vcLog(LOG_LEVEL.ERROR, ' Error handling offer:', error);
             this.showNotification('Connection error', 'error');
         }
     }
@@ -793,34 +819,34 @@ class VideoCallSystem {
     async handleAnswer(data) {
         // CRITICAL FIX: Prevent processing duplicate answers
         if (this.isProcessingAnswer) {
-            console.warn('⚠️ Already processing an answer, ignoring duplicate');
+            vcLog(LOG_LEVEL.WARN, 'Already processing an answer, ignoring duplicate');
             return;
         }
         
         try {
             this.isProcessingAnswer = true;
-            console.log('📥 Processing answer...');
+            vcLog(LOG_LEVEL.DEBUG, 'Processing answer...');
             
             if (!this.peerConnection) {
-                console.error('❌ No peer connection available to handle answer');
+                vcLog(LOG_LEVEL.ERROR, ' No peer connection available to handle answer');
                 return;
             }
             
             const currentState = this.peerConnection.signalingState;
-            console.log('📡 Current signaling state:', currentState);
+            vcLog(LOG_LEVEL.DEBUG, 'Current signaling state:', currentState);
             
             // CRITICAL FIX: Only set remote description if we're in the correct state
             if (currentState === 'have-local-offer') {
-                console.log('📥 Setting remote description (answer)...');
+                vcLog(LOG_LEVEL.DEBUG, 'Setting remote description (answer)...');
                 await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                console.log('✅ Remote description set (answer), signaling state:', this.peerConnection.signalingState);
+                vcLog(LOG_LEVEL.DEBUG, 'Remote description set (answer), signaling state:', this.peerConnection.signalingState);
             } else if (currentState === 'stable') {
-                console.warn('⚠️ Already in stable state, ignoring answer (connection already established)');
+                vcLog(LOG_LEVEL.WARN, 'Already in stable state, ignoring answer (connection already established)');
             } else {
-                console.error('❌ Cannot set remote description, wrong state:', currentState);
+                vcLog(LOG_LEVEL.ERROR, ' Cannot set remote description, wrong state:', currentState);
             }
         } catch (error) {
-            console.error('❌ Error handling answer:', error);
+            vcLog(LOG_LEVEL.ERROR, ' Error handling answer:', error);
         } finally {
             // Reset flag after a delay to allow for any late duplicate answers
             setTimeout(() => {
@@ -832,16 +858,16 @@ class VideoCallSystem {
     async handleIceCandidate(data) {
         try {
             if (!this.peerConnection) {
-                console.warn('⚠️ No peer connection available for ICE candidate');
+                vcLog(LOG_LEVEL.WARN, 'No peer connection available for ICE candidate');
                 return;
             }
             
             if (data.candidate) {
                 await this.peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-                console.log('✅ ICE candidate added');
+                vcLog(LOG_LEVEL.DEBUG, 'ICE candidate added');
             }
         } catch (error) {
-            console.error('❌ Error handling ICE candidate:', error);
+            vcLog(LOG_LEVEL.ERROR, ' Error handling ICE candidate:', error);
         }
     }
 
@@ -854,7 +880,7 @@ class VideoCallSystem {
                 if (btn) {
                     btn.innerHTML = audioTrack.enabled ? '🎤' : '🔇';
                 }
-                console.log('🎤 Audio toggled:', audioTrack.enabled ? 'ON' : 'OFF');
+                vcLog(LOG_LEVEL.DEBUG, 'Audio toggled:', audioTrack.enabled ? 'ON' : 'OFF');
             }
         }
     }
@@ -868,13 +894,13 @@ class VideoCallSystem {
                 if (btn) {
                     btn.innerHTML = videoTrack.enabled ? '📹' : '📵';
                 }
-                console.log('📹 Video toggled:', videoTrack.enabled ? 'ON' : 'OFF');
+                vcLog(LOG_LEVEL.DEBUG, 'Video toggled:', videoTrack.enabled ? 'ON' : 'OFF');
             }
         }
     }
 
     cleanup() {
-        console.log('🧹 Cleaning up video call...');
+        vcLog(LOG_LEVEL.DEBUG, 'Cleaning up video call...');
         
         // Reset WebRTC flags
         this.webrtcInitialized = false;
@@ -888,7 +914,7 @@ class VideoCallSystem {
         if (this.localStream) {
             this.localStream.getTracks().forEach(track => {
                 track.stop();
-                console.log(`🛑 Stopped ${track.kind} track`);
+                vcLog(LOG_LEVEL.DEBUG, `Stopped ${track.kind} track`);
             });
             this.localStream = null;
         }
@@ -897,7 +923,7 @@ class VideoCallSystem {
         if (this.peerConnection) {
             this.peerConnection.close();
             this.peerConnection = null;
-            console.log('🔌 Peer connection closed');
+            vcLog(LOG_LEVEL.DEBUG, 'Peer connection closed');
         }
 
         // Clear streams from video elements
@@ -913,7 +939,7 @@ class VideoCallSystem {
         this.remoteStream = null;
         this.currentCall = null;
         
-        console.log('✅ Cleanup complete');
+        vcLog(LOG_LEVEL.DEBUG, 'Cleanup complete');
     }
 
     showCallingUI(name, avatar) {
@@ -986,7 +1012,7 @@ class VideoCallSystem {
             videoUI.style.height = '100%';
             videoUI.style.zIndex = '999999';
             
-            console.log('🎬 Showing video UI, checking video elements...');
+            vcLog(LOG_LEVEL.DEBUG, 'Showing video UI, checking video elements...');
             
             // Ensure video elements are visible (don't overwrite all styles with cssText)
             if (this.localVideo) {
@@ -995,7 +1021,7 @@ class VideoCallSystem {
                 this.localVideo.style.opacity = '1';
                 
                 const localComputedStyle = getComputedStyle(this.localVideo);
-                console.log('📹 Local video element state:', {
+                vcLog(LOG_LEVEL.DEBUG, 'Local video element state:', {
                     exists: !!this.localVideo,
                     hasStream: !!this.localVideo.srcObject,
                     streamTracks: this.localVideo.srcObject?.getTracks().length || 0,
@@ -1018,7 +1044,7 @@ class VideoCallSystem {
                     bottom: localComputedStyle.bottom
                 });
             } else {
-                console.error('❌ Local video element not found!');
+                vcLog(LOG_LEVEL.ERROR, ' Local video element not found!');
             }
             
             if (this.remoteVideo) {
@@ -1027,7 +1053,7 @@ class VideoCallSystem {
                 this.remoteVideo.style.opacity = '1';
                 
                 const remoteComputedStyle = getComputedStyle(this.remoteVideo);
-                console.log('📹 Remote video element state:', {
+                vcLog(LOG_LEVEL.DEBUG, 'Remote video element state:', {
                     exists: !!this.remoteVideo,
                     hasStream: !!this.remoteVideo.srcObject,
                     streamTracks: this.remoteVideo.srcObject?.getTracks().length || 0,
@@ -1050,14 +1076,14 @@ class VideoCallSystem {
                     bottom: remoteComputedStyle.bottom
                 });
             } else {
-                console.error('❌ Remote video element not found!');
+                vcLog(LOG_LEVEL.ERROR, ' Remote video element not found!');
             }
             
             // Log video container state
             const videoContainer = videoUI.querySelector('.video-container');
             if (videoContainer) {
                 const containerStyle = getComputedStyle(videoContainer);
-                console.log('📦 Video container state:', {
+                vcLog(LOG_LEVEL.DEBUG, 'Video container state:', {
                     width: containerStyle.width,
                     height: containerStyle.height,
                     position: containerStyle.position,
@@ -1068,7 +1094,7 @@ class VideoCallSystem {
             
             // Log video UI container state
             const videoUIStyle = getComputedStyle(videoUI);
-            console.log('🎥 VIDEO UI CONTAINER DEBUG:', {
+            vcLog(LOG_LEVEL.DEBUG, 'VIDEO UI CONTAINER DEBUG:', {
                 containerDisplay: videoUIStyle.display,
                 containerVisibility: videoUIStyle.visibility,
                 containerZIndex: videoUIStyle.zIndex,
@@ -1079,9 +1105,9 @@ class VideoCallSystem {
                 containerLeft: videoUIStyle.left
             });
             
-            console.log('✅ Video UI shown with proper styling');
+            vcLog(LOG_LEVEL.DEBUG, 'Video UI shown with proper styling');
         } else {
-            console.error('❌ Video UI element not found!');
+            vcLog(LOG_LEVEL.ERROR, ' Video UI element not found!');
         }
     }
 
@@ -1119,7 +1145,7 @@ class VideoCallSystem {
                 this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
             
-            console.log('🎵 Playing modern ringtone...');
+            vcLog(LOG_LEVEL.DEBUG, 'Playing modern ringtone...');
             
             // Create a trendy lo-fi / synthwave notification sound
             const playModernRingtone = () => {
@@ -1199,7 +1225,7 @@ class VideoCallSystem {
             }, 2000);
             
         } catch (e) {
-            console.log('⚠️ Ringtone not available:', e);
+            vcLog(LOG_LEVEL.DEBUG, 'Ringtone not available:', e);
         }
     }
 
@@ -1209,13 +1235,13 @@ class VideoCallSystem {
             this.ringtoneInterval = null;
         }
         if (this.audioContext) {
-            this.audioContext.close().catch(e => console.log('Error closing audio context:', e));
+            this.audioContext.close().catch(e => vcLog(LOG_LEVEL.WARN, 'Error closing audio context:', e));
             this.audioContext = null;
         }
     }
 
     showNotification(message, type = 'info') {
-        console.log(`📢 ${type.toUpperCase()}: ${message}`);
+        vcLog(LOG_LEVEL.INFO, `${type.toUpperCase()}: ${message}`);
         
         // Use existing toast system if available
         if (window.toast?.show) {
@@ -1258,10 +1284,10 @@ if (typeof window !== 'undefined') {
             // Set currentUserId if not already set
             if (!window.currentUserId && window.currentUser?.id) {
                 window.currentUserId = window.currentUser.id;
-                console.log('🔧 Set window.currentUserId from window.currentUser:', window.currentUserId);
+                vcLog(LOG_LEVEL.DEBUG, 'Set window.currentUserId from window.currentUser:', window.currentUserId);
             }
             
-            console.log('🚀 Initializing Video Call System');
+            vcLog(LOG_LEVEL.INFO, 'Initializing Video Call System');
             window.videoCallSystem = new VideoCallSystem();
             window.videoCallManager = window.videoCallSystem; // Alias for compatibility
             return true;
@@ -1271,7 +1297,7 @@ if (typeof window !== 'undefined') {
     
     // Try to initialize immediately
     if (!initVideoCall()) {
-        console.log('⏳ Waiting for socket and user ID...');
+        vcLog(LOG_LEVEL.DEBUG, 'Waiting for socket and user ID...');
         // Keep trying until successful
         const checkInterval = setInterval(() => {
             if (initVideoCall()) {
