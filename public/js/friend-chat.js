@@ -25,47 +25,41 @@ class FriendChat {
     }
 
     init() {
-        // Request notification permission on init
         this.requestNotificationPermission();
 
-        // CRITICAL FIX: Use existing Socket.IO connection from enhanced-socket-client.js
-        // DO NOT create a new socket instance!
-        if (typeof io !== 'undefined') {
-            console.log('🔌 Checking for existing Socket.IO connection...');
-            
-            // Wait for enhanced-socket-client to initialize if needed
-            const initSocket = () => {
-                // Use the SAME socket instance that enhanced-socket-client.js created
-                this.socket = window.socket || window.enhancedSocketClient?.socket;
-                
-                if (!this.socket) {
-                    console.warn('⚠️ No existing socket found, waiting for enhanced-socket-client...');
-                    // Try again in 100ms
-                    setTimeout(initSocket, 100);
-                    return;
-                }
-                
-                if (!this.socket.connected) {
-                    console.warn('⚠️ Socket exists but not connected, waiting for connection...');
-                    this.socket.once('connect', () => {
-                        console.log('✅ Socket connected, setting up chat events');
-                        this.setupSocketEvents();
-                        this.registerUser();
-                    });
-                } else {
-                    console.log('✅ Using existing socket connection:', this.socket.id);
+        // Wait for the main socket to be ready
+        if (window.socket && window.socket.connected) {
+            console.log('✅ Using existing window.socket for chat');
+            this.socket = window.socket;
+            this.setupSocketEvents();
+        } else if (window.enhancedSocketClient) {
+            console.log('⏳ Waiting for socket to connect...');
+            // Wait up to 3 seconds for socket to connect
+            const checkInterval = setInterval(() => {
+                if (window.socket && window.socket.connected) {
+                    console.log('✅ Socket ready, setting up chat');
+                    this.socket = window.socket;
                     this.setupSocketEvents();
-                    this.registerUser();
+                    clearInterval(checkInterval);
                 }
-            };
+            }, 100);
             
-            // Start initialization
-            initSocket();
+            setTimeout(() => clearInterval(checkInterval), 3000);
         } else {
-            console.error('❌ Socket.IO library not loaded');
+            // Fallback: only create new socket if absolutely necessary
+            console.warn('⚠️ Creating new socket (enhanced-socket-client not ready)');
+            if (typeof io !== 'undefined') {
+                this.socket = io({
+                    withCredentials: true,
+                    transports: ['websocket', 'polling'],
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000
+                });
+                this.setupSocketEvents();
+            }
         }
-
-        // Load conversations when chat section is shown
+        
         this.setupEventListeners();
     }
 
