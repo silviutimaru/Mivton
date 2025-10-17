@@ -27,39 +27,63 @@ class FriendChat {
     init() {
         this.requestNotificationPermission();
 
-        // CRITICAL: Wait for socketClientReady event from enhanced-socket-client
+        // CRITICAL FIX: ALWAYS use window.socket, NEVER create new socket
         const setupSocket = () => {
+            console.log('🔍 setupSocket() called');
+            console.log('🔍 window.socket:', window.socket);
+            console.log('🔍 window.socket.connected:', window.socket?.connected);
+            console.log('🔍 window.socket.id:', window.socket?.id);
+            
             if (window.socket && window.socket.connected) {
-                console.log('✅ Using existing window.socket for chat');
-                console.log('🔍 Socket ID:', window.socket.id);
+                // FORCE use of window.socket - don't create new one!
                 this.socket = window.socket;
+                console.log('✅ friendChat.socket SET to window.socket');
+                console.log('✅ friendChat.socket.id:', this.socket.id);
+                console.log('✅ Verification: window.socket === friendChat.socket?', window.socket === this.socket);
+                
                 this.setupSocketEvents();
                 this.registerUser();
             } else {
-                console.warn('⚠️ window.socket not ready yet, retrying...');
+                console.warn('⚠️ window.socket not ready yet, will retry in 100ms');
+                console.warn('   window.socket exists?', !!window.socket);
+                console.warn('   window.socket.connected?', window.socket?.connected);
                 setTimeout(setupSocket, 100);
             }
         };
 
-        // Check if socket is already ready
+        // Start setup immediately
+        console.log('🔌 friend-chat.js init() starting...');
+        console.log('🔌 window.socket exists?', !!window.socket);
+        console.log('🔌 window.socket.connected?', window.socket?.connected);
+        
         if (window.socket && window.socket.connected) {
-            console.log('✅ Socket already connected, using it immediately');
+            console.log('✅ Socket already connected, using it NOW');
             setupSocket();
         } else {
-            console.log('⏳ Waiting for socketClientReady event...');
-            // Listen for socketClientReady event from enhanced-socket-client
+            console.log('⏳ Socket not ready, setting up listeners...');
+            
+            // Listen for socketClientReady event
             document.addEventListener('socketClientReady', () => {
-                console.log('✅ socketClientReady event received');
+                console.log('✅ socketClientReady event fired!');
                 setupSocket();
             }, { once: true });
             
-            // Fallback: try polling after 1 second if event doesn't fire
-            setTimeout(() => {
-                if (!this.socket) {
-                    console.log('⚠️ Event not received, trying polling...');
+            // Also try polling as backup
+            let attempts = 0;
+            const maxAttempts = 30; // 3 seconds
+            const pollInterval = setInterval(() => {
+                attempts++;
+                console.log(`🔄 Polling attempt ${attempts}/${maxAttempts}...`);
+                
+                if (window.socket && window.socket.connected) {
+                    console.log('✅ Socket ready via polling!');
+                    clearInterval(pollInterval);
                     setupSocket();
+                } else if (attempts >= maxAttempts) {
+                    console.error('❌ Socket never became ready after 3 seconds!');
+                    clearInterval(pollInterval);
                 }
-            }, 1000);
+            }, 100);
         }
         
         this.setupEventListeners();
