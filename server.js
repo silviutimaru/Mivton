@@ -1097,6 +1097,22 @@ const startServer = async () => {
         console.log('⚠️ Socket sessions schema auto-fix failed:', socketSchemaError.message);
     }
     
+    // Initialize translation fields
+    try {
+        const { addTranslationFields } = require('./database/add-translation-fields');
+        await addTranslationFields();
+    } catch (translationError) {
+        console.log('⚠️ Translation fields initialization failed:', translationError.message);
+    }
+    
+    // Validate translation features
+    try {
+        const { validateTranslationFeatures } = require('./startup-validation');
+        await validateTranslationFeatures();
+    } catch (validationError) {
+        console.log('⚠️ Translation validation error:', validationError.message);
+    }
+    
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
     console.log('🔄 Continuing with server startup anyway...');

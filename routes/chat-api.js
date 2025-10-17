@@ -227,7 +227,7 @@ router.post('/messages', requireAuth, async (req, res) => {
     }
 });
 
-// GET /api/chat/messages/:conversationId - Get messages in a conversation
+// GET /api/chat/messages/:conversationId - Get messages in a conversation (with translation support)
 router.get('/messages/:conversationId', requireAuth, async (req, res) => {
     try {
         const userId = req.session.user?.id || req.session.userId;
@@ -235,6 +235,11 @@ router.get('/messages/:conversationId', requireAuth, async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const offset = (page - 1) * limit;
+        
+        // Language parameter - if provided, translate messages to this language
+        const requestedLanguage = req.query.language || null;
+
+        console.log(`📖 GET /messages/${conversationId} - User: ${userId}, Language: ${requestedLanguage || 'none'}`);
 
         // Verify user is participant in conversation
         const convCheck = await pool.query(`
@@ -249,13 +254,32 @@ router.get('/messages/:conversationId', requireAuth, async (req, res) => {
             });
         }
 
-        // Get messages with sender info
+        // Get user's preferred language if no language specified
+        let targetLanguage = requestedLanguage;
+        if (!targetLanguage) {
+            try {
+                const userPref = await pool.query(`
+                    SELECT preferred_chat_language FROM users WHERE id = $1
+                `, [userId]);
+                targetLanguage = userPref.rows[0]?.preferred_chat_language || 'en';
+                console.log(`📖 Using user's preferred language: ${targetLanguage}`);
+            } catch (error) {
+                targetLanguage = 'en';
+                console.log(`⚠️ Could not fetch user preference, defaulting to: en`);
+            }
+        }
+
+        // Get messages with sender info and translation fields
         const messages = await pool.query(`
             SELECT 
                 m.id,
                 m.conversation_id,
                 m.sender_id,
                 m.message_content as content,
+                m.original_language,
+                m.translated_content,
+                m.translation_language,
+                m.is_translated,
                 m.created_at,
                 u.username as sender_username,
                 ms.status as read_status
@@ -267,9 +291,53 @@ router.get('/messages/:conversationId', requireAuth, async (req, res) => {
             LIMIT $3 OFFSET $4
         `, [conversationId, userId, limit, offset]);
 
+        // Process messages for translation
+        const translationService = require('../services/openai-translation');
+        const processedMessages = [];
+        
+        for (const msg of messages.rows) {
+            const processedMsg = {
+                id: msg.id,
+                conversation_id: msg.conversation_id,
+                sender_id: msg.sender_id,
+                sender_username: msg.sender_username,
+                content: msg.content,
+                original_language: msg.original_language,
+                created_at: msg.created_at,
+                read_status: msg.read_status,
+                translation: null
+            };
+            
+            // Check if translation is needed
+            if (targetLanguage && targetLanguage !== 'en') {
+                // Check if we have cached translation
+                if (msg.translation_language === targetLanguage && msg.translated_content) {
+                    console.log(`📖 Cache hit: Message ${msg.id} already translated to ${targetLanguage}`);
+                    processedMsg.translation = {
+                        content: msg.translated_content,
+                        language: targetLanguage,
+                        isTranslated: true,
+                        cached: true
+                    };
+                } else if (translationService.isAvailable()) {
+                    // Need to translate - but do it in background to avoid slowing down response
+                    // For now, just mark that translation is needed
+                    processedMsg.translation = {
+                        content: msg.content,
+                        language: targetLanguage,
+                        isTranslated: false,
+                        needsTranslation: true
+                    };
+                }
+            }
+            
+            processedMessages.push(processedMsg);
+        }
+
         res.json({
             success: true,
-            messages: messages.rows.reverse(), // Show oldest first
+            messages: processedMessages.reverse(), // Show oldest first
+            displayLanguage: targetLanguage,
             pagination: {
                 page,
                 limit,
@@ -371,6 +439,250 @@ router.put('/messages/:messageId/read', requireAuth, async (req, res) => {
         res.status(500).json({ 
             success: false, 
             error: 'Failed to mark message as read' 
+        });
+    }
+});
+
+// ================================
+// TRANSLATION ENDPOINTS
+// ================================
+
+// GET /api/chat/languages - Get supported languages
+router.get('/languages', async (req, res) => {
+    try {
+        console.log('📋 GET /api/chat/languages');
+        
+        const translationService = require('../services/openai-translation');
+        
+        // Extract all languages from the translation service
+        const languages = [
+            { code: 'en', name: 'English' },
+            { code: 'ro', name: 'Romanian' },
+            { code: 'hu', name: 'Hungarian' },
+            { code: 'es', name: 'Spanish' },
+            { code: 'fr', name: 'French' },
+            { code: 'de', name: 'German' },
+            { code: 'it', name: 'Italian' },
+            { code: 'pt', name: 'Portuguese' },
+            { code: 'ru', name: 'Russian' },
+            { code: 'zh', name: 'Chinese' },
+            { code: 'ja', name: 'Japanese' },
+            { code: 'ko', name: 'Korean' },
+            { code: 'ar', name: 'Arabic' },
+            { code: 'hi', name: 'Hindi' },
+            { code: 'th', name: 'Thai' },
+            { code: 'vi', name: 'Vietnamese' },
+            { code: 'pl', name: 'Polish' },
+            { code: 'nl', name: 'Dutch' },
+            { code: 'sv', name: 'Swedish' },
+            { code: 'da', name: 'Danish' },
+            { code: 'no', name: 'Norwegian' },
+            { code: 'fi', name: 'Finnish' },
+            { code: 'cs', name: 'Czech' },
+            { code: 'sk', name: 'Slovak' },
+            { code: 'bg', name: 'Bulgarian' },
+            { code: 'hr', name: 'Croatian' },
+            { code: 'sr', name: 'Serbian' },
+            { code: 'sl', name: 'Slovenian' },
+            { code: 'et', name: 'Estonian' },
+            { code: 'lv', name: 'Latvian' },
+            { code: 'lt', name: 'Lithuanian' },
+            { code: 'uk', name: 'Ukrainian' },
+            { code: 'el', name: 'Greek' },
+            { code: 'tr', name: 'Turkish' },
+            { code: 'he', name: 'Hebrew' },
+            { code: 'fa', name: 'Persian' },
+            { code: 'ur', name: 'Urdu' },
+            { code: 'bn', name: 'Bengali' },
+            { code: 'ta', name: 'Tamil' },
+            { code: 'te', name: 'Telugu' },
+            { code: 'ml', name: 'Malayalam' },
+            { code: 'kn', name: 'Kannada' },
+            { code: 'gu', name: 'Gujarati' },
+            { code: 'pa', name: 'Punjabi' },
+            { code: 'or', name: 'Odia' },
+            { code: 'as', name: 'Assamese' },
+            { code: 'ne', name: 'Nepali' },
+            { code: 'si', name: 'Sinhala' },
+            { code: 'my', name: 'Burmese' },
+            { code: 'km', name: 'Khmer' },
+            { code: 'lo', name: 'Lao' },
+            { code: 'ka', name: 'Georgian' },
+            { code: 'am', name: 'Amharic' },
+            { code: 'sw', name: 'Swahili' },
+            { code: 'zu', name: 'Zulu' },
+            { code: 'af', name: 'Afrikaans' },
+            { code: 'sq', name: 'Albanian' },
+            { code: 'eu', name: 'Basque' },
+            { code: 'be', name: 'Belarusian' },
+            { code: 'bs', name: 'Bosnian' },
+            { code: 'ca', name: 'Catalan' },
+            { code: 'cy', name: 'Welsh' },
+            { code: 'is', name: 'Icelandic' },
+            { code: 'ga', name: 'Irish' },
+            { code: 'mk', name: 'Macedonian' },
+            { code: 'mt', name: 'Maltese' },
+            { code: 'gl', name: 'Galician' }
+        ];
+        
+        console.log(`✅ Returning ${languages.length} supported languages`);
+        
+        res.json({
+            success: true,
+            languages,
+            total: languages.length,
+            serviceAvailable: translationService.isAvailable()
+        });
+        
+    } catch (error) {
+        console.error('❌ Error fetching languages:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch languages'
+        });
+    }
+});
+
+// PUT /api/chat/messages/:messageId/translate - Translate a specific message
+router.put('/messages/:messageId/translate', requireAuth, async (req, res) => {
+    try {
+        const userId = req.session.user?.id || req.session.userId;
+        const messageId = parseInt(req.params.messageId);
+        const { targetLanguage } = req.body;
+        
+        console.log(`🌐 Translate message ${messageId} to ${targetLanguage} for user ${userId}`);
+        
+        if (!targetLanguage) {
+            return res.status(400).json({
+                success: false,
+                error: 'Target language is required'
+            });
+        }
+        
+        // Verify user has access to this message
+        const messageCheck = await pool.query(`
+            SELECT m.id, m.message_content, m.sender_id, m.original_language,
+                   m.translated_content, m.translation_language, m.is_translated,
+                   c.participant_1, c.participant_2
+            FROM chat_messages m
+            JOIN chat_conversations c ON m.conversation_id = c.id
+            WHERE m.id = $1 
+            AND (c.participant_1 = $2 OR c.participant_2 = $2)
+        `, [messageId, userId]);
+        
+        if (messageCheck.rows.length === 0) {
+            console.log(`❌ User ${userId} does not have access to message ${messageId}`);
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied to this message'
+            });
+        }
+        
+        const message = messageCheck.rows[0];
+        console.log(`✅ Message found: "${message.message_content.substring(0, 50)}..."`);
+        
+        // Check if we already have this translation cached
+        if (message.translation_language === targetLanguage && message.translated_content) {
+            console.log(`📖 Cache hit: translation already exists for ${targetLanguage}`);
+            return res.json({
+                success: true,
+                message: {
+                    id: messageId,
+                    original: message.message_content,
+                    originalLanguage: message.original_language,
+                    translated: message.translated_content,
+                    targetLanguage: targetLanguage,
+                    isTranslated: true,
+                    cached: true
+                }
+            });
+        }
+        
+        // Need to translate
+        const translationService = require('../services/openai-translation');
+        
+        if (!translationService.isAvailable()) {
+            console.log('⚠️ Translation service not available');
+            return res.json({
+                success: true,
+                message: {
+                    id: messageId,
+                    original: message.message_content,
+                    originalLanguage: message.original_language || 'unknown',
+                    translated: message.message_content,
+                    targetLanguage: targetLanguage,
+                    isTranslated: false,
+                    error: 'Translation service not available'
+                }
+            });
+        }
+        
+        // Detect source language if not set
+        let sourceLanguage = message.original_language;
+        if (!sourceLanguage) {
+            console.log(`🔍 Detecting language for message ${messageId}...`);
+            const detectionResult = await translationService.detectLanguage(message.message_content);
+            sourceLanguage = detectionResult.detectedLang || 'en';
+            console.log(`✅ Detected language: ${sourceLanguage}`);
+        }
+        
+        // Translate the message
+        console.log(`🌐 Translating from ${sourceLanguage} to ${targetLanguage}...`);
+        const startTime = Date.now();
+        const translationResult = await translationService.translateText(
+            message.message_content,
+            sourceLanguage,
+            targetLanguage
+        );
+        const duration = Date.now() - startTime;
+        console.log(`🕐 Translation completed in ${duration}ms`);
+        
+        if (!translationResult.success) {
+            console.log(`⚠️ Translation failed: ${translationResult.error}`);
+            return res.json({
+                success: true,
+                message: {
+                    id: messageId,
+                    original: message.message_content,
+                    originalLanguage: sourceLanguage,
+                    translated: message.message_content,
+                    targetLanguage: targetLanguage,
+                    isTranslated: false,
+                    error: translationResult.error
+                }
+            });
+        }
+        
+        // Save translation to database
+        await pool.query(`
+            UPDATE chat_messages
+            SET original_language = $1,
+                translated_content = $2,
+                translation_language = $3,
+                is_translated = true
+            WHERE id = $4
+        `, [sourceLanguage, translationResult.translatedText, targetLanguage, messageId]);
+        
+        console.log(`✅ Translation saved to database`);
+        
+        res.json({
+            success: true,
+            message: {
+                id: messageId,
+                original: message.message_content,
+                originalLanguage: sourceLanguage,
+                translated: translationResult.translatedText,
+                targetLanguage: targetLanguage,
+                isTranslated: true,
+                cached: false
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error translating message:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to translate message'
         });
     }
 });

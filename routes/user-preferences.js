@@ -141,6 +141,87 @@ router.put('/language', async (req, res) => {
 });
 
 /**
+ * PUT /api/user/chat-language
+ * Update user's preferred chat language for translation
+ */
+router.put('/chat-language', async (req, res) => {
+    try {
+        const userId = req.session?.userId;
+        const { language } = req.body;
+        
+        console.log(`🔤 User ${userId} setting chat language to ${language}`);
+        
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                error: 'Authentication required'
+            });
+        }
+        
+        if (!language) {
+            return res.status(400).json({
+                success: false,
+                error: 'Language code is required'
+            });
+        }
+        
+        // Get translation service to validate language
+        const translationService = require('../services/openai-translation');
+        const languageName = translationService.getLanguageName(language);
+        
+        // Validate it's a real language code (not just uppercase of unknown code)
+        const validLanguages = [
+            'en', 'ro', 'hu', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh', 'ja', 'ko',
+            'ar', 'hi', 'th', 'vi', 'pl', 'nl', 'sv', 'da', 'no', 'fi', 'cs', 'sk',
+            'bg', 'hr', 'sr', 'sl', 'et', 'lv', 'lt', 'uk', 'el', 'tr', 'he', 'fa',
+            'ur', 'bn', 'ta', 'te', 'ml', 'kn', 'gu', 'pa', 'or', 'as', 'ne', 'si',
+            'my', 'km', 'lo', 'ka', 'am', 'sw', 'zu', 'af', 'sq', 'eu', 'be', 'bs',
+            'ca', 'cy', 'is', 'ga', 'mk', 'mt', 'gl'
+        ];
+        
+        if (!validLanguages.includes(language)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Unsupported language code'
+            });
+        }
+        
+        try {
+            // Update user's preferred chat language
+            await query(
+                'UPDATE users SET preferred_chat_language = $1 WHERE id = $2',
+                [language, userId]
+            );
+            
+            console.log(`✅ Updated chat language for user ${userId} to ${language}`);
+            
+            res.json({
+                success: true,
+                message: 'Chat language updated successfully',
+                language: {
+                    code: language,
+                    name: languageName
+                }
+            });
+            
+        } catch (dbError) {
+            console.error('❌ Database error updating chat language:', dbError);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to update chat language in database'
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Update chat language error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update chat language'
+        });
+    }
+});
+
+/**
  * PUT /api/user/status
  * Update user status and presence
  */

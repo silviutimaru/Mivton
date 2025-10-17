@@ -437,14 +437,117 @@ function initializeEnhancedFriendsEvents(io) {
             console.log(`🔑 Socket userId set to: ${socket.userId}`);
         });
 
-        // When someone sends a message, forward it to the recipient
-        socket.on('chat:message', (data) => {
+        // When someone sends a message, forward it to the recipient (with translation)
+        socket.on('chat:message', async (data) => {
             const { recipientId, messageData } = data;
-            console.log(`📨 Message from ${socket.userId} to ${recipientId}`);
+            const senderId = socket.userId;
+            
+            console.log(`📨 Message from ${senderId} to ${recipientId}`);
 
-            // Send to recipient's room
-            io.to(`user_${recipientId}`).emit('chat:receive', messageData);
-            console.log(`✅ Sent to user_${recipientId}`);
+            try {
+                // Import translation service and database connection
+                const translationService = require('../services/openai-translation');
+                const { pool } = require('../database/connection');
+                
+                // Get recipient's preferred language
+                let recipientLanguage = 'en';
+                try {
+                    const recipientPref = await pool.query(
+                        'SELECT preferred_chat_language FROM users WHERE id = $1',
+                        [recipientId]
+                    );
+                    recipientLanguage = recipientPref.rows[0]?.preferred_chat_language || 'en';
+                    console.log(`🔤 Recipient preferred language: ${recipientLanguage}`);
+                } catch (error) {
+                    console.log(`⚠️ Could not fetch recipient language preference, defaulting to en`);
+                }
+                
+                // Get sender's preferred language
+                let senderLanguage = 'en';
+                try {
+                    const senderPref = await pool.query(
+                        'SELECT preferred_chat_language FROM users WHERE id = $1',
+                        [senderId]
+                    );
+                    senderLanguage = senderPref.rows[0]?.preferred_chat_language || 'en';
+                    console.log(`🔤 Sender preferred language: ${senderLanguage}`);
+                } catch (error) {
+                    console.log(`⚠️ Could not fetch sender language preference, using en`);
+                }
+                
+                // Detect the actual language of the message content
+                let detectedLanguage = senderLanguage;
+                if (translationService.isAvailable() && messageData.content) {
+                    try {
+                        const detection = await translationService.detectLanguage(messageData.content);
+                        if (detection.success) {
+                            detectedLanguage = detection.detectedLang;
+                            console.log(`🔍 Detected message language: ${detectedLanguage}`);
+                        }
+                    } catch (error) {
+                        console.log(`⚠️ Language detection failed, using sender preference`);
+                    }
+                }
+                
+                // Enhance message data with language info
+                const enhancedMessageData = {
+                    ...messageData,
+                    originalLanguage: detectedLanguage,
+                    translation: null
+                };
+                
+                // Check if translation is needed
+                if (recipientLanguage !== detectedLanguage && translationService.isAvailable()) {
+                    console.log(`🌐 Translating message from ${detectedLanguage} to ${recipientLanguage}...`);
+                    
+                    try {
+                        const startTime = Date.now();
+                        const translationResult = await translationService.translateText(
+                            messageData.content,
+                            detectedLanguage,
+                            recipientLanguage
+                        );
+                        const duration = Date.now() - startTime;
+                        
+                        if (translationResult.success) {
+                            console.log(`✅ Translation completed in ${duration}ms`);
+                            enhancedMessageData.translation = {
+                                content: translationResult.translatedText,
+                                language: recipientLanguage,
+                                isTranslated: true
+                            };
+                        } else {
+                            console.log(`⚠️ Translation failed: ${translationResult.error}`);
+                            enhancedMessageData.translation = {
+                                content: messageData.content,
+                                language: recipientLanguage,
+                                isTranslated: false,
+                                error: translationResult.error
+                            };
+                        }
+                    } catch (error) {
+                        console.error(`❌ Translation error: ${error.message}`);
+                        enhancedMessageData.translation = {
+                            content: messageData.content,
+                            language: recipientLanguage,
+                            isTranslated: false,
+                            error: error.message
+                        };
+                    }
+                } else {
+                    console.log(`📝 No translation needed (same language or service unavailable)`);
+                }
+                
+                // Send enhanced message to recipient's room
+                io.to(`user_${recipientId}`).emit('chat:receive', enhancedMessageData);
+                console.log(`✅ Message sent to user_${recipientId} with translation data`);
+                
+            } catch (error) {
+                console.error(`❌ Error processing message: ${error.message}`);
+                // Fallback: send original message without translation
+                io.to(`user_${recipientId}`).emit('chat:receive', messageData);
+                console.log(`⚠️ Sent fallback message to user_${recipientId}`);
+            }
         });
 
         // Typing indicators
