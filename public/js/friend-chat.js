@@ -682,7 +682,8 @@ class FriendChat {
                     messageData: {
                         sender_id: window.currentUser?.id,
                         content: content,
-                        created_at: data.message.created_at
+                        created_at: data.message.created_at,
+                        sender_pref_lang: this.currentLanguageSetting
                     }
                 });
             }
@@ -726,27 +727,24 @@ class FriendChat {
         const isOwn = messageData.sender_id === window.currentUser?.id;
         const timestamp = this.formatMessageTime(messageData.created_at);
 
-        const hasTranslation = !!(messageData.translation && messageData.translation.isTranslated && messageData.translation.content);
-        const translatedText = hasTranslation ? messageData.translation.content : null;
-        const translatedLang = hasTranslation ? (messageData.translation.language || '').toUpperCase() : '';
-        const originalText = messageData.content || '';
-        const originalLang = (messageData.originalLanguage || '').toUpperCase();
+        // Check if the message was translated on the server (i.e., if original_content property exists)
+        const isTranslated = !!messageData.original_content;
+        const displayedText = isTranslated ? messageData.content : messageData.original_content || messageData.content;
+        const secondaryText = isTranslated ? messageData.original_content : null;
 
         const messageHTML = `
             <div class="message ${isOwn ? 'message-own' : 'message-other'}">
                 <div class="message-bubble">
-                    ${hasTranslation ? `
-                        <div class="message-text translated">
-                            <span class="language-badge translated-lang">${this.escapeHtml(translatedLang || 'TR')}</span>
-                            ${this.escapeHtml(translatedText)}
+                    ${isTranslated ? `
+                        <div class="message-text primary">
+                            ${this.escapeHtml(displayedText)}
                         </div>
-                        <div class="message-text original">
-                            <span class="language-badge original-lang">${this.escapeHtml(originalLang || 'OR')}</span>
-                            ${this.escapeHtml(originalText)}
+                        <div class="message-text secondary">
+                            ${this.escapeHtml(secondaryText)}
                         </div>
                     ` : `
                         <div class="message-text">
-                            ${this.escapeHtml(originalText)}
+                            ${this.escapeHtml(displayedText)}
                         </div>
                     `}
                     <div class="message-time">${timestamp}</div>

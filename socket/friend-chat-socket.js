@@ -37,21 +37,22 @@ async function getRecipientLanguage(userId) {
 /**
  * Translate message content using OpenAI
  * @param {string} content - Message content to translate
+ * @param {string} sourceLanguage - Source language code
  * @param {string} targetLanguage - Target language code
  * @returns {Promise<string>} - Translated content (or original on error)
  */
-async function translateMessage(content, targetLanguage) {
+async function translateMessage(content, sourceLanguage, targetLanguage) {
     try {
         const completion = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
             messages: [
                 {
                     role: 'system',
-                    content: 'Return ONLY the translated text'
+                    content: 'You are a chat translator. Translate the following user message from ' + sourceLanguage + ' to ' + targetLanguage + '. Return ONLY the translated text.'
                 },
                 {
                     role: 'user',
-                    content: `Translate the following text to ${targetLanguage}: ${content}`
+                    content: content
                 }
             ],
             temperature: 0.3,
@@ -91,22 +92,28 @@ function initializeFriendChatSocket(io) {
             console.log(`📨 Message from ${socket.userId} to ${recipientId}`);
             console.log(`🔍 Recipient socket:`, userSockets.get(recipientId));
 
+            // Extract sender's preferred language from payload
+            const senderLang = messageData.sender_pref_lang || 'en';
+            console.log(`📤 Sender language: ${senderLang}`);
+
             // Get recipient's preferred language
             const targetLang = await getRecipientLanguage(recipientId);
-            console.log(`🌐 Recipient language: ${targetLang}`);
+            console.log(`📥 Recipient language: ${targetLang}`);
 
-            // Translate message if recipient's language is not English
-            if (targetLang !== 'en') {
-                console.log(`🔄 Translating message to ${targetLang}...`);
+            // Translate message if recipient's language differs from sender's
+            if (targetLang !== senderLang) {
+                console.log(`🔄 Translating message from ${senderLang} to ${targetLang}...`);
                 
                 // Store original content
                 messageData.original_content = messageData.content;
                 
                 // Translate and replace content
-                const translatedContent = await translateMessage(messageData.content, targetLang);
+                const translatedContent = await translateMessage(messageData.content, senderLang, targetLang);
                 messageData.content = translatedContent;
                 
                 console.log(`✅ Message translated from "${messageData.original_content}" to "${translatedContent}"`);
+            } else {
+                console.log(`⏭️ Skipping translation - both users use ${senderLang}`);
             }
 
             // Send to recipient's room
