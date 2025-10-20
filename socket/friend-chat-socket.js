@@ -19,12 +19,12 @@ const openai = new OpenAI({
 async function getRecipientLanguage(userId) {
     try {
         const result = await pool.query(
-            'SELECT preferred_language_code FROM users WHERE id = $1',
+            'SELECT native_language FROM users WHERE id = $1',
             [userId]
         );
         
-        if (result.rows.length > 0 && result.rows[0].preferred_language_code) {
-            return result.rows[0].preferred_language_code;
+        if (result.rows.length > 0 && result.rows[0].native_language) {
+            return result.rows[0].native_language;
         }
         
         return 'en'; // Default to English
