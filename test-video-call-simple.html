@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Video Call Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple Video Call Test</h1>
+    
+    <div class="test-section">
+        <h2>System Status</h2>
+        <div id="statusLog" class="log"></div>
+        <button onclick="checkSystemStatus()">Check System Status</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Camera Test</h2>
+        <video id="testVideo" autoplay playsinline muted style="width: 300px; height: 200px; background: #000; border-radius: 8px;"></video>
+        <br>
+        <button onclick="testCamera()">Test Camera</button>
+        <div id="cameraLog" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Video Call System Test</h2>
+        <button onclick="testVideoCallSystem()">Test Video Call System</button>
+        <div id="videoCallLog" class="log"></div>
+    </div>
+
+    <script>
+        function log(elementId, message) {
+            const logElement = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function checkSystemStatus() {
+            log('statusLog', '🔍 Checking system status...');
+            
+            // Check if video call system is loaded
+            if (typeof VideoCallSystem !== 'undefined') {
+                log('statusLog', '✅ VideoCallSystem class is available');
+            } else {
+                log('statusLog', '❌ VideoCallSystem class not available');
+            }
+            
+            // Check if video call system instance exists
+            if (window.videoCallSystem) {
+                log('statusLog', '✅ window.videoCallSystem instance exists');
+                log('statusLog', `📊 Video call system state: ${JSON.stringify({
+                    isCallActive: window.videoCallSystem.isCallActive,
+                    hasLocalStream: !!window.videoCallSystem.localStream,
+                    hasRemoteStream: !!window.videoCallSystem.remoteStream,
+                    hasPeerConnection: !!window.videoCallSystem.peerConnection
+                })}`);
+            } else {
+                log('statusLog', '❌ window.videoCallSystem instance not found');
+            }
+            
+            // Check video elements
+            const localVideo = document.getElementById('localVideo');
+            const remoteVideo = document.getElementById('remoteVideo');
+            log('statusLog', `📺 Video elements: local=${localVideo ? 'exists' : 'missing'}, remote=${remoteVideo ? 'exists' : 'missing'}`);
+            
+            // Check socket
+            if (window.socket) {
+                log('statusLog', `🔌 Socket: ${window.socket.connected ? 'connected' : 'disconnected'}`);
+            } else {
+                log('statusLog', '❌ Socket not available');
+            }
+            
+            // Check user ID
+            if (window.currentUserId) {
+                log('statusLog', `👤 Current user ID: ${window.currentUserId}`);
+            } else {
+                log('statusLog', '❌ Current user ID not set');
+            }
+        }
+
+        async function testCamera() {
+            log('cameraLog', '📹 Testing camera access...');
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: true 
+                });
+                
+                const testVideo = document.getElementById('testVideo');
+                testVideo.srcObject = stream;
+                
+                log('cameraLog', `✅ Camera access successful!`);
+                log('cameraLog', `📹 Video tracks: ${stream.getVideoTracks().length}`);
+                log('cameraLog', `🎤 Audio tracks: ${stream.getAudioTracks().length}`);
+                
+                // Check video track details
+                stream.getVideoTracks().forEach((track, index) => {
+                    const settings = track.getSettings();
+                    log('cameraLog', `📹 Track ${index}: ${settings.width}x${settings.height} @ ${settings.frameRate}fps`);
+                });
+                
+            } catch (error) {
+                log('cameraLog', `❌ Camera access failed: ${error.message}`);
+            }
+        }
+
+        async function testVideoCallSystem() {
+            log('videoCallLog', '🎥 Testing video call system...');
+            
+            if (!window.videoCallSystem) {
+                log('videoCallLog', '❌ Video call system not available');
+                return;
+            }
+            
+            try {
+                // Test getUserMedia
+                log('videoCallLog', '📹 Testing getUserMedia...');
+                await window.videoCallSystem.getUserMedia();
+                log('videoCallLog', '✅ getUserMedia successful');
+                
+                // Check if local video element has stream
+                const localVideo = document.getElementById('localVideo');
+                if (localVideo && localVideo.srcObject) {
+                    log('videoCallLog', '✅ Local video element has stream');
+                } else {
+                    log('videoCallLog', '❌ Local video element has no stream');
+                }
+                
+                // Test WebRTC
+                log('videoCallLog', '🔄 Testing WebRTC...');
+                const pc = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+                
+                if (window.videoCallSystem.localStream) {
+                    window.videoCallSystem.localStream.getTracks().forEach(track => {
+                        pc.addTrack(track, window.videoCallSystem.localStream);
+                    });
+                    log('videoCallLog', '✅ Added tracks to peer connection');
+                }
+                
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                log('videoCallLog', '✅ WebRTC offer created successfully');
+                
+                pc.close();
+                
+            } catch (error) {
+                log('videoCallLog', `❌ Video call system test failed: ${error.message}`);
+            }
+        }
+
+        // Load video call system
+        window.addEventListener('load', () => {
+            log('statusLog', '📄 Page loaded, loading video call system...');
+            
+            const script = document.createElement('script');
+            script.src = '/js/video-call-fixed.js?v=20250115f';
+            script.onload = () => {
+                log('statusLog', '✅ Video-call-fixed.js loaded');
+                setTimeout(checkSystemStatus, 1000);
+            };
+            script.onerror = () => {
+                log('statusLog', '❌ Failed to load video-call-fixed.js');
+            };
+            document.head.appendChild(script);
+        });
+    </script>
+</body>
+</html>

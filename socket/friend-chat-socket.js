@@ -3,6 +3,69 @@
  * Dead simple real-time messaging
  */
 
+const OpenAI = require('openai');
+const { pool } = require('../database/connection');
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+});
+
+/**
+ * Get recipient's preferred language from database
+ * @param {number} userId - User ID to look up
+ * @returns {Promise<string>} - Language code (defaults to 'en')
+ */
+async function getRecipientLanguage(userId) {
+    try {
+        const result = await pool.query(
+            'SELECT preferred_language_code FROM users WHERE id = $1',
+            [userId]
+        );
+        
+        if (result.rows.length > 0 && result.rows[0].preferred_language_code) {
+            return result.rows[0].preferred_language_code;
+        }
+        
+        return 'en'; // Default to English
+    } catch (error) {
+        console.error('❌ Error fetching recipient language:', error);
+        return 'en'; // Default to English on error
+    }
+}
+
+/**
+ * Translate message content using OpenAI
+ * @param {string} content - Message content to translate
+ * @param {string} targetLanguage - Target language code
+ * @returns {Promise<string>} - Translated content (or original on error)
+ */
+async function translateMessage(content, targetLanguage) {
+    try {
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'Return ONLY the translated text'
+                },
+                {
+                    role: 'user',
+                    content: `Translate the following text to ${targetLanguage}: ${content}`
+                }
+            ],
+            temperature: 0.3,
+            max_tokens: 500
+        });
+        
+        const translatedText = completion.choices[0]?.message?.content?.trim();
+        return translatedText || content;
+    } catch (error) {
+        console.error('❌ Error translating message:', error);
+        return content; // Return original content on error
+    }
+}
+
 function initializeFriendChatSocket(io) {
     // Track which socket belongs to which user
     const userSockets = new Map(); // userId -> socketId
@@ -22,11 +85,29 @@ function initializeFriendChatSocket(io) {
         });
 
         // When someone sends a message, forward it to the recipient
-        socket.on('chat:message', (data) => {
+        socket.on('chat:message', async (data) => {
             const { recipientId, messageData } = data;
 
             console.log(`📨 Message from ${socket.userId} to ${recipientId}`);
             console.log(`🔍 Recipient socket:`, userSockets.get(recipientId));
+
+            // Get recipient's preferred language
+            const targetLang = await getRecipientLanguage(recipientId);
+            console.log(`🌐 Recipient language: ${targetLang}`);
+
+            // Translate message if recipient's language is not English
+            if (targetLang !== 'en') {
+                console.log(`🔄 Translating message to ${targetLang}...`);
+                
+                // Store original content
+                messageData.original_content = messageData.content;
+                
+                // Translate and replace content
+                const translatedContent = await translateMessage(messageData.content, targetLang);
+                messageData.content = translatedContent;
+                
+                console.log(`✅ Message translated from "${messageData.original_content}" to "${translatedContent}"`);
+            }
 
             // Send to recipient's room
             io.to(`user_${recipientId}`).emit('chat:receive', messageData);

@@ -1,0 +1,501 @@
+/**
+ * 🎥 MIVTON VIDEO CALLING UI STYLES
+ * Beautiful responsive video call interface
+ */
+
+:root {
+    --primary-color: #667eea;
+    --primary-dark: #5568d3;
+    --success-color: #4CAF50;
+    --danger-color: #f44336;
+    --warning-color: #ff9800;
+    --text-dark: #333;
+    --text-light: #999;
+    --bg-dark: #0f0f0f;
+    --bg-light: #f9f9f9;
+    --border-radius: 8px;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Video Call Container */
+.mivton-video-call-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ======================== INCOMING CALL ======================== */
+.mivton-incoming-call {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+    width: 100%;
+    height: 100%;
+    animation: fadeIn 0.3s ease;
+}
+
+.incoming-call-content {
+    text-align: center;
+    color: white;
+}
+
+.caller-info {
+    margin-bottom: 50px;
+}
+
+.caller-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin: 0 auto 30px;
+    display: block;
+    object-fit: cover;
+    border: 4px solid white;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.caller-details h2 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    letter-spacing: -0.5px;
+}
+
+.calling-text {
+    font-size: 18px;
+    opacity: 0.9;
+    animation: pulse 2s infinite;
+    margin: 0;
+}
+
+.call-buttons {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    margin-top: 60px;
+}
+
+.btn-call {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: none;
+    font-size: 32px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.btn-call p {
+    font-size: 12px;
+    margin: 0;
+    font-weight: 600;
+}
+
+.accept-btn {
+    background: #4CAF50;
+    color: white;
+}
+
+.accept-btn:hover {
+    background: #45a049;
+    transform: scale(1.1);
+    box-shadow: 0 10px 30px rgba(76, 175, 80, 0.4);
+}
+
+.decline-btn {
+    background: #f44336;
+    color: white;
+}
+
+.decline-btn:hover {
+    background: #da190b;
+    transform: scale(1.1);
+    box-shadow: 0 10px 30px rgba(244, 67, 54, 0.4);
+}
+
+/* ======================== CALLING (INITIATING) ======================== */
+.mivton-calling {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+    width: 100%;
+    height: 100%;
+    animation: fadeIn 0.3s ease;
+}
+
+.calling-content {
+    text-align: center;
+    color: white;
+}
+
+.callee-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    display: block;
+    object-fit: cover;
+    border: 4px solid white;
+}
+
+.calling-details h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+}
+
+.calling-animation {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 40px 0;
+    height: 40px;
+    align-items: center;
+}
+
+.pulse {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    animation: callPulse 1.4s infinite;
+}
+
+.pulse:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.pulse:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes callPulse {
+    0%, 100% {
+        opacity: 0.6;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+.cancel-btn {
+    background: #f44336;
+    color: white;
+    width: 70px;
+    height: 70px;
+    margin-top: 30px;
+}
+
+.cancel-btn:hover {
+    background: #da190b;
+    transform: scale(1.1);
+    box-shadow: 0 10px 30px rgba(244, 67, 54, 0.4);
+}
+
+/* ======================== ACTIVE VIDEO CALL ======================== */
+.mivton-video-call {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: #000;
+}
+
+.video-streams {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a1a;
+}
+
+.video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.remote-video {
+    width: 100%;
+    height: 100%;
+}
+
+.local-video {
+    position: absolute;
+    width: 180px;
+    height: 150px;
+    bottom: 20px;
+    right: 20px;
+    border-radius: 8px;
+    border: 3px solid white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+@media (max-width: 768px) {
+    .local-video {
+        width: 120px;
+        height: 100px;
+        bottom: 80px;
+        right: 10px;
+    }
+}
+
+/* Call Info Bar */
+.call-info-bar {
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.call-duration {
+    font-size: 24px;
+    font-weight: 700;
+    color: #4CAF50;
+    letter-spacing: 2px;
+}
+
+.call-status {
+    font-size: 14px;
+    color: #aaa;
+}
+
+/* Video Controls */
+.video-controls {
+    background: #1a1a1a;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    border-top: 1px solid #333;
+}
+
+.control-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    font-size: 24px;
+}
+
+.mic-btn {
+    background: #4CAF50;
+}
+
+.mic-btn:hover {
+    background: #45a049;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+}
+
+.mic-btn.muted {
+    background: #f44336;
+}
+
+.video-btn {
+    background: #2196F3;
+}
+
+.video-btn:hover {
+    background: #1976D2;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(33, 150, 243, 0.5);
+}
+
+.video-btn.off {
+    background: #f44336;
+}
+
+.end-btn {
+    background: #f44336;
+    width: 65px;
+    height: 56px;
+}
+
+.end-btn:hover {
+    background: #da190b;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(244, 67, 54, 0.5);
+}
+
+/* ======================== ANIMATIONS ======================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* ======================== TOAST NOTIFICATIONS ======================== */
+.toast-notification {
+    animation: slideIn 0.3s ease;
+}
+
+.toast-success {
+    background: #4CAF50 !important;
+}
+
+.toast-error {
+    background: #f44336 !important;
+}
+
+.toast-warning {
+    background: #ff9800 !important;
+}
+
+.toast-info {
+    background: #2196F3 !important;
+}
+
+/* ======================== RESPONSIVE ======================== */
+@media (max-width: 1024px) {
+    .caller-avatar {
+        width: 100px;
+        height: 100px;
+    }
+
+    .caller-details h2 {
+        font-size: 28px;
+    }
+
+    .control-btn {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+@media (max-width: 768px) {
+    .caller-avatar {
+        width: 80px;
+        height: 80px;
+    }
+
+    .caller-details h2 {
+        font-size: 24px;
+    }
+
+    .calling-text {
+        font-size: 16px;
+    }
+
+    .call-buttons {
+        gap: 20px;
+    }
+
+    .btn-call {
+        width: 70px;
+        height: 70px;
+        font-size: 28px;
+    }
+
+    .calling-animation {
+        margin: 30px 0;
+    }
+
+    .call-info-bar {
+        gap: 20px;
+    }
+
+    .call-duration {
+        font-size: 20px;
+    }
+
+    .control-btn {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+@media (max-width: 480px) {
+    .caller-avatar {
+        width: 70px;
+        height: 70px;
+        margin-bottom: 20px;
+    }
+
+    .caller-details h2 {
+        font-size: 20px;
+    }
+
+    .calling-text {
+        font-size: 14px;
+    }
+
+    .call-buttons {
+        gap: 15px;
+    }
+
+    .btn-call {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+
+    .btn-call p {
+        font-size: 10px;
+    }
+
+    .video-controls {
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .control-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+    }
+
+    .local-video {
+        width: 100px;
+        height: 85px;
+    }
+}

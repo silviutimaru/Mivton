@@ -1,0 +1,95 @@
+    <!-- Scripts - ENHANCED LOADING ORDER -->
+    <!-- 1. Core debugging and component system FIRST -->
+    <script src="/js/component-debug.js"></script>
+    <script src="/js/debug-system.js"></script>
+    
+    <!-- 2. Socket.IO and core networking -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/socket-client.js"></script>
+    <script src="/js/enhanced-socket-client.js"></script>
+    
+    <!-- 3. Authentication and core utilities -->
+    <script src="/js/auth.js"></script>
+    <script src="/js/notifications.js"></script>
+    
+    <!-- 4. Base component system (CRITICAL: Must load before other components) -->
+    <script src="/js/mivton-base-component.js"></script>
+    
+    <!-- 5. Main components -->
+    <script src="/js/components.js"></script>
+    <script src="/js/profile-modal.js"></script>
+    <script src="/js/friends-manager.js?v=20250124"></script>
+    <script src="/js/friend-requests.js"></script>
+    
+    <!-- 6. Language system -->
+    <script src="/js/languages.js"></script>
+    <script src="/js/dashboard-language-selector.js"></script>
+    
+    <!-- 7. Compatibility and legacy support -->
+    <script src="/js/friends-compatibility.js"></script>
+    
+    <!-- 8. Complete functional admin dashboard -->
+    <script src="/js/admin-complete.js"></script>
+    
+    <!-- 9. Main dashboard logic -->
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/simple-messaging.js"></script>
+    <script src="/js/friend-chat.js"></script>
+    <script src="/js/webrtc-handler.js"></script>
+    <script src="/js/video-call-fixed.js?v=20250115f"></script>
+    
+    <!-- NEW: Complete Video Call System -->
+    <script src="/js/video-call-manager-complete.js?v=20250115g"></script>
+    <script src="/js/video-call-integration.js?v=20250115h"></script>
+
+    <!-- Debug utilities -->
+    <script src="/js/modal-debug.js"></script>
+    <script src="/js/simple-modal-test.js"></script>
+    
+    <!-- System Initialization -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize friends system with error handling
+        try {
+            const friendsContainer = document.getElementById('friendsManager');
+            if (friendsContainer && window.MivtonComponents && window.MivtonComponents.FriendsManager) {
+                console.log('✅ Friends system ready for initialization');
+            } else {
+                console.warn('⚠️ Friends system components not available');
+                if (friendsContainer) {
+                    friendsContainer.innerHTML = `
+                        <div class="friends-fallback">
+                            <div class="section-header">
+                                <h2>Friends</h2>
+                                <button class="add-friend-btn" onclick="showSection('find')">
+                                    <span>+</span> Add Friend
+                                </button>
+                            </div>
+                            <div class="empty-state">
+                                <div class="empty-icon">🫂</div>
+                                <h3>Friends system loading...</h3>
+                                <p>Please refresh the page if this persists.</p>
+                                <button class="empty-action-btn" onclick="location.reload()">
+                                    Refresh Page
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        } catch (error) {
+            console.error('❌ Friends system initialization error:', error);
+        }
+
+        // Check for any JavaScript errors
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript error detected:', {
+                message: e.message,
+                filename: e.filename,
+                lineno: e.lineno
+            });
+        });
+    });
+    </script>
+</body>
+</html>
