@@ -575,10 +575,30 @@ class FriendChat {
                 minute: '2-digit'
             });
 
+            // Prefer translated content when available
+            const hasTranslation = !!(msg.translation && msg.translation.isTranslated && msg.translation.content);
+            const translatedText = hasTranslation ? msg.translation.content : null;
+            const translatedLang = hasTranslation ? (msg.translation.language || '').toUpperCase() : '';
+            const originalText = msg.content || '';
+            const originalLang = (msg.original_language || '').toUpperCase();
+
             return `
                 <div class="message ${isOwn ? 'message-own' : 'message-other'}">
                     <div class="message-bubble">
-                        <div class="message-text">${this.escapeHtml(msg.content)}</div>
+                        ${hasTranslation ? `
+                            <div class="message-text translated">
+                                <span class="language-badge translated-lang">${this.escapeHtml(translatedLang || 'TR')}</span>
+                                ${this.escapeHtml(translatedText)}
+                            </div>
+                            <div class="message-text original">
+                                <span class="language-badge original-lang">${this.escapeHtml(originalLang || 'OR')}</span>
+                                ${this.escapeHtml(originalText)}
+                            </div>
+                        ` : `
+                            <div class="message-text">
+                                ${this.escapeHtml(originalText)}
+                            </div>
+                        `}
                         <div class="message-time">${time}</div>
                     </div>
                 </div>
@@ -706,10 +726,29 @@ class FriendChat {
         const isOwn = messageData.sender_id === window.currentUser?.id;
         const timestamp = this.formatMessageTime(messageData.created_at);
 
+        const hasTranslation = !!(messageData.translation && messageData.translation.isTranslated && messageData.translation.content);
+        const translatedText = hasTranslation ? messageData.translation.content : null;
+        const translatedLang = hasTranslation ? (messageData.translation.language || '').toUpperCase() : '';
+        const originalText = messageData.content || '';
+        const originalLang = (messageData.originalLanguage || '').toUpperCase();
+
         const messageHTML = `
             <div class="message ${isOwn ? 'message-own' : 'message-other'}">
                 <div class="message-bubble">
-                    <div class="message-text">${this.escapeHtml(messageData.content)}</div>
+                    ${hasTranslation ? `
+                        <div class="message-text translated">
+                            <span class="language-badge translated-lang">${this.escapeHtml(translatedLang || 'TR')}</span>
+                            ${this.escapeHtml(translatedText)}
+                        </div>
+                        <div class="message-text original">
+                            <span class="language-badge original-lang">${this.escapeHtml(originalLang || 'OR')}</span>
+                            ${this.escapeHtml(originalText)}
+                        </div>
+                    ` : `
+                        <div class="message-text">
+                            ${this.escapeHtml(originalText)}
+                        </div>
+                    `}
                     <div class="message-time">${timestamp}</div>
                 </div>
             </div>
